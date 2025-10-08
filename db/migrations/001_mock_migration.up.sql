@@ -1,4 +1,0 @@
-CREATE TABLE IF EXISTS mocks(
-    id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL
-)
