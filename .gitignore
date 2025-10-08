@@ -373,3 +373,52 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
+# ===== Gradle / Android build =====
+.gradle/
+**/build/
+**/buildOutputCleanup/
+**/.gradle/
+**/file-system.probe
+**/.idea/
+local.properties
+.gradle-cache/
+out/
+captures/
+*.iml
+
+# ===== IntelliJ / Android Studio =====
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# ===== iOS / Xcode =====
+iosApp/iosApp.xcodeproj/project.xcworkspace/
+iosApp/iosApp.xcodeproj/xcuserdata/
+iosApp/iosApp.xcworkspace/
+iosApp/iosApp.xcodeproj/xcshareddata/
+DerivedData/
+*.xcuserstate
+
+# ===== OS files =====
+.DS_Store
+Thumbs.db
+
+# ===== Environment / secrets =====
+.env
+.env.*
+*.keystore
+*.jks
+
+# ===== Logs =====
+*.log
+*.tmp
+
+# ===== Kotlin Multiplatform specific =====
+**/configuration-cache/
+**/checksums/
+**/executionHistory/
+**/fileHashes/
+**/dependencies-accessors/
+**/vcs-1/
+**/gc.properties
