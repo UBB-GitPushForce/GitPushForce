@@ -422,3 +422,14 @@ Thumbs.db
 **/dependencies-accessors/
 **/vcs-1/
 **/gc.properties
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.env
+.venv/
+instance/
+
