@@ -6,8 +6,6 @@ from passlib.hash import sha256_crypt
 # Create a database session
 db = SessionLocal()
 repo = UserRepository(db)
-repo2 = IUserRepository()
-
 
 # Example users to add
 example_users = [
