@@ -32,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -52,7 +53,9 @@ fun SignUpScreen(
     var phoneNumber by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
-    // FIXME - maybe the spacers should be adaptive on the screen size and not fixed
+    val configuration = LocalConfiguration.current
+    val screenHeight = configuration.screenHeightDp.dp
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -75,7 +78,7 @@ fun SignUpScreen(
                 color = Color.White
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(screenHeight * 0.01f))
 
 
             Text(
@@ -84,7 +87,7 @@ fun SignUpScreen(
                 color = Color.Gray
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(screenHeight * 0.04f))
 
             // first name
             OutlinedTextField(
@@ -102,7 +105,7 @@ fun SignUpScreen(
                 )
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(screenHeight * 0.02f))
 
             // last name
             OutlinedTextField(
@@ -120,7 +123,7 @@ fun SignUpScreen(
                 )
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(screenHeight * 0.02f))
 
             // email
             OutlinedTextField(
@@ -138,7 +141,7 @@ fun SignUpScreen(
                 )
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(screenHeight * 0.02f))
 
             // phone number
             OutlinedTextField(
@@ -157,7 +160,7 @@ fun SignUpScreen(
                 )
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(screenHeight * 0.02f))
 
             // password
             // TODO - limit the input numbers?
@@ -188,7 +191,7 @@ fun SignUpScreen(
                 )
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(screenHeight * 0.03f))
 
             Button(
                 onClick = { onSignUpClick(firstName, lastName, email, phoneNumber, password) },
@@ -201,7 +204,7 @@ fun SignUpScreen(
                 Text(text = "Sign Up", fontSize = 16.sp, color = Color.White)
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(screenHeight * 0.02f))
 
             Row(
                 horizontalArrangement = Arrangement.Center,
