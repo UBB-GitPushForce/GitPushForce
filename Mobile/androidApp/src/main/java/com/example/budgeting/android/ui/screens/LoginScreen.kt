@@ -13,14 +13,20 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.ui.text.input.VisualTransformation
 
 
 @Composable
 fun LoginScreen(
-    onLoginClick: (String, String) -> Unit
+    onLoginClick: (String, String) -> Unit,
+    onSignUpClick: () -> Unit
 ) {
     val email = remember { mutableStateOf("") }
     val password = remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -57,9 +63,11 @@ fun LoginScreen(
                 label = { Text("Email or username") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
+
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color(0xFF6C63FF),
                     unfocusedBorderColor = Color.Gray,
+                    focusedTextColor = Color(0xFF6C63FF),
                     focusedLabelColor = Color(0xFF6C63FF),
                     cursorColor = Color(0xFF6C63FF)
                 )
@@ -73,11 +81,24 @@ fun LoginScreen(
                 onValueChange = { password.value = it },
                 label = { Text("Password") },
                 singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                // i added the toggle button for the password
+                trailingIcon = {
+                    val image = if (passwordVisible)
+                        Icons.Filled.Visibility
+                    else Icons.Filled.VisibilityOff
+
+                    val description = if (passwordVisible) "Hide password" else "Show password"
+
+                    IconButton(onClick = {passwordVisible = !passwordVisible}){
+                        Icon(imageVector  = image, description)
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color(0xFF6C63FF),
                     unfocusedBorderColor = Color.Gray,
+                    focusedTextColor = Color(0xFF6C63FF),
                     focusedLabelColor = Color(0xFF6C63FF),
                     cursorColor = Color(0xFF6C63FF)
                 )
@@ -115,7 +136,7 @@ fun LoginScreen(
                 Text(
                     text = "Sign up",
                     color = Color(0xFF6C63FF),
-                    modifier = Modifier.clickable { /* TODO: sign up */ }
+                    modifier = Modifier.clickable { onSignUpClick() }
                 )
             }
         }
