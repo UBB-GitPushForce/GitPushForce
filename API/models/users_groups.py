@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, ForeignKey
-from .base import Base
+from models.base import Base
 
 class UsersGroups(Base):
     __tablename__ = "users_groups"
