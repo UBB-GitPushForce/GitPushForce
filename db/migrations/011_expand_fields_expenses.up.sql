@@ -1,0 +1,3 @@
+ALTER TABLE expenses
+ADD COLUMN title VARCHAR(255) NOT NULL DEFAULT 'Untitled Expense',
+ADD COLUMN category VARCHAR(100) NOT NULL DEFAULT 'Altele'
