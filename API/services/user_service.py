@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 
 from models.user import User
-from schemas.user import UserCreate, UserLogin
+from schemas.user import UserCreate, UserLogin, UserUpdate
 from repositories.user_repository import UserRepository
 
 # Load environment variables
@@ -99,3 +99,23 @@ class UserService:
             raise HTTPException(status_code=401, detail="Invalid email or password.")
         token = self._encode_token(user.id)
         return {"access_token": token, "user": user}
+    
+    def get_user_by_id(self, user_id: int) -> User:
+        user = self.repository.get_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found.")
+        return user
+
+    def update_user(self, user_id: int, user_in: UserUpdate) -> User:
+        fields = user_in.model_dump(exclude_unset=True)
+        if "password" in fields:
+            fields["hashed_password"] = PasswordUtil.hash_password(fields.pop("password"))
+        if "email" in fields:
+            existing_user = self.repository.get_by_email(fields["email"])
+            if existing_user and existing_user.id != user_id:
+                raise HTTPException(status_code=400, detail="A user with this email already exists.")
+        user = self.repository.update(user_id, fields)
+        return user
+    
+    def delete_user(self, user_id: int) -> None:
+        self.repository.delete(user_id)

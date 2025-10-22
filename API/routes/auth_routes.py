@@ -62,7 +62,7 @@ def get_current_user(request: Request, db: Session = Depends(get_db)):
     service = UserService(db)
     user_id = service.auth_wrapper(request)
     # Fetch the user from DB
-    user = service.repository.get_by_id(user_id)
+    user = service.get_user_by_id(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     # Return only relevant fields

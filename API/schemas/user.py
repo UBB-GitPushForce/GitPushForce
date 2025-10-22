@@ -16,3 +16,10 @@ class UserCreate(UserBase):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
+class UserUpdate(BaseModel):
+    first_name: Optional[str] = Field(None, min_length=1, max_length=255)
+    last_name: Optional[str] = Field(None, min_length=1, max_length=255)
+    email: Optional[EmailStr] = Field(None, description="User's unique email address.")
+    phone_number: Optional[str] = Field(None, min_length=1, max_length=50)
+    password: Optional[str] = Field(None, min_length=8, description="User's password.")
