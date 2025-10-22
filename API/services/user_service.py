@@ -33,14 +33,14 @@ class PasswordUtil:
         return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
 
 
-class IAuthService(ABC):
+class IUserService(ABC):
     @abstractmethod
     def register_user(self, user_in: UserCreate) -> dict: ...
     @abstractmethod
     def login_user(self, user_in: UserLogin) -> dict: ...
 
 
-class AuthService:
+class UserService:
     security = HTTPBearer()  # for FastAPI dependency
 
     def __init__(self, db: Session):

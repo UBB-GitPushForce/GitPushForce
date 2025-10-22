@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Response, HTTPException, Request
 from sqlalchemy.orm import Session
-from services.user_service import AuthService
+from services.user_service import UserService
 from schemas.user import UserCreate, UserLogin
 from database import get_db
 
@@ -10,7 +10,7 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
     """
     Register a new user and return a JWT token.
     """
-    service = AuthService(db)
+    service = UserService(db)
     try:
         result = service.register_user(user_in)
         return {
@@ -28,7 +28,7 @@ def login(user_in: UserLogin, response: Response, db: Session = Depends(get_db))
     """
     Login an existing user and set the JWT token in an HTTP-only cookie.
     """
-    service = AuthService(db)
+    service = UserService(db)
     try:
         result = service.login_user(user_in)
         response.set_cookie(
@@ -59,7 +59,7 @@ def get_current_user(request: Request, db: Session = Depends(get_db)):
     """
     Returns the currently authenticated user (decoded from JWT).
     """
-    service = AuthService(db)
+    service = UserService(db)
     user_id = service.auth_wrapper(request)
     # Fetch the user from DB
     user = service.repository.get_by_id(user_id)
