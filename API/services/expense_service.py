@@ -31,6 +31,8 @@ class ExpenseService:
         """
         expense = Expense(
             user_id=user_id,
+            title=expense_in.title,
+            category=expense_in.category,
             amount=expense_in.amount,
         )
         return self.repository.add(expense)

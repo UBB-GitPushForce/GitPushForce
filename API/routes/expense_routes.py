@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
 from sqlalchemy.exc import NoResultFound
-import sys
 from database import get_db
 from schemas.expense import ExpenseCreate, ExpenseUpdate, ExpenseBase, ExpenseBase
 from services.expense_service import ExpenseService

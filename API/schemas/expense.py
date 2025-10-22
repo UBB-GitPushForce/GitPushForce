@@ -13,7 +13,7 @@ class ExpenseBase(BaseModel):
 
 
 class ExpenseCreate(ExpenseBase):
-    user_id: int
+    pass
 
 
 class ExpenseUpdate(BaseModel):
