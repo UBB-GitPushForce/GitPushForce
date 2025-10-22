@@ -7,7 +7,7 @@ from services.expense_service import ExpenseService
 from repositories.expense_repository import ExpenseRepository
 from sqlalchemy.orm import Session
 from fastapi import Request
-from services.auth_service import AuthService
+from services.user_service import AuthService
 
 router = APIRouter(tags=["Expenses"])
 
