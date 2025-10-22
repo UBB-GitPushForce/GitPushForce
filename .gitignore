@@ -433,3 +433,5 @@ __pycache__/
 .venv/
 instance/
 
+Web/package-lock.json
+Web/package.json
