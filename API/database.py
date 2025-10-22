@@ -4,10 +4,9 @@ import os
 
 from dotenv import load_dotenv
 
-load_dotenv() 
+load_dotenv()
 
-# Change <username>, <password>, <database> with your info from .env
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://username:password@localhost:5050/database")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
