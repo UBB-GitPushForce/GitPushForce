@@ -6,16 +6,18 @@ from database import get_db
 from schemas.expense import ExpenseCreate, ExpenseUpdate, ExpenseBase, ExpenseBase
 from services.expense_service import ExpenseService
 from repositories.expense_repository import ExpenseRepository
-from sqlalchemy.orm import Session# your session dependency
+from sqlalchemy.orm import Session
+from fastapi import Request
+from services.auth_service import AuthService
 
 router = APIRouter(tags=["Expenses"])
 
-
-# Temporary dependency to simulate current user
-def get_current_user_id() -> int:
-    # For now, just return a fixed user ID (e.g., 1)
-    return 1
-
+def get_current_user_id(request: Request, db: Session = Depends(get_db)) -> int:
+    """
+    Reads the JWT token from the request (header or cookie) and returns the user ID.
+    """
+    service = AuthService(db)
+    return service.auth_wrapper(request)
 
 # Dependency to get the ExpenseService instance
 def get_expense_service(db: Session = Depends(get_db)) -> ExpenseService:
