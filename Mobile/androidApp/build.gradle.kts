@@ -59,4 +59,16 @@ dependencies {
 
     // Navigation dependencies
     implementation(libs.androidx.navigation.compose)
+
+    // Retrofit for networking
+    implementation("com.squareup.retrofit2:retrofit:3.0.0")
+    // Moshi for JSON parsing (more modern than Gson)
+    implementation("com.squareup.retrofit2:converter-moshi:2.9.0")
+    implementation("com.squareup.moshi:moshi-kotlin:1.15.2")
+
+    // ViewModel for MVVM
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
+
+    // Coroutines for asynchronous work
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
 }

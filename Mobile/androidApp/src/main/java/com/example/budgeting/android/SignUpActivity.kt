@@ -15,8 +15,7 @@ class SignUpActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 SignUpScreen(
-                    onSignUpClick = { _, _, _, _, _ ->
-                        // TODO sign up logic
+                    onSignUpSuccess = {
                         val intent = Intent(this@SignUpActivity, LoginActivity::class.java)
                         startActivity(intent)
                         finish()

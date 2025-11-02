@@ -15,11 +15,8 @@ class LoginActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 LoginScreen(
-                    onLoginClick = { username, password ->
-                        // TODO - check if the username and password are correct before login
-
+                    onLoginSuccess = {
                         val intent = Intent(this@LoginActivity, MainActivity::class.java)
-                        intent.putExtra("USERNAME", username)
                         startActivity(intent)
                         // finish the activity so the user can't go back to the login screen
                         finish()

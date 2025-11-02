@@ -19,12 +19,16 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,11 +44,14 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.budgeting.android.ui.viewmodels.SignUpViewModel
 
 @Composable
 fun SignUpScreen(
-    onSignUpClick: (String, String, String, String, String) -> Unit,
-    onBackToLogin: () -> Unit
+    onSignUpSuccess: () -> Unit,
+    onBackToLogin: () -> Unit,
+    signUpViewModel: SignUpViewModel = viewModel()
 ) {
     var firstName by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
@@ -53,8 +60,17 @@ fun SignUpScreen(
     var phoneNumber by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
+    val uiState by signUpViewModel.uiState.collectAsState()
+
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp.dp
+
+    LaunchedEffect(uiState) {
+        if (uiState.signUpSuccess) {
+            onSignUpSuccess()
+            signUpViewModel.onSignUpHandled()
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -64,161 +80,175 @@ fun SignUpScreen(
         contentAlignment = Alignment.Center
     )
     {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
-        {
 
-            Text(
-                text = "Sign Up",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-
-            Spacer(modifier = Modifier.height(screenHeight * 0.01f))
-
-
-            Text(
-                text = "Create an account to get started",
-                fontSize = 14.sp,
-                color = Color.Gray
-            )
-
-            Spacer(modifier = Modifier.height(screenHeight * 0.04f))
-
-            // first name
-            OutlinedTextField(
-                value = firstName,
-                onValueChange = { firstName = it },
-                label = { Text("First Name") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(0xFF6C63FF),
-                    unfocusedBorderColor = Color.Gray,
-                    focusedTextColor = Color(0xFF6C63FF),
-                    focusedLabelColor = Color(0xFF6C63FF),
-                    cursorColor = Color(0xFF6C63FF)
-                )
-            )
-
-            Spacer(modifier = Modifier.height(screenHeight * 0.02f))
-
-            // last name
-            OutlinedTextField(
-                value = lastName,
-                onValueChange = { lastName = it },
-                label = { Text("Last Name") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(0xFF6C63FF),
-                    unfocusedBorderColor = Color.Gray,
-                    focusedTextColor = Color(0xFF6C63FF),
-                    focusedLabelColor = Color(0xFF6C63FF),
-                    cursorColor = Color(0xFF6C63FF)
-                )
-            )
-
-            Spacer(modifier = Modifier.height(screenHeight * 0.02f))
-
-            // email
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("Email") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(0xFF6C63FF),
-                    unfocusedBorderColor = Color.Gray,
-                    focusedTextColor = Color(0xFF6C63FF),
-                    focusedLabelColor = Color(0xFF6C63FF),
-                    cursorColor = Color(0xFF6C63FF)
-                )
-            )
-
-            Spacer(modifier = Modifier.height(screenHeight * 0.02f))
-
-            // phone number
-            OutlinedTextField(
-                value = phoneNumber,
-                onValueChange = { phoneNumber = it },
-                label = { Text("Phone Number") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(0xFF6C63FF),
-                    unfocusedBorderColor = Color.Gray,
-                    focusedTextColor = Color(0xFF6C63FF),
-                    focusedLabelColor = Color(0xFF6C63FF),
-                    cursorColor = Color(0xFF6C63FF)
-                )
-            )
-
-            Spacer(modifier = Modifier.height(screenHeight * 0.02f))
-
-            // password
-            // TODO - limit the input numbers?
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("Password") },
-                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                trailingIcon = {
-                    val image = if (passwordVisible)
-                        Icons.Filled.Visibility
-                    else Icons.Filled.VisibilityOff
-
-                    val description = if (passwordVisible) "Hide password" else "Show password"
-
-                    IconButton(onClick = {passwordVisible = !passwordVisible}){
-                        Icon(imageVector  = image, description)
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(0xFF6C63FF),
-                    unfocusedBorderColor = Color.Gray,
-                    focusedTextColor = Color(0xFF6C63FF),
-                    focusedLabelColor = Color(0xFF6C63FF),
-                    cursorColor = Color(0xFF6C63FF)
-                )
-            )
-
-            Spacer(modifier = Modifier.height(screenHeight * 0.03f))
-
-            Button(
-                onClick = { onSignUpClick(firstName, lastName, email, phoneNumber, password) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6C63FF)),
-                shape = RoundedCornerShape(24.dp)
-            ) {
-                Text(text = "Sign Up", fontSize = 16.sp, color = Color.White)
-            }
-
-            Spacer(modifier = Modifier.height(screenHeight * 0.02f))
-
-            Row(
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
+        if (uiState.isLoading) {
+            CircularProgressIndicator(color = Color(0xFF6C63FF))
+        }
+        else {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
                 modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "Already have an account?", color = Color.Gray)
-                Spacer(modifier = Modifier.width(4.dp))
+            )
+            {
+
                 Text(
-                    text = "Log in",
-                    color = Color(0xFF6C63FF),
-                    modifier = Modifier.clickable { onBackToLogin() }
+                    text = "Sign Up",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
                 )
 
+                Spacer(modifier = Modifier.height(screenHeight * 0.01f))
+
+
+                Text(
+                    text = "Create an account to get started",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+
+                Spacer(modifier = Modifier.height(screenHeight * 0.04f))
+
+                // first name
+                OutlinedTextField(
+                    value = firstName,
+                    onValueChange = { firstName = it },
+                    label = { Text("First Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF6C63FF),
+                        unfocusedBorderColor = Color.Gray,
+                        focusedTextColor = Color(0xFF6C63FF),
+                        focusedLabelColor = Color(0xFF6C63FF),
+                        cursorColor = Color(0xFF6C63FF)
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(screenHeight * 0.02f))
+
+                // last name
+                OutlinedTextField(
+                    value = lastName,
+                    onValueChange = { lastName = it },
+                    label = { Text("Last Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF6C63FF),
+                        unfocusedBorderColor = Color.Gray,
+                        focusedTextColor = Color(0xFF6C63FF),
+                        focusedLabelColor = Color(0xFF6C63FF),
+                        cursorColor = Color(0xFF6C63FF)
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(screenHeight * 0.02f))
+
+                // email
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF6C63FF),
+                        unfocusedBorderColor = Color.Gray,
+                        focusedTextColor = Color(0xFF6C63FF),
+                        focusedLabelColor = Color(0xFF6C63FF),
+                        cursorColor = Color(0xFF6C63FF)
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(screenHeight * 0.02f))
+
+                // phone number
+                OutlinedTextField(
+                    value = phoneNumber,
+                    onValueChange = { phoneNumber = it },
+                    label = { Text("Phone Number") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF6C63FF),
+                        unfocusedBorderColor = Color.Gray,
+                        focusedTextColor = Color(0xFF6C63FF),
+                        focusedLabelColor = Color(0xFF6C63FF),
+                        cursorColor = Color(0xFF6C63FF)
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(screenHeight * 0.02f))
+
+                // password
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Password") },
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        val image = if (passwordVisible)
+                            Icons.Filled.Visibility
+                        else Icons.Filled.VisibilityOff
+
+                        val description = if (passwordVisible) "Hide password" else "Show password"
+
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(imageVector = image, description)
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF6C63FF),
+                        unfocusedBorderColor = Color.Gray,
+                        focusedTextColor = Color(0xFF6C63FF),
+                        focusedLabelColor = Color(0xFF6C63FF),
+                        cursorColor = Color(0xFF6C63FF)
+                    )
+                )
+
+                uiState.error?.let {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = it,
+                        color = MaterialTheme.colorScheme.error,
+                        fontSize = 14.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(screenHeight * 0.03f))
+
+                Button(
+                    onClick = { signUpViewModel.signUp(firstName, lastName, email, password, phoneNumber) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6C63FF)),
+                    shape = RoundedCornerShape(24.dp)
+                ) {
+                    Text(text = "Sign Up", fontSize = 16.sp, color = Color.White)
+                }
+
+                Spacer(modifier = Modifier.height(screenHeight * 0.02f))
+
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(text = "Already have an account?", color = Color.Gray)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Log in",
+                        color = Color(0xFF6C63FF),
+                        modifier = Modifier.clickable { onBackToLogin() }
+                    )
+
+                }
             }
         }
     }
@@ -229,5 +259,5 @@ fun SignUpScreen(
 @Preview(showBackground = true)
 @Composable
 fun SignUpScreenPreview() {
-    SignUpScreen(onSignUpClick = { _, _, _, _, _ -> }, onBackToLogin = { })
+    SignUpScreen(onSignUpSuccess = { }, onBackToLogin = { })
 }

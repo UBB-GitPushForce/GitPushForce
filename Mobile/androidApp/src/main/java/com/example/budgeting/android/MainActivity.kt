@@ -11,11 +11,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.main_layout)
 
-        // get the username from the intent
-        val username = intent.getStringExtra("USERNAME")
-
         val textView = findViewById<TextView>(R.id.textView)
-        textView.text = "Hello ${username}!"
+        textView.text = "Hello logged user!"
     }
 
 }
