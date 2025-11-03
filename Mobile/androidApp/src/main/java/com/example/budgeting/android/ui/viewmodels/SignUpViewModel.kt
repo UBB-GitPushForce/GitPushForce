@@ -1,7 +1,9 @@
 package com.example.budgeting.android.ui.viewmodels
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.budgeting.android.data.local.TokenDataStore
 import com.example.budgeting.android.data.network.RetrofitClient
 import com.example.budgeting.android.data.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,10 +19,11 @@ data class SignUpUiState(
     val error: String? = null
 )
 
-class SignUpViewModel : ViewModel() {
+class SignUpViewModel(context: Context) : ViewModel() {
 
     // Normally injected (Hilt/Koin), but created manually for now
-    private val authRepository = AuthRepository(RetrofitClient.instance)
+    private val tokenDataStore = TokenDataStore(context.applicationContext)
+    private val authRepository = AuthRepository(RetrofitClient.instance, tokenDataStore)
 
     private val _uiState = MutableStateFlow(SignUpUiState())
     val uiState: StateFlow<SignUpUiState> = _uiState.asStateFlow()
@@ -39,9 +42,10 @@ class SignUpViewModel : ViewModel() {
                 val response = authRepository.register(email, password, firstName, lastName, phoneNumber)
 
                 if (response.isSuccessful && response.body() != null) {
-                    val user = response.body()!!.user
+                    val body = response.body()!!
+                    val user = body.user
                     _uiState.update { it.copy(isLoading = false, signUpSuccess = true) }
-                    println("SIGN UP SUCCESS: ${response.body()!!.message} (UserID: ${user.id})")
+                    println("SIGN UP SUCCESS: ${body.message} (UserID: ${user.id})")
                 } else {
                     val errorMessage = "Sign up failed: ${response.code()} - ${response.message()}"
                     _uiState.update { it.copy(isLoading = false, error = errorMessage) }

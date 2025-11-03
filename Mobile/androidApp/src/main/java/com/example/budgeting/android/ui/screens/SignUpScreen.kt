@@ -46,12 +46,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.budgeting.android.ui.viewmodels.SignUpViewModel
+import androidx.compose.ui.platform.LocalContext
+import com.example.budgeting.android.data.local.TokenDataStore
+import com.example.budgeting.android.data.auth.TokenHolder
+import com.example.budgeting.android.ui.viewmodels.SignUpViewModelFactory
 
 @Composable
 fun SignUpScreen(
     onSignUpSuccess: () -> Unit,
     onBackToLogin: () -> Unit,
-    signUpViewModel: SignUpViewModel = viewModel()
+    signUpViewModel: SignUpViewModel = viewModel(
+        factory = SignUpViewModelFactory(LocalContext.current)
+    )
 ) {
     var firstName by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
@@ -65,7 +71,8 @@ fun SignUpScreen(
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp.dp
 
-    LaunchedEffect(uiState) {
+
+    LaunchedEffect(uiState.signUpSuccess) {
         if (uiState.signUpSuccess) {
             onSignUpSuccess()
             signUpViewModel.onSignUpHandled()

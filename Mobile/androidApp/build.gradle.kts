@@ -42,6 +42,7 @@ dependencies {
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.compose.material3)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.compose.material3)
     debugImplementation(libs.compose.ui.tooling)
 
     // Core Compose dependencies
@@ -71,4 +72,7 @@ dependencies {
 
     // Coroutines for asynchronous work
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+
+    // DataStore for token persistence
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
 }

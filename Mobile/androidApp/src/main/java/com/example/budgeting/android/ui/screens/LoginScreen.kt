@@ -19,12 +19,18 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.budgeting.android.ui.viewmodels.LoginViewModel
+import androidx.compose.ui.platform.LocalContext
+import com.example.budgeting.android.data.local.TokenDataStore
+import com.example.budgeting.android.data.auth.TokenHolder
+import com.example.budgeting.android.ui.viewmodels.LoginViewModelFactory
 
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onSignUpClick: () -> Unit,
-    loginViewModel: LoginViewModel = viewModel()
+    loginViewModel: LoginViewModel = viewModel(
+        factory= LoginViewModelFactory(LocalContext.current)
+    )
 ) {
     val uiState by loginViewModel.uiState.collectAsState()
 
@@ -32,11 +38,10 @@ fun LoginScreen(
     val password = remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
-    // This is a side-effect. When loginSuccess becomes true, this block runs.
     LaunchedEffect(uiState.loginSuccess) {
         if (uiState.loginSuccess) {
-            onLoginSuccess() // Navigate away
-            loginViewModel.onLoginHandled() // Reset the state
+            onLoginSuccess()
+            loginViewModel.onLoginHandled()
         }
     }
 
