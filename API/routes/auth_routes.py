@@ -40,7 +40,7 @@ def login(user_in: UserLogin, response: Response, db: Session = Depends(get_db))
             max_age=60 * 60 * 72 # 3 days
         )
 
-        return {"message": "Login successful", "user": result["user"]}
+        return {"message": "Login successful", "user": result["user"], "access_token": result["access_token"]}
     except HTTPException as e:
         raise e
     except ValueError as e:
