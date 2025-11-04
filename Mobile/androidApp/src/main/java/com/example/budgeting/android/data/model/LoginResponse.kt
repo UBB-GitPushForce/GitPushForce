@@ -1,4 +1,4 @@
-package com.example.budgeting.android.data.network
+package com.example.budgeting.android.data.model
 
 import com.squareup.moshi.Json
 

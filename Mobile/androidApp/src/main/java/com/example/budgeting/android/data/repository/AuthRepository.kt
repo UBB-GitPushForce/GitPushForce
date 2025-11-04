@@ -2,8 +2,8 @@ package com.example.budgeting.android.data.repository
 
 import com.example.budgeting.android.data.local.TokenDataStore
 import com.example.budgeting.android.data.network.AuthApiService
-import com.example.budgeting.android.data.network.LoginRequest
-import com.example.budgeting.android.data.network.RegisterRequest
+import com.example.budgeting.android.data.model.LoginRequest
+import com.example.budgeting.android.data.model.RegisterRequest
 
 class AuthRepository(private val apiService: AuthApiService, private val tokenDataStore: TokenDataStore) {
 

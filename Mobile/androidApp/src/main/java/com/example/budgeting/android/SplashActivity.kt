@@ -28,7 +28,7 @@ class SplashActivity : ComponentActivity() {
             if (!savedToken.isNullOrBlank()) {
                 TokenHolder.token = savedToken
 
-                nextIntent = Intent(this@SplashActivity, MainActivity::class.java)
+                nextIntent = Intent(this@SplashActivity, ExpenseActivity::class.java)
             } else {
                 nextIntent = Intent(this@SplashActivity, LoginActivity::class.java)
             }

@@ -27,7 +27,7 @@ class LoginViewModel(context: Context) : ViewModel() {
     // For now, we'll create it directly.
 
     private val tokenDataStore = TokenDataStore(context.applicationContext)
-    private val authRepository = AuthRepository(RetrofitClient.instance, tokenDataStore)
+    private val authRepository = AuthRepository(RetrofitClient.authInstance, tokenDataStore)
 
     // Private mutable state flow that can be updated only within the ViewModel
     private val _uiState = MutableStateFlow(LoginUiState())
@@ -52,6 +52,7 @@ class LoginViewModel(context: Context) : ViewModel() {
 
                     // save token for future api calls
                     TokenHolder.token = token
+                    tokenDataStore.saveToken(token)
 
                     _uiState.update { it.copy(isLoading = false, loginSuccess = true) }
                     println("SUCCESS: Logged in as ${user.firstName} ${user.lastName} (ID: ${user.id})")

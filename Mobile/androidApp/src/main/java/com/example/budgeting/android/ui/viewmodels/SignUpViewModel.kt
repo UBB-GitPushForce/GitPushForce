@@ -23,7 +23,7 @@ class SignUpViewModel(context: Context) : ViewModel() {
 
     // Normally injected (Hilt/Koin), but created manually for now
     private val tokenDataStore = TokenDataStore(context.applicationContext)
-    private val authRepository = AuthRepository(RetrofitClient.instance, tokenDataStore)
+    private val authRepository = AuthRepository(RetrofitClient.authInstance, tokenDataStore)
 
     private val _uiState = MutableStateFlow(SignUpUiState())
     val uiState: StateFlow<SignUpUiState> = _uiState.asStateFlow()
