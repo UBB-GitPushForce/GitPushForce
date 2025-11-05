@@ -1,15 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from typing import List
 from sqlalchemy.exc import NoResultFound
+from sqlalchemy.orm import Session
 from database import get_db
-from schemas.expense import ExpenseCreate, ExpenseUpdate, ExpenseBase, ExpenseBase
+from schemas.expense import ExpenseCreate, ExpenseUpdate, Expense
 from services.expense_service import ExpenseService
 from repositories.expense_repository import ExpenseRepository
-from sqlalchemy.orm import Session
-from fastapi import Request
 from services.user_service import UserService
 
 router = APIRouter(tags=["Expenses"])
+
 
 def get_current_user_id(request: Request, db: Session = Depends(get_db)) -> int:
     """
@@ -18,13 +18,13 @@ def get_current_user_id(request: Request, db: Session = Depends(get_db)) -> int:
     service = UserService(db)
     return service.auth_wrapper(request)
 
-# Dependency to get the ExpenseService instance
+
 def get_expense_service(db: Session = Depends(get_db)) -> ExpenseService:
     repo = ExpenseRepository(db)
     return ExpenseService(repo)
 
 
-@router.post("/", response_model=ExpenseBase, status_code=201)
+@router.post("/", response_model=Expense, status_code=201)
 def create_expense(
     expense_in: ExpenseCreate,
     user_id: int = Depends(get_current_user_id),
@@ -36,7 +36,7 @@ def create_expense(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@router.get("/{expense_id}", response_model=ExpenseBase)
+@router.get("/{expense_id}", response_model=Expense)
 def get_expense(
     expense_id: int,
     user_id: int = Depends(get_current_user_id),
@@ -48,7 +48,7 @@ def get_expense(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
-@router.get("/", response_model=List[ExpenseBase])
+@router.get("/", response_model=List[Expense])
 def get_user_expenses(
     user_id: int = Depends(get_current_user_id),
     offset: int = 0,
@@ -58,7 +58,7 @@ def get_user_expenses(
     return service.get_user_expenses(user_id, offset, limit)
 
 
-@router.put("/{expense_id}", response_model=ExpenseBase)
+@router.put("/{expense_id}", response_model=Expense)
 def update_expense(
     expense_id: int,
     expense_in: ExpenseUpdate,
