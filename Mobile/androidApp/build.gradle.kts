@@ -1,3 +1,12 @@
+import java.util.Properties
+
+// Load .env file
+val envFile = rootProject.file(".env")
+val envProps = Properties()
+if (envFile.exists()) {
+    envFile.inputStream().use { envProps.load(it) }
+}
+
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinAndroid)
@@ -13,9 +22,17 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
+
+        buildConfigField(
+            "String",
+            "BASE_URL",
+            // fallback url if .env file is not found : https://10.0.0.2:8000
+            "\"${envProps.getProperty("BASE_URL") ?: "https://10.0.0.2:8000"}\""
+        )
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     packaging {
         resources {

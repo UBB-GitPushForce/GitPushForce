@@ -1,5 +1,6 @@
 package com.example.budgeting.android.data.network
 
+import com.example.budgeting.android.BuildConfig
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import okhttp3.OkHttpClient
@@ -8,11 +9,8 @@ import retrofit2.converter.moshi.MoshiConverterFactory
 
 object RetrofitClient {
 
-    // VERY IMPORTANT:
-    // To connect to your computer's localhost from the Android emulator, use 10.0.2.2
-
-    // For physical device, use IP of computer (phone and computer must be on same network)
-    private const val BASE_URL = "http://192.168.1.10:8000/"
+    // Extracts the base URL from the BuildConfig at build time.
+    private const val BASE_URL = BuildConfig.BASE_URL
 
     // Moshi is a modern JSON library for parsing JSON into Kotlin objects.
     private val moshi = Moshi.Builder()
@@ -48,3 +46,4 @@ object RetrofitClient {
         retrofit.create(ExpenseApiService::class.java)
     }
 }
+
