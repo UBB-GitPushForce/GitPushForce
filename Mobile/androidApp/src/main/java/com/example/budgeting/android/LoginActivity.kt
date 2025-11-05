@@ -16,7 +16,7 @@ class LoginActivity : ComponentActivity() {
             MaterialTheme {
                 LoginScreen(
                     onLoginSuccess = {
-                        val intent = Intent(this@LoginActivity, ExpenseActivity::class.java)
+                        val intent = Intent(this@LoginActivity, MainActivity::class.java)
                         startActivity(intent)
                         // finish the activity so the user can't go back to the login screen
                         finish()

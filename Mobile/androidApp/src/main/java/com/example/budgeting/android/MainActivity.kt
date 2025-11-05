@@ -5,17 +5,17 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
-import com.example.budgeting.android.ui.screens.ExpensesScreen
+import com.example.budgeting.android.ui.screens.MainScreen
 
 
-class ExpenseActivity : ComponentActivity() {
+class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme {
-                ExpensesScreen(
+                MainScreen(
                     onLogout = {
-                        val intent = Intent(this@ExpenseActivity, LoginActivity::class.java)
+                        val intent = Intent(this@MainActivity, LoginActivity::class.java)
                         startActivity(intent)
                         finish()
                     }
