@@ -35,7 +35,7 @@ fun ExpenseItem(expense: Expense) {
             Text(
                 text = "Category: ${expense.category}",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(

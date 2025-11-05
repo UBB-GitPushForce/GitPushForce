@@ -45,8 +45,8 @@ fun ExpensesScreen(
                             onLogout()
                         },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF6C63FF), // purple background
-                            contentColor = Color.White // text color
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
                         ),
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier
@@ -93,7 +93,7 @@ fun ExpensesScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .background(Color(0xFFF7F7F7))
+                    .background(MaterialTheme.colorScheme.background)
             ) {
                 items(expenses) { expense ->
                     ExpenseItem(expense)

@@ -6,9 +6,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -23,8 +25,8 @@ import kotlinx.coroutines.launch
 
 val bottomNavItems = listOf(
     BottomNavItem("Expenses", Icons.Default.Home),
-    BottomNavItem("Search", Icons.Default.Search),
-    BottomNavItem("Notifications", Icons.Default.Notifications),
+    BottomNavItem("Groups", Icons.Default.Group),
+    BottomNavItem("Receipts", Icons.Default.Receipt),
     BottomNavItem("Profile", Icons.Default.Person)
 )
 

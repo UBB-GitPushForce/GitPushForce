@@ -82,14 +82,14 @@ fun SignUpScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0A0A23))
+            .background(MaterialTheme.colorScheme.background)
             .padding(24.dp),
         contentAlignment = Alignment.Center
     )
     {
 
         if (uiState.isLoading) {
-            CircularProgressIndicator(color = Color(0xFF6C63FF))
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
         }
         else {
             Column(
@@ -103,7 +103,7 @@ fun SignUpScreen(
                     text = "Sign Up",
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onBackground
                 )
 
                 Spacer(modifier = Modifier.height(screenHeight * 0.01f))
@@ -112,7 +112,7 @@ fun SignUpScreen(
                 Text(
                     text = "Create an account to get started",
                     fontSize = 14.sp,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Spacer(modifier = Modifier.height(screenHeight * 0.04f))
@@ -125,11 +125,11 @@ fun SignUpScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF6C63FF),
-                        unfocusedBorderColor = Color.Gray,
-                        focusedTextColor = Color(0xFF6C63FF),
-                        focusedLabelColor = Color(0xFF6C63FF),
-                        cursorColor = Color(0xFF6C63FF)
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        focusedTextColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        cursorColor = MaterialTheme.colorScheme.primary
                     )
                 )
 
@@ -143,11 +143,11 @@ fun SignUpScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF6C63FF),
-                        unfocusedBorderColor = Color.Gray,
-                        focusedTextColor = Color(0xFF6C63FF),
-                        focusedLabelColor = Color(0xFF6C63FF),
-                        cursorColor = Color(0xFF6C63FF)
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        focusedTextColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        cursorColor = MaterialTheme.colorScheme.primary
                     )
                 )
 
@@ -161,11 +161,11 @@ fun SignUpScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF6C63FF),
-                        unfocusedBorderColor = Color.Gray,
-                        focusedTextColor = Color(0xFF6C63FF),
-                        focusedLabelColor = Color(0xFF6C63FF),
-                        cursorColor = Color(0xFF6C63FF)
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        focusedTextColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        cursorColor = MaterialTheme.colorScheme.primary
                     )
                 )
 
@@ -180,11 +180,11 @@ fun SignUpScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF6C63FF),
-                        unfocusedBorderColor = Color.Gray,
-                        focusedTextColor = Color(0xFF6C63FF),
-                        focusedLabelColor = Color(0xFF6C63FF),
-                        cursorColor = Color(0xFF6C63FF)
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        focusedTextColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        cursorColor = MaterialTheme.colorScheme.primary
                     )
                 )
 
@@ -210,11 +210,11 @@ fun SignUpScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF6C63FF),
-                        unfocusedBorderColor = Color.Gray,
-                        focusedTextColor = Color(0xFF6C63FF),
-                        focusedLabelColor = Color(0xFF6C63FF),
-                        cursorColor = Color(0xFF6C63FF)
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        focusedTextColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        cursorColor = MaterialTheme.colorScheme.primary
                     )
                 )
 
@@ -234,10 +234,10 @@ fun SignUpScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6C63FF)),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(24.dp)
                 ) {
-                    Text(text = "Sign Up", fontSize = 16.sp, color = Color.White)
+                    Text(text = "Sign Up", fontSize = 16.sp, color = MaterialTheme.colorScheme.onPrimary)
                 }
 
                 Spacer(modifier = Modifier.height(screenHeight * 0.02f))
@@ -247,11 +247,11 @@ fun SignUpScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(text = "Already have an account?", color = Color.Gray)
+                    Text(text = "Already have an account?", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "Log in",
-                        color = Color(0xFF6C63FF),
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.clickable { onBackToLogin() }
                     )
 
