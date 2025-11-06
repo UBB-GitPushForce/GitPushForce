@@ -9,8 +9,8 @@ on:
     branches: [main]
 
 jobs:
-  lint-api:
-    name: Lint the backend with ruff.
+  lint:
+    name: Linting
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -19,3 +19,13 @@ jobs:
           python-version: 3.9
       - run: pip install ruff
       - run: ruff check ./API
+  unit-tests:
+    name: Running unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - run: pip install pytest
+      - run: cd API && pytest tests
