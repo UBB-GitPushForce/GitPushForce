@@ -1,7 +1,7 @@
 from database import SessionLocal
-from repositories.user_repository import UserRepository
 from models.user import User
 from passlib.hash import sha256_crypt
+from repositories.user_repository import UserRepository
 
 # Create a database session
 db = SessionLocal()

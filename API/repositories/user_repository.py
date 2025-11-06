@@ -1,11 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import Optional, List
+from typing import List, Optional
 
+from models.user import User
 from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
-
-from models.user import User
 
 
 class IUserRepository(ABC):

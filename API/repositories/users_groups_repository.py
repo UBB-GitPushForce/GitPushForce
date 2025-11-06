@@ -1,13 +1,12 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from sqlalchemy import select, delete
+from models.group import Group
+from models.user import User
+from models.users_groups import UsersGroups
+from sqlalchemy import delete, select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
-
-from models.user import User
-from models.group import Group
-from models.users_groups import UsersGroups
 
 
 class IUsersGroupsRepository(ABC):

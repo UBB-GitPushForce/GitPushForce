@@ -1,13 +1,8 @@
-from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    DateTime,
-    CheckConstraint,
-    func
-)
+from sqlalchemy import CheckConstraint, Column, DateTime, Integer, String, func
 from sqlalchemy.orm import relationship
+
 from models.base import Base
+
 
 class User(Base):
     __tablename__ = "users"

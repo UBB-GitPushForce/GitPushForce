@@ -1,6 +1,8 @@
-from pydantic import BaseModel, Field, model_validator
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+
+from pydantic import BaseModel, Field, model_validator
+
 
 class ExpenseBase(BaseModel):
     title: str = Field(..., max_length=255)

@@ -1,12 +1,14 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from sqlalchemy.exc import NoResultFound
-
 from models.group import Group
+from repositories.group_repository import GroupRepository, IGroupRepository
+from repositories.users_groups_repository import (
+    IUsersGroupsRepository,
+    UsersGroupsRepository,
+)
 from schemas.group import GroupCreate, GroupUpdate
-from repositories.group_repository import IGroupRepository, GroupRepository
-from repositories.users_groups_repository import IUsersGroupsRepository, UsersGroupsRepository
+from sqlalchemy.exc import NoResultFound
 
 
 class IGroupService(ABC):

@@ -1,11 +1,10 @@
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.exc import NoResultFound
-
 from main import app
-from routes.expense_routes import get_expense_service, get_current_user_id
-from services.expense_service import ExpenseService
 from models.expense import Expense
+from routes.expense_routes import get_current_user_id, get_expense_service
+from services.expense_service import ExpenseService
+from sqlalchemy.exc import NoResultFound
 
 
 class MockExpenseRepository:
