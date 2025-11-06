@@ -1,18 +1,29 @@
 package com.example.budgeting.android
 
+import android.content.Intent
 import android.os.Bundle
-import android.widget.TextView
 import androidx.activity.ComponentActivity
-
+import androidx.activity.compose.setContent
+import androidx.compose.material3.MaterialTheme
+import com.example.budgeting.android.ui.screens.MainScreen
 
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.main_layout)
+        setContent {
+            MyApplicationTheme {
+                MainScreen(
+                    onLogout = {
+                        val intent = Intent(this@MainActivity, LoginActivity::class.java)
+                        startActivity(intent)
+                        finish()
+                    }
+                )
+            }
+        }
 
-        val textView = findViewById<TextView>(R.id.textView)
-        textView.text = "Hello logged user!"
+        // TODO: main page with all the functionalities
     }
-
 }
+

@@ -1,5 +1,9 @@
 package com.example.budgeting.android.data.network
 
+import com.example.budgeting.android.data.model.LoginRequest
+import com.example.budgeting.android.data.model.LoginResponse
+import com.example.budgeting.android.data.model.RegisterRequest
+import com.example.budgeting.android.data.model.RegisterResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST

@@ -1,7 +1,11 @@
 package com.example.budgeting.android.ui.viewmodels
 
+import android.content.Context
+import android.media.session.MediaSession
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.budgeting.android.data.auth.TokenHolder
+import com.example.budgeting.android.data.local.TokenDataStore
 import com.example.budgeting.android.data.network.RetrofitClient
 import com.example.budgeting.android.data.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,11 +21,13 @@ data class LoginUiState(
     val error: String? = null
 )
 
-class LoginViewModel : ViewModel() {
+class LoginViewModel(context: Context) : ViewModel() {
 
     // In a real app, this would be injected using Hilt or Koin.
     // For now, we'll create it directly.
-    private val authRepository = AuthRepository(RetrofitClient.instance)
+
+    private val tokenDataStore = TokenDataStore(context.applicationContext)
+    private val authRepository = AuthRepository(RetrofitClient.authInstance, tokenDataStore)
 
     // Private mutable state flow that can be updated only within the ViewModel
     private val _uiState = MutableStateFlow(LoginUiState())
@@ -40,9 +46,15 @@ class LoginViewModel : ViewModel() {
 
                 if (response.isSuccessful && response.body() != null) {
                     // Step 3a: On success, update state
-                    val user = response.body()!!.user
+                    val body = response.body()!!
+                    val user = body.user
+                    val token = body.accessToken
+
+                    // save token for future api calls
+                    TokenHolder.token = token
+                    tokenDataStore.saveToken(token)
+
                     _uiState.update { it.copy(isLoading = false, loginSuccess = true) }
-                    // You would save the token here in a real app
                     println("SUCCESS: Logged in as ${user.firstName} ${user.lastName} (ID: ${user.id})")
                 } else {
                     // Step 3b: On server error (e.g. wrong password), update state with error
@@ -57,7 +69,6 @@ class LoginViewModel : ViewModel() {
         }
     }
 
-    // Called by the UI after it has handled the loginSuccess event (e.g., after navigation)
     fun onLoginHandled() {
         _uiState.update { it.copy(loginSuccess = false, error = null) }
     }

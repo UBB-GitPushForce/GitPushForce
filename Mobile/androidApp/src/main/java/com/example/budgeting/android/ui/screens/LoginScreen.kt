@@ -19,12 +19,18 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.budgeting.android.ui.viewmodels.LoginViewModel
+import androidx.compose.ui.platform.LocalContext
+import com.example.budgeting.android.data.local.TokenDataStore
+import com.example.budgeting.android.data.auth.TokenHolder
+import com.example.budgeting.android.ui.viewmodels.LoginViewModelFactory
 
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onSignUpClick: () -> Unit,
-    loginViewModel: LoginViewModel = viewModel()
+    loginViewModel: LoginViewModel = viewModel(
+        factory= LoginViewModelFactory(LocalContext.current)
+    )
 ) {
     val uiState by loginViewModel.uiState.collectAsState()
 
@@ -32,23 +38,22 @@ fun LoginScreen(
     val password = remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
-    // This is a side-effect. When loginSuccess becomes true, this block runs.
     LaunchedEffect(uiState.loginSuccess) {
         if (uiState.loginSuccess) {
-            onLoginSuccess() // Navigate away
-            loginViewModel.onLoginHandled() // Reset the state
+            onLoginSuccess()
+            loginViewModel.onLoginHandled()
         }
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0A0A23)) // dark navy background
+            .background(MaterialTheme.colorScheme.background)
             .padding(24.dp),
         contentAlignment = Alignment.Center
     ) {
         if (uiState.isLoading) {
-            CircularProgressIndicator(color = Color(0xFF6C63FF))
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
         } else {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -59,13 +64,13 @@ fun LoginScreen(
                     text = "Welcome Back",
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onBackground
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "Log in to manage your budget",
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 14.sp
                 )
 
@@ -80,11 +85,11 @@ fun LoginScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF6C63FF),
-                        unfocusedBorderColor = Color.Gray,
-                        focusedTextColor = Color(0xFF6C63FF),
-                        focusedLabelColor = Color(0xFF6C63FF),
-                        cursorColor = Color(0xFF6C63FF)
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        focusedTextColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        cursorColor = MaterialTheme.colorScheme.primary
                     )
                 )
 
@@ -112,11 +117,11 @@ fun LoginScreen(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF6C63FF),
-                        unfocusedBorderColor = Color.Gray,
-                        focusedTextColor = Color(0xFF6C63FF),
-                        focusedLabelColor = Color(0xFF6C63FF),
-                        cursorColor = Color(0xFF6C63FF)
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        focusedTextColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        cursorColor = MaterialTheme.colorScheme.primary
                     )
                 )
 
@@ -124,7 +129,7 @@ fun LoginScreen(
 
                 Text(
                     text = "Forgot password?",
-                    color = Color(0xFF6C63FF),
+                    color = MaterialTheme.colorScheme.primary,
                     fontSize = 14.sp,
                     modifier = Modifier
                         .align(Alignment.End)
@@ -147,20 +152,20 @@ fun LoginScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6C63FF)),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(24.dp)
                 ) {
-                    Text("Log in", color = Color.White, fontSize = 16.sp)
+                    Text("Log in", color = MaterialTheme.colorScheme.onPrimary, fontSize = 16.sp)
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Row {
-                    Text(text = "Don't have an account?", color = Color.Gray)
+                    Text(text = "Don't have an account?", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "Sign up",
-                        color = Color(0xFF6C63FF),
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.clickable { onSignUpClick() }
                     )
                 }

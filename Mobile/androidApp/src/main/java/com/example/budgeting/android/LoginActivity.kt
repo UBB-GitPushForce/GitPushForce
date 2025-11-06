@@ -13,7 +13,7 @@ class LoginActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            MaterialTheme {
+            MyApplicationTheme {
                 LoginScreen(
                     onLoginSuccess = {
                         val intent = Intent(this@LoginActivity, MainActivity::class.java)
