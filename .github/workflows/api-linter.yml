@@ -1,8 +1,10 @@
-name: Ruff
+name: API Linter (Ruff)
 
 on:
   push:
     branches: [main]
+    paths:
+      - "**/*.py"
   pull_request:
     branches: [main]
 
