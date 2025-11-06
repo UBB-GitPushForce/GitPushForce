@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List
 from sqlalchemy.exc import NoResultFound
 
 from models.expense import Expense

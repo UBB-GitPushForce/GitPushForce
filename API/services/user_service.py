@@ -3,8 +3,8 @@ import jwt
 import bcrypt
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
-from fastapi import HTTPException, Depends, Request
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import HTTPException, Request
+from fastapi.security import HTTPBearer
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 

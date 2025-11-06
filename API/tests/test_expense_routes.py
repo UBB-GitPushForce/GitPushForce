@@ -5,7 +5,6 @@ from sqlalchemy.exc import NoResultFound
 from main import app
 from routes.expense_routes import get_expense_service, get_current_user_id
 from services.expense_service import ExpenseService
-from schemas.expense import ExpenseCreate, ExpenseUpdate
 from models.expense import Expense
 
 

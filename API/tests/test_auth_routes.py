@@ -1,5 +1,5 @@
 import pytest
-from services.user_service import UserService, PasswordUtil
+from services.user_service import UserService
 from schemas.user import UserCreate, UserLogin
 from fastapi import HTTPException
 
