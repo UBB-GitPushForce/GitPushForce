@@ -2,6 +2,23 @@
 
 The main repository for the project.
 
+# 🌎 API Documentation
+
+## 🚦 Routes
+
+### Expense routes
+
+**GET /expenses** get all the expenses
+**GET /expenses/{id}** get certain expense by id
+**POST /expenses** create new expense
+**PUT /expenses/{id}** update an expense
+**DELETE /expenses/{id}** delete an expense
+
+### Authentication routes
+**POST /users/auth/register** register an account
+**POST /users/auth/login** login (sets a cookie for web and also returns JWT token to be used in mobile app)
+**POST /users/auth/logout** clears the cookie
+
 ## 🗞️ Linting
 
 In order for our code to be _consistent_, there is a **linter** implemented in the project that runs on each push which modifies a `.py` file.
@@ -41,3 +58,7 @@ select = ["E101", "E115", "E225", "E226", "E228", "E301", "E303", "E4", "E7", "E
 - **E902**: IO error {message}
 
 > More info about this the /docs folder (`ruff.pdf`).
+
+---
+
+---
