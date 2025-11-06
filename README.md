@@ -8,17 +8,17 @@ The main repository for the project.
 
 ### Expense routes
 
-**GET /expenses** get all the expenses<br>
-**GET /expenses/{id}** get certain expense by id<br>
-**POST /expenses** create new expense<br>
-**PUT /expenses/{id}** update an expense<br>
-**DELETE /expenses/{id}** delete an expense<br>
+🟩 **GET /expenses** get all the expenses<br>
+🟩 **GET /expenses/{id}** get certain expense by id<br>
+🟦 **POST /expenses** create new expense<br>
+🟧 **PUT /expenses/{id}** update an expense<br>
+🟥 **DELETE /expenses/{id}** delete an expense<br>
 
 ### Authentication routes
 
-**POST /users/auth/register** register an account<br>
-**POST /users/auth/login** login (sets a cookie for web and also returns JWT token to be used in mobile app)<br>
-**POST /users/auth/logout** clears the cookie<br>
+🟦 **POST /users/auth/register** register an account<br>
+🟦 **POST /users/auth/login** login (sets a cookie for web and also returns JWT token to be used in mobile app)<br>
+🟦 **POST /users/auth/logout** clears the cookie<br>
 
 ## 🗞️ Linting
 
