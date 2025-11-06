@@ -97,7 +97,6 @@ class UserService:
 
         return self._decode_token(token)
 
-
     def register_user(self, user_in: UserCreate) -> dict:
         if self.repository.get_by_email(user_in.email):
             raise HTTPException(status_code=400, detail="A user with this email already exists.")
