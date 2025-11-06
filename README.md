@@ -6,7 +6,7 @@ The main repository for the project.
 
 In order for our code to be _consistent_, there is a **linter** implemented in the project that runs on each push which modifies a `.py` file.
 
-We are using **Ruff**. A Rust based python **linter** that is fast. Below are the rules which we are using (find more details [here](https://docs.astral.sh/ruff/rules/#flake8-use-pathlib-pth)).
+> We are using **Ruff**. A Rust based python **linter** that is fast. Below are the rules which we are using (find more details [here](https://docs.astral.sh/ruff/rules/#flake8-use-pathlib-pth)).
 
 In the `ruff.toml` file you can find the line:
 
@@ -39,4 +39,4 @@ select = ["E101", "E115", "E225", "E226", "E228", "E301", "E303", "E4", "E7", "E
 - **E742**: Ambiguous class name: {name}
 - **E743**: Ambiguous function name: {name}
 
-More info about this the /docs folder (`ruff.pdf`).
+> More info about this the /docs folder (`ruff.pdf`).
