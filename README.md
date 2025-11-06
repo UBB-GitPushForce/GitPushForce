@@ -35,3 +35,5 @@ These are the rules which we apply to our code. A short breakdown would be:
 - E741: Ambiguous variable name: {name}
 - E742: Ambiguous class name: {name}
 - E743: Ambiguous function name: {name}
+
+More info about this the /docs folder (`ruff.pdf`).
