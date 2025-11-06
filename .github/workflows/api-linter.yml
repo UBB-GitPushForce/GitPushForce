@@ -1,4 +1,4 @@
-name: API Linter (Ruff)
+name: API CI/CD
 
 on:
   push:
@@ -9,7 +9,8 @@ on:
     branches: [main]
 
 jobs:
-  ruff:
+  lint-api:
+    name: Lint the backend with ruff.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
