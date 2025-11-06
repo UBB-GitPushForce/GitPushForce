@@ -38,5 +38,6 @@ select = ["E101", "E115", "E225", "E226", "E228", "E301", "E303", "E4", "E7", "E
 - **E741**: Ambiguous variable name: {name}
 - **E742**: Ambiguous class name: {name}
 - **E743**: Ambiguous function name: {name}
+- **E902**: IO error {message}
 
 > More info about this the /docs folder (`ruff.pdf`).
