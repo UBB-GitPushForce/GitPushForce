@@ -40,7 +40,7 @@ jobs:
       - run: pip install coverage
       - run: pip install pytest-cov
       - run: |
-          coverage_output=$(pytest --cov=. | grep TOTAL | awk 'NF>1{print substr($NF,1,length($NF)-1)}')
+          coverage_output=$(pytest --cov=. --cov-report=term | grep TOTAL | awk 'NF>1{print substr($NF,1,length($NF)-1)}')
           echo "Coverage: $coverage_output"
 
           coverage_int=${coverage_output%.*}
