@@ -38,6 +38,10 @@ class IUserService(ABC):
     def register_user(self, user_in: UserCreate) -> dict: ...
     @abstractmethod
     def login_user(self, user_in: UserLogin) -> dict: ...
+    @abstractmethod
+    def request_password_reset(self, email: str) -> dict: ...
+    @abstractmethod
+    def reset_password(self, token: str, new_password: str) -> dict: ...
 
 
 class UserService:
@@ -62,6 +66,23 @@ class UserService:
             raise HTTPException(status_code=401, detail="Token expired.")
         except jwt.InvalidTokenError:
             raise HTTPException(status_code=401, detail="Invalid token.")
+
+    def _create_reset_token(self, user_id: int) -> str:
+        payload = {"sub": str(user_id), "exp": datetime.utcnow() + timedelta(minutes=60),
+                   "iat": datetime.utcnow(), "type": "password_reset"}
+
+        return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+    def _decode_reset_token(self, token: str) -> int:
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            if payload.get("type") != "password_reset":
+                raise HTTPException(status_code=400, detail="Invalid reset token.")
+            return int(payload["sub"])
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(status_code=400, detail="Reset token has expired.")
+        except jwt.InvalidTokenError:
+            raise HTTPException(status_code=400, detail="Invalid reset token.")
 
     def auth_wrapper(self, request: Request):
         auth_header = request.headers.get("Authorization")
@@ -119,3 +140,19 @@ class UserService:
     
     def delete_user(self, user_id: int) -> None:
         self.repository.delete(user_id)
+
+    def request_password_reset(self, email: str) -> dict:
+        user = self.repository.get_by_email(email)
+        if not user:  # For security, we don't reveal existence
+            return {"message": "Check the api console for the token."}
+        reset_token = self._create_reset_token(user.id)
+        print(f"The reset token ={reset_token}")
+        return {"message": "Check the api console for the token."}
+
+    def reset_password(self, token: str, new_password: str) -> dict:
+        user_id = self._decode_reset_token(token)
+        user = self.repository.get_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found.")
+        self.repository.update(user_id, {"hashed_password": PasswordUtil.hash_password(new_password)})
+        return {"message": "Password has been reset successfully."}

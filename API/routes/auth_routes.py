@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Response, HTTPException, Request
 from sqlalchemy.orm import Session
 from services.user_service import UserService
-from schemas.user import UserCreate, UserLogin
+from schemas.user import UserCreate, UserLogin, UserPasswordReset
 from database import get_db
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -72,3 +72,26 @@ def get_current_user(request: Request, db: Session = Depends(get_db)):
         "first_name": user.first_name,
         "last_name": user.last_name
     }
+
+@router.post("/password-reset/request")
+def request_password_reset(request: Request, db: Session = Depends(get_db)):
+    """
+    Request a password reset link/token to be sent to the user's email.
+    """
+    service = UserService(db)
+    user_id = service.auth_wrapper(request)
+    user = service.get_user_by_id(user_id)
+    return service.request_password_reset(user.email)
+
+@router.post("/password-reset/confirm")
+def confirm_password_reset(request: UserPasswordReset, db: Session = Depends(get_db)):
+    """
+    Reset the user's password using the token from their email.
+    """
+    service = UserService(db)
+
+    try:
+        service.reset_password(request.token, request.new_password)
+        return {"message": "Password has been reset successfully."}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

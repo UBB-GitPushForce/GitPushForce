@@ -23,3 +23,7 @@ class UserUpdate(BaseModel):
     email: Optional[EmailStr] = Field(None, description="User's unique email address.")
     phone_number: Optional[str] = Field(None, min_length=1, max_length=50)
     password: Optional[str] = Field(None, min_length=8, description="User's password.")
+
+class UserPasswordReset(BaseModel):
+    token: str = Field(..., description="Password reset token from email.")
+    new_password: str = Field(..., min_length=8, description="User's new password.")
