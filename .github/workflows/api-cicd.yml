@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
-          python-version: 3.9
+          python-version: 3.13
       - run: pip install ruff
       - run: ruff check ./API
   unit-tests:
@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
-          python-version: 3.9
+          python-version: 3.13
       - run: pip install -r API/requirements.txt
       - run: cd API/tests && pytest .
   unit-tests-coverage:
@@ -38,7 +38,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
-          python-version: 3.9
+          python-version: 3.13
       - run: cd API
       - run: pip install -r requirements.txt
       - run: pytest --cov=API/tests --cov-fail-under=70
@@ -50,7 +50,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
-          python-version: 3.9
+          python-version: 3.13
       - name: Go into API dir
         run: cd API
       - name: Install requirements
