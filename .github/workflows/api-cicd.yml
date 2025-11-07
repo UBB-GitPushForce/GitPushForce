@@ -29,7 +29,7 @@ jobs:
         with:
           python-version: 3.9
       - run: cd API
-      - run: pip install -r requirements.txt
+      - run: ls && pip install -r requirements.txt
       - run: cd tests && pytest .
   unit-tests-coverage:
     name: Checking unit tests coverage
