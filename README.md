@@ -20,6 +20,18 @@ The main repository for the project.
 🟦 **POST /users/auth/login** login (sets a cookie for web and also returns JWT token to be used in mobile app)<br>
 🟦 **POST /users/auth/logout** clears the cookie<br>
 
+### Group routes
+
+🟩 **GET /groups** get all groups<br>
+🟩 **GET /groups/{group_id}** get certain group by id<br>
+🟩 **GET /groups/{group_id}/users** get all users from a group<br>
+🟩 **GET /groups/user/{user_id}** get all groups from an user<br>
+🟦 **POST /groups** create new group<br>
+🟦 **POST /groups/{group_id}/users/{user_id}** add an user to a group<br>
+🟧 **PUT /groups/{group_id}** update a group<br>
+🟥 **DELETE /groups/{group_id}** delete a group<br>
+🟥 **DELETE /groups/{group_id}/users/{user_id}** remove an user from a group<br>
+
 ## 🗞️ Linting
 
 In order for our code to be _consistent_, there is a **linter** implemented in the project that runs on each push which modifies a `.py` file.
