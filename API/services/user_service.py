@@ -1,16 +1,16 @@
 import os
-import jwt
-import bcrypt
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
-from fastapi import HTTPException, Depends, Request
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.orm import Session
-from dotenv import load_dotenv
 
+import bcrypt
+import jwt
+from dotenv import load_dotenv
+from fastapi import HTTPException, Request
+from fastapi.security import HTTPBearer
 from models.user import User
-from schemas.user import UserCreate, UserLogin, UserUpdate
 from repositories.user_repository import UserRepository
+from schemas.user import UserCreate, UserLogin, UserUpdate
+from sqlalchemy.orm import Session
 
 # Load environment variables
 load_dotenv()
@@ -99,7 +99,6 @@ class UserService:
             raise HTTPException(status_code=401, detail="Missing authentication token.")
 
         return self._decode_token(token)
-
 
     def register_user(self, user_in: UserCreate) -> dict:
         if self.repository.get_by_email(user_in.email):

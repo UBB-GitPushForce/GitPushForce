@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import Optional, List
+from typing import List, Optional
 
+from models.group import Group
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from models.group import Group
 
 class IGroupRepository(ABC):
     # CREATE

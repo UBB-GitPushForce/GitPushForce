@@ -1,7 +1,8 @@
 import pytest
-from services.user_service import UserService, PasswordUtil
-from schemas.user import UserCreate, UserLogin
 from fastapi import HTTPException
+from schemas.user import UserCreate, UserLogin
+from services.user_service import UserService
+
 
 # Mock UserRepository
 class MockUserRepository:
