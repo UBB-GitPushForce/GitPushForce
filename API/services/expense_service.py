@@ -75,6 +75,7 @@ class ExpenseService(IExpenseService):
         """
         self.get_expense_by_id(expense_id)
         fields_to_update = data.model_dump(exclude_unset=True)
+        # The ValueError will never be raised due to validation when creating an ExpenseUpdate object
         if not fields_to_update:
             raise ValueError("No fields provided for update.")
         return self.repository.update(expense_id, fields_to_update)
