@@ -27,5 +27,5 @@ def root():
     return {"message": "API is running"}
 
 if __name__ == "__main__":
-    # Hello world !!
+    # Hello world !
     uvicorn.run(app, host="0.0.0.0", port=8000)

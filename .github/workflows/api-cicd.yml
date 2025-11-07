@@ -28,7 +28,8 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: 3.9
-      - run: cd API
+      - run: ls
+      - run: cd API && ls
       - run: ls && pip install -r requirements.txt
       - run: cd tests && pytest .
   unit-tests-coverage:
