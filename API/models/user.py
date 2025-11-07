@@ -25,7 +25,11 @@ class User(Base):
         CheckConstraint("phone_number ~ '^[0-9]+$'", name="ck_phone_number"),
     )
 
-    expenses = relationship("Expense", back_populates="user", cascade="all, delete-orphan")
+    expenses = relationship(
+        "Expense",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
 
     groups = relationship(
         "Group",

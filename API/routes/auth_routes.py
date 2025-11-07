@@ -5,6 +5,17 @@ from schemas.user import UserCreate, UserLogin, UserPasswordReset
 from database import get_db
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
+@router.get("/")
+def get_all_users(db: Session = Depends(get_db)):
+    service = UserService(db)
+    try:
+        return service.get_all_users()
+    except HTTPException as e:
+        raise e
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @router.post("/register")
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
     """

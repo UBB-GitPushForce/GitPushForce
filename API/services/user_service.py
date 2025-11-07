@@ -50,6 +50,9 @@ class UserService:
     def __init__(self, db: Session):
         self.repository = UserRepository(db)
 
+    def get_all_users(self):
+        return self.repository.get_all()
+
     def _encode_token(self, user_id: int) -> str:
         payload = {
             "sub": str(user_id),

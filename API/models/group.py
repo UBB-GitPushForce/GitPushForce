@@ -10,14 +10,12 @@ class Group(Base):
     description = Column(String(255))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    # Relația cu User (mulți-la-mulți)
     users = relationship(
         "User",
         secondary="users_groups",
         back_populates="groups"
     )
 
-    # ✅ Relația cu Expense (unu-la-mulți)
     expenses = relationship(
         "Expense",
         back_populates="group",

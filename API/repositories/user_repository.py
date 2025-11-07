@@ -9,16 +9,23 @@ from models.user import User
 
 
 class IUserRepository(ABC):
+    # CREATE
     @abstractmethod
-    def add(self, user: User) -> User: ...
+    def add(self, user: User) -> None: ...
+
+    # READ
     @abstractmethod
     def get_by_id(self, user_id: int) -> Optional[User]: ...
     @abstractmethod
     def get_by_email(self, email: str) -> Optional[User]: ...
     @abstractmethod
     def get_all(self, offset: int = 0, limit: int = 100) -> List[User]: ...
+
+    # UPDATE
     @abstractmethod
-    def update(self, user_id: int, fields: dict) -> User: ...
+    def update(self, user_id: int, fields: dict) -> None: ...
+
+    # DELETE
     @abstractmethod
     def delete(self, user_id: int) -> None: ...
 
@@ -27,11 +34,10 @@ class UserRepository(IUserRepository):
     def __init__(self, db: Session):
         self.db = db
 
-    def add(self, user: User) -> User:
+    def add(self, user: User) -> None:
         self.db.add(user)
         self.db.commit()
         self.db.refresh(user)
-        return user
 
     def get_by_id(self, user_id: int) -> Optional[User]:
         stmt = select(User).where(User.id == user_id)
@@ -45,23 +51,15 @@ class UserRepository(IUserRepository):
         stmt = select(User).order_by(User.id).offset(offset).limit(limit)
         return list(self.db.scalars(stmt))
 
-    def update(self, user_id: int, fields: dict) -> User:
+    def update(self, user_id: int, fields: dict) -> None:
         user = self.get_by_id(user_id)
-        if not user:
-            raise NoResultFound(f"User with id {user_id} not found.")
-
         for key, value in fields.items():
             if hasattr(user, key):
                 setattr(user, key, value)
-
         self.db.commit()
         self.db.refresh(user)
-        return user
 
     def delete(self, user_id: int) -> None:
         user = self.get_by_id(user_id)
-        if not user:
-            raise NoResultFound(f"User with id {user_id} not found.")
-
         self.db.delete(user)
         self.db.commit()

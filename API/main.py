@@ -2,6 +2,7 @@ import uvicorn
 from fastapi import FastAPI
 from routes.expense_routes import router as expense_router
 from routes.auth_routes import router as auth_router
+from routes.group_routes import router as group_router
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="GitPushForce API")
@@ -19,6 +20,7 @@ app.add_middleware(
 
 app.include_router(expense_router, prefix="/expenses", tags=["Expenses"])
 app.include_router(auth_router, prefix="/users", tags=["Auth"])
+app.include_router(group_router, prefix="/groups", tags=["Groups"])
 
 @app.get("/")
 def root():
