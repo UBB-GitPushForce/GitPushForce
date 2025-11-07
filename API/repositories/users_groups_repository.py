@@ -26,7 +26,6 @@ class IUsersGroupsRepository(ABC):
     def remove_user_from_group(self, user_id: int, group_id: int) -> None: ...
 
 
-
 class UsersGroupsRepository(IUsersGroupsRepository):
     def __init__(self, db: Session):
         self.db = db

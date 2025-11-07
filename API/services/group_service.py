@@ -2,9 +2,8 @@ from abc import ABC, abstractmethod
 from typing import List
 
 from models.group import Group
-
-from schemas.group import GroupCreate, GroupUpdate
 from repositories.group_repository import IGroupRepository
+from schemas.group import GroupCreate, GroupUpdate
 from sqlalchemy.exc import NoResultFound
 
 

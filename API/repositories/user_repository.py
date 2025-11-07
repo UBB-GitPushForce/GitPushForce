@@ -3,7 +3,6 @@ from typing import List, Optional
 
 from models.user import User
 from sqlalchemy import select
-from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 
 

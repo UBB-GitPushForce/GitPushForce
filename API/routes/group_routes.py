@@ -1,17 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
 from typing import List
-from sqlalchemy.exc import NoResultFound
-from sqlalchemy.orm import Session
 
 from database import get_db
-from models import User
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from repositories.group_repository import GroupRepository
 from repositories.users_groups_repository import UsersGroupsRepository
-from schemas.group import GroupCreate, GroupUpdate, Group
+from schemas.group import Group, GroupCreate, GroupUpdate
 from schemas.user import UserBase
 from services.group_service import GroupService
-from repositories.group_repository import GroupRepository
 from services.user_service import UserService
 from services.users_groups_service import UsersGroupsService
+from sqlalchemy.exc import NoResultFound
+from sqlalchemy.orm import Session
 
 router = APIRouter(tags=["Groups"])
 

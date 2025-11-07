@@ -3,7 +3,6 @@ from typing import List, Optional
 
 from models.expense import Expense
 from sqlalchemy import select
-from sqlalchemy.exc import NoResultFound, IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 
