@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from schemas.user import UserCreate, UserLogin, UserPasswordReset
 from services.user_service import UserService
 from sqlalchemy.orm import Session
+from utils.helpers import logger
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 @router.get("/")
@@ -30,9 +31,10 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
         "user": result["user"]
         }
     except HTTPException as e:
-        print(e)
+        logger.Logger().error(e)
         raise e
     except ValueError as e:
+        logger.Logger().error(e)
         raise HTTPException(status_code=400, detail=str(e))
     
 @router.post("/login")
