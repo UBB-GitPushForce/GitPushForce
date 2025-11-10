@@ -31,11 +31,16 @@ class Logger:
     def _log(self, level, msg, *args, **kwargs):
         frame = inspect.currentframe().f_back.f_back
         func_name = frame.f_code.co_name
+        module_name = frame.f_globals.get('__name__', '<module>')
         cls_name = None
+
         if "self" in frame.f_locals:
             cls_name = frame.f_locals["self"].__class__.__name__
 
-        caller = f"{cls_name}.{func_name}" if cls_name else func_name
+        if cls_name:
+            caller = f"{module_name}.{cls_name}.{func_name}"
+        else:
+            caller = f"{module_name}.{func_name}"
 
         extra = {"caller": caller}
         self.logger.log(level, msg, *args, extra=extra, stacklevel=3, **kwargs)
