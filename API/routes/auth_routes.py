@@ -68,24 +68,6 @@ def logout(response: Response):
     response.delete_cookie("access_token")
     return {"message": "Logged out successfully."}
 
-@router.get("/me")
-def get_current_user(request: Request, db: Session = Depends(get_db)):
-    """
-    Returns the currently authenticated user (decoded from JWT).
-    """
-    service = UserService(db)
-    user_id = service.auth_wrapper(request)
-    # Fetch the user from DB
-    user = service.get_user_by_id(user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    # Return only relevant fields
-    return {
-        "id": user.id,
-        "email": user.email,
-        "first_name": user.first_name,
-        "last_name": user.last_name
-    }
 
 @router.post("/password-reset/request")
 def request_password_reset(request: Request, db: Session = Depends(get_db)):
