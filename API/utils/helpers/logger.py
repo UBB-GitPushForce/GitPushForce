@@ -1,6 +1,6 @@
+import inspect
 import logging
 import threading
-import inspect
 
 
 class Logger:
