@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import bcrypt
 import jwt
 from dotenv import load_dotenv
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from fastapi.security import HTTPBearer
 from models.user import User
 from repositories.user_repository import UserRepository
@@ -80,6 +80,19 @@ class UserService:
         except jwt.InvalidTokenError:
             self.logger.error("Invalid token")
             raise HTTPException(status_code=401, detail="Invalid token.")
+
+    def auth_wrapper(self, request: Request):
+        auth_header = request.headers.get("Authorization")
+        token = None
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+        elif "access_token" in request.cookies:
+            token = request.cookies["access_token"]
+
+        if not token:
+            raise HTTPException(status_code=401, detail="Missing authentication token.")
+
+        return self._decode_token(token)
 
     # -------------------------- User Methods --------------------------
 

@@ -35,12 +35,12 @@ class ExpenseService(IExpenseService):
     def __init__(self, repository: IExpenseRepository):
         self.repository = repository
 
-    def create_expense(self, data: ExpenseCreate) -> None:
+    def create_expense(self, data: ExpenseCreate):
         """
         Creates a new expense — it can belong to a user or a group.
         """
         expense = Expense(**data.model_dump())
-        self.repository.add(expense)
+        return self.repository.add(expense)
 
     def get_expense_by_id(self, expense_id: int) -> Expense:
         """
@@ -53,21 +53,21 @@ class ExpenseService(IExpenseService):
             raise NoResultFound(f"Expense with id {expense_id} not found.")
         return expense
 
-    def get_all_expenses(self, offset: int = 0, limit: int = 100) -> List[Expense]:
-        return self.repository.get_all(offset, limit)
+    def get_all_expenses(self, offset: int = 0, limit: int = 100, sort_by: str = "created_at", order: str = "desc") -> List[Expense]:
+        return self.repository.get_all(offset, limit, sort_by, order)
 
-    def get_user_expenses(self, user_id: int, offset: int = 0, limit: int = 100) -> List[Expense]:
+    def get_user_expenses(self, user_id: int, offset: int = 0, limit: int = 100, sort_by: str = "created_at", order: str = "desc") -> List[Expense]:
         """
         Retrieves all personal expenses for the authenticated user.
         """
-        return self.repository.get_by_user(user_id, offset=offset, limit=limit)
+        return self.repository.get_by_user(user_id, offset, limit, sort_by, order)
 
-    def get_group_expenses(self, group_id: int, offset: int = 0, limit: int = 100) -> List[Expense]:
+    def get_group_expenses(self, group_id: int, offset: int = 0, limit: int = 100, sort_by: str = "created_at", order: str = "desc") -> List[Expense]:
         """
         Retrieves all expenses for a specific group.
         (Access control — verifying that the user is part of the group — should be done at the router/service layer.)
         """
-        return self.repository.get_by_group(group_id, offset=offset, limit=limit)
+        return self.repository.get_by_group(group_id, offset, limit, sort_by, order)
 
     def update_expense(self, expense_id: int, data: ExpenseUpdate) -> None:
         """

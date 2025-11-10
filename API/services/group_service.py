@@ -1,78 +1,67 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from models.expense import Expense
-from repositories.expense_repository import IExpenseRepository
-from schemas.expense import ExpenseCreate, ExpenseUpdate
+from models.group import Group
+from repositories.group_repository import IGroupRepository
+from schemas.group import GroupCreate, GroupUpdate
 from sqlalchemy.exc import NoResultFound
-from utils.helpers.logger import Logger
 
 
-class IExpenseService(ABC):
+class IGroupService(ABC):
     # CREATE
     @abstractmethod
-    def create_expense(self, data: ExpenseCreate) -> None: ...
+    def create_group(self, data: GroupCreate) -> Group: ...
 
     # READ
     @abstractmethod
-    def get_expense_by_id(self, expense_id: int) -> Expense: ...
+    def get_group_by_id(self, group_id: int) -> Group: ...
     @abstractmethod
-    def get_all_expenses(self, offset: int = 0, limit: int = 100) -> List[Expense]: ...
+    def get_group_by_name(self, group_name: str) -> Group: ...
     @abstractmethod
-    def get_user_expenses(self, user_id: int, offset: int = 0, limit: int = 100) -> List[Expense]: ...
-    @abstractmethod
-    def get_group_expenses(self, group_id: int, offset: int = 0, limit: int = 100) -> List[Expense]: ...
+    def get_all_groups(self, offset: int = 0, limit: int = 100) -> List[Group]: ...
 
     # UPDATE
     @abstractmethod
-    def update_expense(self, expense_id: int, data: ExpenseUpdate) -> None: ...
+    def update_group(self, group_id: int, data: GroupUpdate) -> Group: ...
 
     # DELETE
     @abstractmethod
-    def delete_expense(self, expense_id: int) -> None: ...
+    def delete_group(self, group_id: int) -> None: ...
 
 
-class ExpenseService(IExpenseService):
-    logger = Logger()
-
-    def __init__(self, repository: IExpenseRepository):
+class GroupService(IGroupService):
+    def __init__(self, repository: IGroupRepository):
         self.repository = repository
 
-    def create_expense(self, data: ExpenseCreate) -> None:
-        self.logger.debug(f"Creating expense with data: {data}")
-        expense = Expense(**data.model_dump())
-        self.repository.add(expense)
+    def create_group(self, data: GroupCreate) -> Group:
+        group = Group(name=data.name, description=data.description)
+        return self.repository.add(group)
 
-    def get_expense_by_id(self, expense_id: int) -> Expense:
-        self.logger.debug(f"Retrieving expense with id {expense_id}")
-        expense = self.repository.get_by_id(expense_id)
-        if not expense:
-            self.logger.warning(f"Expense with id {expense_id} not found.")
-            raise NoResultFound(f"Expense with id {expense_id} not found.")
-        return expense
+    def get_group_by_id(self, group_id: int) -> Group:
+        group = self.repository.get_by_id(group_id)
+        if not group:
+            raise NoResultFound(f"Group with id {group_id} not found.")
+        return group
 
-    def get_all_expenses(self, offset: int = 0, limit: int = 100) -> List[Expense]:
-        self.logger.debug(f"Retrieving all expenses with offset {offset}, limit {limit}")
-        return self.repository.get_all(offset, limit)
+    def get_group_by_name(self, group_name: str) -> Group:
+        group = self.repository.get_by_name(group_name)
+        if not group:
+            raise NoResultFound(f"Group with name {group_name} not found.")
+        return group
 
-    def get_user_expenses(self, user_id: int, offset: int = 0, limit: int = 100) -> List[Expense]:
-        self.logger.debug(f"Retrieving expenses for user_id {user_id} with offset {offset}, limit {limit}")
-        return self.repository.get_by_user(user_id, offset=offset, limit=limit)
+    def get_all_groups(self, offset: int = 0, limit: int = 100) -> List[Group]:
+        return self.repository.get_all(offset=offset, limit=limit)
 
-    def get_group_expenses(self, group_id: int, offset: int = 0, limit: int = 100) -> List[Expense]:
-        self.logger.debug(f"Retrieving expenses for group_id {group_id} with offset {offset}, limit {limit}")
-        return self.repository.get_by_group(group_id, offset=offset, limit=limit)
-
-    def update_expense(self, expense_id: int, data: ExpenseUpdate) -> None:
-        self.logger.debug(f"Updating expense with id {expense_id}")
-        self.get_expense_by_id(expense_id)
-        fields_to_update = data.model_dump(exclude_unset=True)
-        if not fields_to_update:
-            self.logger.warning(f"No fields provided for update for expense with id {expense_id}")
+    def update_group(self, group_id: int, data: GroupUpdate) -> Group:
+        # ensure group exists
+        self.get_group_by_id(group_id)
+        fields = data.model_dump(exclude_unset=True)
+        if not fields:
             raise ValueError("No fields provided for update.")
-        return self.repository.update(expense_id, fields_to_update)
+        return self.repository.update(group_id, fields)
 
-    def delete_expense(self, expense_id: int) -> None:
-        self.logger.debug(f"Deleting expense with id {expense_id}")
-        self.get_expense_by_id(expense_id)
-        self.repository.delete(expense_id)
+    def delete_group(self, group_id: int) -> None:
+        # ensure group exists
+        self.get_group_by_id(group_id)
+        self.repository.delete(group_id)
+

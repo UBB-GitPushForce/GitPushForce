@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List, Optional
 
 from models.expense import Expense
-from sqlalchemy import select
+from sqlalchemy import asc, desc, select
 from sqlalchemy.orm import Session
 
 
@@ -34,39 +34,46 @@ class ExpenseRepository(IExpenseRepository):
     def __init__(self, db: Session):
         self.db = db
 
-    def add(self, expense: Expense) -> None:
+    def add(self, expense: Expense) -> Expense:
         self.db.add(expense)
         self.db.commit()
         self.db.refresh(expense)
+        return expense
 
     def get_by_id(self, expense_id: int) -> Optional[Expense]:
         stmt = select(Expense).where(Expense.id == expense_id)
         return self.db.scalars(stmt).first()
 
-    def get_all(self, offset: int, limit: int) -> List[Expense]:
+    def get_all(self, offset: int, limit: int, sort_by: str = "created_at", order: str = "desc") -> List[Expense]:
+        sort_column = getattr(Expense, sort_by, Expense.created_at)
+        sort_order = desc(sort_column) if order.lower() == "desc" else asc(sort_column)
         stmt = (
             select(Expense)
-            .order_by(Expense.created_at.desc())
+            .order_by(sort_order)
             .offset(offset)
             .limit(limit)
         )
         return list(self.db.scalars(stmt))
 
-    def get_by_user(self, user_id: int, offset: int, limit: int) -> List[Expense]:
+    def get_by_user(self, user_id: int, offset: int, limit: int, sort_by: str = "created_at", order: str = "desc") -> List[Expense]:
+        sort_column = getattr(Expense, sort_by, Expense.created_at)
+        sort_order = desc(sort_column) if order.lower() == "desc" else asc(sort_column)
         stmt = (
             select(Expense)
             .where(Expense.user_id == user_id)
-            .order_by(Expense.created_at.desc())
+            .order_by(sort_order)
             .offset(offset)
             .limit(limit)
         )
         return list(self.db.scalars(stmt))
 
-    def get_by_group(self, group_id: int, offset: int, limit: int) -> List[Expense]:
+    def get_by_group(self, group_id: int, offset: int, limit: int, sort_by: str = "created_at", order: str = "desc") -> List[Expense]:
+        sort_column = getattr(Expense, sort_by, Expense.created_at)
+        sort_order = desc(sort_column) if order.lower() == "desc" else asc(sort_column)
         stmt = (
             select(Expense)
             .where(Expense.group_id == group_id)
-            .order_by(Expense.created_at.desc())
+            .order_by(sort_order)
             .offset(offset)
             .limit(limit)
         )

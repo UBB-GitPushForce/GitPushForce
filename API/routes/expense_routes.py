@@ -32,7 +32,7 @@ def create_expense(
     service: ExpenseService = Depends(get_expense_service)
 ):
     try:
-        return service.create_expense(expense_in, user_id)
+        return service.create_expense(expense_in)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
@@ -44,7 +44,7 @@ def get_expense(
     service: ExpenseService = Depends(get_expense_service)
 ):
     try:
-        return service.get_expense(expense_id, user_id)
+        return service.get_expense_by_id(expense_id, user_id)
     except NoResultFound as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
@@ -54,9 +54,11 @@ def get_user_expenses(
     user_id: int = Depends(get_current_user_id),
     offset: int = 0,
     limit: int = 100,
+    sort_by: str = "created_at",
+    order: str = "desc",
     service: ExpenseService = Depends(get_expense_service)
 ):
-    return service.get_user_expenses(user_id, offset, limit)
+    return service.get_user_expenses(user_id, offset, limit, sort_by, order)
 
 
 @router.put("/{expense_id}", response_model=Expense)
