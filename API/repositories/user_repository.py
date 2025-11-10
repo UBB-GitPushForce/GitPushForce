@@ -32,10 +32,11 @@ class UserRepository(IUserRepository):
     def __init__(self, db: Session):
         self.db = db
 
-    def add(self, user: User) -> None:
+    def add(self, user: User) -> int:
         self.db.add(user)
         self.db.commit()
         self.db.refresh(user)
+        return user.id
 
     def get_by_id(self, user_id: int) -> Optional[User]:
         stmt = select(User).where(User.id == user_id)

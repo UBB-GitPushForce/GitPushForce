@@ -112,9 +112,9 @@ class UserService:
             phone_number=user_in.phone_number,
             hashed_password=hashed_password,
         )
-        user = self.repository.add(user)
-        token = self._encode_token(user.id)
-        return {"access_token": token, "user": user}
+        id = self.repository.add(user)
+        token = self._encode_token(id)
+        return {"access_token": token, "user": id}
 
     def login_user(self, user_in: UserLogin) -> dict:
         user = self.repository.get_by_email(user_in.email)
