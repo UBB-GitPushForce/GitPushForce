@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import List
+from datetime import datetime
+from typing import List, Optional
 
 from models.expense import Expense
 from repositories.expense_repository import IExpenseRepository
@@ -16,9 +17,32 @@ class IExpenseService(ABC):
     @abstractmethod
     def get_expense_by_id(self, expense_id: int) -> Expense: ...
     @abstractmethod
-    def get_all_expenses(self, offset: int = 0, limit: int = 100) -> List[Expense]: ...
+    def get_all_expenses(
+        self, 
+        offset: int = 0, 
+        limit: int = 100, 
+        sort_by: str = "created_at", 
+        order: str = "desc",
+        min_price: Optional[float] = None,
+        max_price: Optional[float] = None,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+        category: Optional[str] = None
+    ) -> List[Expense]: ...
     @abstractmethod
-    def get_user_expenses(self, user_id: int, offset: int = 0, limit: int = 100) -> List[Expense]: ...
+    def get_user_expenses(
+        self, 
+        user_id: int, 
+        offset: int = 0, 
+        limit: int = 100, 
+        sort_by: str = "created_at", 
+        order: str = "desc",
+        min_price: Optional[float] = None,
+        max_price: Optional[float] = None,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+        category: Optional[str] = None
+    ) -> List[Expense]: ...
     @abstractmethod
     def get_group_expenses(self, group_id: int, offset: int = 0, limit: int = 100) -> List[Expense]: ...
 
@@ -53,14 +77,61 @@ class ExpenseService(IExpenseService):
             raise NoResultFound(f"Expense with id {expense_id} not found.")
         return expense
 
-    def get_all_expenses(self, offset: int = 0, limit: int = 100, sort_by: str = "created_at", order: str = "desc") -> List[Expense]:
-        return self.repository.get_all(offset, limit, sort_by, order)
+    def get_all_expenses(
+        self, 
+        offset: int = 0, 
+        limit: int = 100, 
+        sort_by: str = "created_at", 
+        order: str = "desc",
+        min_price: Optional[float] = None,
+        max_price: Optional[float] = None,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+        category: Optional[str] = None
+    ) -> List[Expense]:
+        """
+        Retrieves all expenses in the system with optional filtering.
+        """
+        return self.repository.get_all(
+            offset, 
+            limit, 
+            sort_by, 
+            order,
+            min_price,
+            max_price,
+            date_from,
+            date_to,
+            category
+        )
 
-    def get_user_expenses(self, user_id: int, offset: int = 0, limit: int = 100, sort_by: str = "created_at", order: str = "desc") -> List[Expense]:
+    def get_user_expenses(
+        self, 
+        user_id: int, 
+        offset: int = 0, 
+        limit: int = 100, 
+        sort_by: str = "created_at", 
+        order: str = "desc",
+        min_price: Optional[float] = None,
+        max_price: Optional[float] = None,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+        category: Optional[str] = None
+    ) -> List[Expense]:
         """
-        Retrieves all personal expenses for the authenticated user.
+        Retrieves all personal expenses for the authenticated user with optional filtering.
         """
-        return self.repository.get_by_user(user_id, offset, limit, sort_by, order)
+        return self.repository.get_by_user(
+            user_id, 
+            offset, 
+            limit, 
+            sort_by, 
+            order,
+            min_price,
+            max_price,
+            date_from,
+            date_to,
+            category
+        )
 
     def get_group_expenses(self, group_id: int, offset: int = 0, limit: int = 100, sort_by: str = "created_at", order: str = "desc") -> List[Expense]:
         """

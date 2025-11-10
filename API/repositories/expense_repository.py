@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
+from datetime import datetime
 from typing import List, Optional
 
 from models.expense import Expense
-from sqlalchemy import asc, desc, select
+from sqlalchemy import and_, asc, desc, select
 from sqlalchemy.orm import Session
 
 
@@ -15,9 +16,32 @@ class IExpenseRepository(ABC):
     @abstractmethod
     def get_by_id(self, expense_id: int) -> Optional[Expense]: ...
     @abstractmethod
-    def get_all(self, offset: int, limit: int) -> List[Expense]: ...
+    def get_all(
+        self, 
+        offset: int, 
+        limit: int, 
+        sort_by: str = "created_at", 
+        order: str = "desc",
+        min_price: Optional[float] = None,
+        max_price: Optional[float] = None,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+        category: Optional[str] = None
+    ) -> List[Expense]: ...
     @abstractmethod
-    def get_by_user(self, user_id: int, offset: int, limit: int) -> List[Expense]: ...
+    def get_by_user(
+        self, 
+        user_id: int, 
+        offset: int, 
+        limit: int, 
+        sort_by: str = "created_at", 
+        order: str = "desc",
+        min_price: Optional[float] = None,
+        max_price: Optional[float] = None,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+        category: Optional[str] = None
+    ) -> List[Expense]: ...
     @abstractmethod
     def get_by_group(self, group_id: int, offset: int, limit: int) -> List[Expense]: ...
 
@@ -44,23 +68,75 @@ class ExpenseRepository(IExpenseRepository):
         stmt = select(Expense).where(Expense.id == expense_id)
         return self.db.scalars(stmt).first()
 
-    def get_all(self, offset: int, limit: int, sort_by: str = "created_at", order: str = "desc") -> List[Expense]:
+    def get_all(
+        self, 
+        offset: int, 
+        limit: int, 
+        sort_by: str = "created_at", 
+        order: str = "desc",
+        min_price: Optional[float] = None,
+        max_price: Optional[float] = None,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+        category: Optional[str] = None
+    ) -> List[Expense]:
         sort_column = getattr(Expense, sort_by, Expense.created_at)
         sort_order = desc(sort_column) if order.lower() == "desc" else asc(sort_column)
-        stmt = (
-            select(Expense)
-            .order_by(sort_order)
-            .offset(offset)
-            .limit(limit)
-        )
+        
+        # Build where conditions
+        conditions = []
+        
+        if min_price is not None:
+            conditions.append(Expense.amount >= min_price)
+        if max_price is not None:
+            conditions.append(Expense.amount <= max_price)
+        if date_from is not None:
+            conditions.append(Expense.created_at >= date_from)
+        if date_to is not None:
+            conditions.append(Expense.created_at <= date_to)
+        if category is not None:
+            conditions.append(Expense.category == category)
+        
+        stmt = select(Expense)
+        if conditions:
+            stmt = stmt.where(and_(*conditions))
+        stmt = stmt.order_by(sort_order).offset(offset).limit(limit)
+        
         return list(self.db.scalars(stmt))
 
-    def get_by_user(self, user_id: int, offset: int, limit: int, sort_by: str = "created_at", order: str = "desc") -> List[Expense]:
+    def get_by_user(
+        self, 
+        user_id: int, 
+        offset: int, 
+        limit: int, 
+        sort_by: str = "created_at", 
+        order: str = "desc",
+        min_price: Optional[float] = None,
+        max_price: Optional[float] = None,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+        category: Optional[str] = None
+    ) -> List[Expense]:
         sort_column = getattr(Expense, sort_by, Expense.created_at)
         sort_order = desc(sort_column) if order.lower() == "desc" else asc(sort_column)
+        
+        # Build where conditions
+        conditions = [Expense.user_id == user_id]
+        
+        if min_price is not None:
+            conditions.append(Expense.amount >= min_price)
+        if max_price is not None:
+            conditions.append(Expense.amount <= max_price)
+        if date_from is not None:
+            conditions.append(Expense.created_at >= date_from)
+        if date_to is not None:
+            conditions.append(Expense.created_at <= date_to)
+        if category is not None:
+            conditions.append(Expense.category == category)
+        
         stmt = (
             select(Expense)
-            .where(Expense.user_id == user_id)
+            .where(and_(*conditions))
             .order_by(sort_order)
             .offset(offset)
             .limit(limit)
