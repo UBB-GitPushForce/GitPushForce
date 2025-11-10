@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import bcrypt
 import jwt
 from dotenv import load_dotenv
-from fastapi import HTTPException, Request
+from fastapi import HTTPException
 from fastapi.security import HTTPBearer
 from models.user import User
 from repositories.user_repository import UserRepository
