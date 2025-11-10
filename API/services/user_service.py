@@ -1,68 +1,160 @@
-import inspect
-import logging
-import threading
+import os
+from abc import ABC, abstractmethod
+from datetime import datetime, timedelta
+
+import bcrypt
+import jwt
+from dotenv import load_dotenv
+from fastapi import HTTPException, Request
+from fastapi.security import HTTPBearer
+from models.user import User
+from repositories.user_repository import UserRepository
+from schemas.user import UserCreate, UserLogin, UserUpdate
+from sqlalchemy.orm import Session
+
+# Load environment variables
+load_dotenv()
+
+# JWT config
+SECRET_KEY = os.getenv("JWT_SECRET", "supersecretkey")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 72  # 3 days
+
+class PasswordUtil:
+    @staticmethod
+    def hash_password(password: str) -> str:
+        # Generate a salt and hash the password
+        salt = bcrypt.gensalt()
+        hashed = bcrypt.hashpw(password.encode("utf-8"), salt)
+        return hashed.decode("utf-8")
+
+    @staticmethod
+    def verify_password(plain_password: str, hashed_password: str) -> bool:
+        return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
 
 
-class Logger:
-    _instance = None
-    _lock = threading.Lock()
+class IUserService(ABC):
+    @abstractmethod
+    def register_user(self, user_in: UserCreate) -> dict: ...
+    @abstractmethod
+    def login_user(self, user_in: UserLogin) -> dict: ...
+    @abstractmethod
+    def request_password_reset(self, email: str) -> dict: ...
+    @abstractmethod
+    def reset_password(self, token: str, new_password: str) -> dict: ...
 
-    def __new__(cls, *args, **kwargs):
-        if not cls._instance:
-            with cls._lock:
-                if not cls._instance:
-                    cls._instance = super().__new__(cls)
-                    cls._instance._initialize(*args, **kwargs)
-        return cls._instance
 
-    def _initialize(self, level=logging.DEBUG):
-        self.logger = logging.getLogger("Logger")
-        self.logger.setLevel(level)
-        self.logger.propagate = False
+class UserService:
+    security = HTTPBearer()  # for FastAPI dependency
 
-        if not self.logger.handlers:
-            formatter = logging.Formatter(
-                fmt='[%(levelname)s] [%(caller)s] %(message)s'
-            )
-            console_handler = logging.StreamHandler()
-            console_handler.setFormatter(formatter)
-            self.logger.addHandler(console_handler)
+    def __init__(self, db: Session):
+        self.repository = UserRepository(db)
 
-    def _log(self, level, msg, *args, **kwargs):
-        frame = inspect.currentframe()
-        caller = None
+    def get_all_users(self):
+        return self.repository.get_all()
 
-        for _ in range(6):  
-            frame = frame.f_back
-            if not frame:
-                break
+    def _encode_token(self, user_id: int) -> str:
+        payload = {
+            "sub": str(user_id),
+            "exp": datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+            "iat": datetime.utcnow()
+        }
+        return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
-            func_name = frame.f_code.co_name
-            module_name = frame.f_globals.get('__name__', '<module>')
-            if "self" in frame.f_locals:
-                cls_name = frame.f_locals["self"].__class__.__name__
-                caller = f"{module_name}.{cls_name}.{func_name}"
-                break
+    def _decode_token(self, token: str) -> int:
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            return int(payload["sub"])
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(status_code=401, detail="Token expired.")
+        except jwt.InvalidTokenError:
+            raise HTTPException(status_code=401, detail="Invalid token.")
 
-        if not caller:
-            func_name = frame.f_code.co_name if frame else "<unknown>"
-            module_name = frame.f_globals.get('__name__', '<module>') if frame else "<module>"
-            caller = f"{module_name}.{func_name}"
+    def _create_reset_token(self, user_id: int) -> str:
+        payload = {"sub": str(user_id), "exp": datetime.utcnow() + timedelta(minutes=60),
+                   "iat": datetime.utcnow(), "type": "password_reset"}
 
-        extra = {"caller": caller}
-        self.logger.log(level, msg, *args, extra=extra, stacklevel=3, **kwargs)
+        return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
-    def debug(self, msg, *args, **kwargs):
-        self._log(logging.DEBUG, msg, *args, **kwargs)
+    def _decode_reset_token(self, token: str) -> int:
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            if payload.get("type") != "password_reset":
+                raise HTTPException(status_code=400, detail="Invalid reset token.")
+            return int(payload["sub"])
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(status_code=400, detail="Reset token has expired.")
+        except jwt.InvalidTokenError:
+            raise HTTPException(status_code=400, detail="Invalid reset token.")
 
-    def info(self, msg, *args, **kwargs):
-        self._log(logging.INFO, msg, *args, **kwargs)
+    def auth_wrapper(self, request: Request):
+        auth_header = request.headers.get("Authorization")
+        token = None
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+        elif "access_token" in request.cookies:
+            token = request.cookies["access_token"]
 
-    def warning(self, msg, *args, **kwargs):
-        self._log(logging.WARNING, msg, *args, **kwargs)
+        if not token:
+            raise HTTPException(status_code=401, detail="Missing authentication token.")
 
-    def error(self, msg, *args, **kwargs):
-        self._log(logging.ERROR, msg, *args, **kwargs)
+        return self._decode_token(token)
 
-    def critical(self, msg, *args, **kwargs):
-        self._log(logging.CRITICAL, msg, *args, **kwargs)
+    def register_user(self, user_in: UserCreate) -> dict:
+        if self.repository.get_by_email(user_in.email):
+            raise HTTPException(status_code=400, detail="A user with this email already exists.")
+
+        hashed_password = PasswordUtil.hash_password(user_in.password)
+        user = User(
+            email=user_in.email,
+            first_name=user_in.first_name,
+            last_name=user_in.last_name,
+            phone_number=user_in.phone_number,
+            hashed_password=hashed_password,
+        )
+        id = self.repository.add(user)
+        token = self._encode_token(id)
+        return {"access_token": token, "user": id}
+
+    def login_user(self, user_in: UserLogin) -> dict:
+        user = self.repository.get_by_email(user_in.email)
+        if not user or not PasswordUtil.verify_password(user_in.password, user.hashed_password):
+            raise HTTPException(status_code=401, detail="Invalid email or password.")
+        token = self._encode_token(user.id)
+        return {"access_token": token, "user": user}
+    
+    def get_user_by_id(self, user_id: int) -> User:
+        user = self.repository.get_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found.")
+        return user
+
+    def update_user(self, user_id: int, user_in: UserUpdate) -> User:
+        fields = user_in.model_dump(exclude_unset=True)
+        if "password" in fields:
+            fields["hashed_password"] = PasswordUtil.hash_password(fields.pop("password"))
+        if "email" in fields:
+            existing_user = self.repository.get_by_email(fields["email"])
+            if existing_user and existing_user.id != user_id:
+                raise HTTPException(status_code=400, detail="A user with this email already exists.")
+        user = self.repository.update(user_id, fields)
+        return user
+    
+    def delete_user(self, user_id: int) -> None:
+        self.repository.delete(user_id)
+
+    def request_password_reset(self, email: str) -> dict:
+        user = self.repository.get_by_email(email)
+        if not user:  # For security, we don't reveal existence
+            return {"message": "Check the api console for the token."}
+        reset_token = self._create_reset_token(user.id)
+        print(f"The reset token ={reset_token}")
+        return {"message": "Check the api console for the token."}
+
+    def reset_password(self, token: str, new_password: str) -> dict:
+        user_id = self._decode_reset_token(token)
+        user = self.repository.get_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found.")
+        self.repository.update(user_id, {"hashed_password": PasswordUtil.hash_password(new_password)})
+        return {"message": "Password has been reset successfully."}
