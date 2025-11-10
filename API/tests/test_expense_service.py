@@ -1,10 +1,10 @@
-import pytest
 from datetime import datetime
-from sqlalchemy.exc import NoResultFound
 
-from services.expense_service import ExpenseService
-from schemas.expense import ExpenseCreate, ExpenseUpdate
+import pytest
 from models.expense import Expense
+from schemas.expense import ExpenseCreate, ExpenseUpdate
+from services.expense_service import ExpenseService
+from sqlalchemy.exc import NoResultFound
 
 
 class MockExpenseRepository:
