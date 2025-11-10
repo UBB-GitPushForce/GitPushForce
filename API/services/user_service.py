@@ -91,7 +91,6 @@ class UserService:
         self.logger.info(f"Registering user with email={user_in.email}")
 
         if self.repository.get_by_email(user_in.email):
-            self.logger.warning(f"Attempt to register existing user: {user_in.email}")
             raise HTTPException(status_code=400, detail="A user with this email already exists.")
 
         hashed_password = PasswordUtil.hash_password(user_in.password)
