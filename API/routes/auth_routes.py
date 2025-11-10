@@ -30,6 +30,7 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
         "user": result["user"]
         }
     except HTTPException as e:
+        print(e)
         raise e
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
