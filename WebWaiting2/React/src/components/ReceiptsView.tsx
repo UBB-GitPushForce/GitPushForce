@@ -2,11 +2,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import '../App.css';
 import type { ReceiptItem } from './Receipts';
+import { useAuth } from '../hooks/useAuth';
+import apiClient from '../services/api-client';
 
 /*
   ReceiptsView: infinite scroll grid with filters and delete action (mock).
   - injectedReceipts: items injected by upload/manual/camera; these are shown on top.
-  - TODO: replace mock fetchPage & delete with server API calls.
+  - DONE: replaced mock fetchPage & delete with server API calls.
 */
 
 const PAGE_SIZE = 18;
@@ -22,84 +24,82 @@ function randomDate(start: Date, end: Date) {
   return t.toISOString().slice(0, 10);
 }
 
-function makeMockData(total = 500) {
-  const subtitles = ['Utilities', 'Food', 'Income', 'Transport', 'Shopping', 'Coffee', 'Rent', 'Other'];
-  const titles = ['Electricity Bill', 'Grocery', 'Salary', 'Subway', 'New Shoes', 'Coffee', 'Rent', 'Invoice #1234'];
-  const names = ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'You'];
-  const items: ReceiptItem[] = [];
-  for (let i = 0; i < total; i++) {
-    const amount = Math.round((Math.random() * 500 + 1) * (Math.random() > 0.8 ? 1 : -1));
-    const dateTx = randomDate(new Date(2024, 0, 1), new Date(2025, 10, 28));
-    const dateAdded = randomDate(new Date(dateTx), new Date(2025, 10, 28));
-    const isGroup = Math.random() > 0.7;
-    const group = isGroup ? mockGroups[Math.floor(Math.random() * mockGroups.length)] : undefined;
-    const title = titles[Math.floor(Math.random() * titles.length)];
-    const subtitle = subtitles[Math.floor(Math.random() * subtitles.length)];
-    const user = names[Math.floor(Math.random() * names.length)];
-    items.push({
-      id: total - i,
-      title,
-      subtitle,
-      amount,
-      dateTransaction: dateTx,
-      dateAdded,
-      isGroup,
-      groupId: group?.id,
-      groupName: group?.name,
-      addedBy: user,
-      initial: (user[0] || 'U').toUpperCase(),
-    });
-  }
-  items.sort((a,b) => {
-    if (a.dateAdded === b.dateAdded) return b.id - a.id;
-    return b.dateAdded.localeCompare(a.dateAdded);
-  });
-  return items;
-}
 
-const MOCK_DB = makeMockData(600);
-
-// mock paged fetch
+// DONE: paged fetch
 async function fetchPage(pageIndex: number, pageSize: number, filters: any) {
-  await new Promise(r => setTimeout(r, 220));
-  let list = MOCK_DB.slice();
+  try {
+    const params: any = {
+      offset: pageIndex * pageSize,
+      limit: pageSize,
+      sort_by: 'created_at',
+      order: 'desc',
+    };
 
-  if (filters.qTitle) {
-    const q = filters.qTitle.toLowerCase();
-    list = list.filter(i => i.title.toLowerCase().includes(q));
-  }
-  if (filters.qSubtitle) {
-    const q = filters.qSubtitle.toLowerCase();
-    list = list.filter(i => i.subtitle.toLowerCase().includes(q));
-  }
-  if (filters.minAmount != null) list = list.filter(i => i.amount >= filters.minAmount);
-  if (filters.maxAmount != null) list = list.filter(i => i.amount <= filters.maxAmount);
-  if (filters.dateAddedFrom) list = list.filter(i => i.dateAdded >= filters.dateAddedFrom);
-  if (filters.dateAddedTo) list = list.filter(i => i.dateAdded <= filters.dateAddedTo);
-  if (filters.dateTxFrom) list = list.filter(i => i.dateTransaction >= filters.dateTxFrom);
-  if (filters.dateTxTo) list = list.filter(i => i.dateTransaction <= filters.dateTxTo);
-  if (filters.onlyGroup === 'group') list = list.filter(i => !!i.isGroup);
-  if (filters.onlyGroup === 'independent') list = list.filter(i => !i.isGroup);
+    if (filters.qTitle) params.category = filters.qTitle;
+    if (filters.minAmount != null) params.min_price = filters.minAmount;
+    if (filters.maxAmount != null) params.max_price = filters.maxAmount;
+    if (filters.dateAddedFrom) params.date_from = filters.dateAddedFrom;
+    if (filters.dateAddedTo) params.date_to = filters.dateAddedTo;
+    if (filters.qSubtitle) params.category = filters.qSubtitle;
 
-  const start = pageIndex * pageSize;
-  const end = start + pageSize;
-  const pageItems = list.slice(start, end);
-  const hasMore = end < list.length;
-  return { items: pageItems, hasMore };
+    const res = await apiClient.get('/expenses', { params });
+
+    const items: any[] = Array.isArray(res.data) ? res.data : [];
+
+    const pageItems: ReceiptItem[] = items.map((x: any) => ({
+      id: x.id,
+      title: x.title,
+      subtitle: x.category || 'Uncategorized',
+      amount: x.amount,
+      dateTransaction: x.created_at ? x.created_at.slice(0, 10) : '',
+      dateAdded: x.created_at ? x.created_at.slice(0, 10) : '',
+      isGroup: !!x.group_id,
+      groupId: x.group_id || undefined,
+      groupName: x.group_id ? `Group ${x.group_id}` : undefined, // TODO: fetch group name if needed
+      addedBy: x.user_id ? `User ${x.user_id}` : 'Unknown',
+      initial: x.user_id ? String(x.user_id)[0] : 'U',
+    }));
+
+    const hasMore = items.length === pageSize;
+
+    return { items: pageItems, hasMore };
+  } catch (err) {
+    console.error('Failed to fetch expenses', err);
+    return { items: [], hasMore: false };
+  }
 }
 
-// mock delete API
-async function deleteMock(id: number) {
-  // TODO: call DELETE /receipts/{id}
-  await new Promise(r => setTimeout(r, 300));
-  return true;
+//delete API call
+async function deleteExpense(id: number) {
+  // DONE: call DELETE /expenses/{id}
+  try {
+    await apiClient.delete(`/expenses/${id}`);
+    return true;
+  } catch (err) {
+    console.error('Failed to delete expense', err);
+    throw err;
+  }
+}
+
+//update API call
+async function updateExpense(id: number, body: any) {
+  try {
+    const res = await apiClient.put(`/expenses/${id}`, body);
+    return res.data;
+  } catch (err) {
+    console.error('Failed to update expense', err);
+    throw err;
+  }
 }
 
 const ReceiptsView: React.FC<{ injectedReceipts?: ReceiptItem[] }> = ({ injectedReceipts = [] }) => {
+  const { user } = useAuth();
   const [items, setItems] = useState<ReceiptItem[]>([]);
   const [pageIndex, setPageIndex] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
+  const[editingId, setEditingId] = useState<number | null>(null);
+  const[editForm, setEditForm] = useState({ title: '', subtitle: '', amount: '' });
 
   const [filters, setFilters] = useState<any>({});
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -120,7 +120,10 @@ const ReceiptsView: React.FC<{ injectedReceipts?: ReceiptItem[] }> = ({ injected
     setLoading(true);
     try {
       const res = await fetchPage(0, PAGE_SIZE, filters);
-      setItems([...injectedReceipts, ...res.items]);
+      // Filter out duplicates
+      const apiIds = new Set(res.items.map(item => item.id));
+      const uniqueInjected = injectedReceipts.filter(item => !apiIds.has(item.id));
+      setItems([...uniqueInjected, ...res.items]);
       setHasMore(res.hasMore);
       setPageIndex(1);
     } finally {
@@ -129,6 +132,52 @@ const ReceiptsView: React.FC<{ injectedReceipts?: ReceiptItem[] }> = ({ injected
   }, [filters, injectedReceipts]);
 
   useEffect(() => { loadFirst(); }, [loadFirst]);
+
+  const startEdit = (item: ReceiptItem) => {
+  setEditingId(item.id);
+  setEditForm({
+    title: item.title,
+    subtitle: item.subtitle,
+    amount: String(item.amount),
+  });
+};
+
+const cancelEdit = () => {
+  setEditingId(null);
+  setEditForm({ title: '', subtitle: '', amount: '' });
+};
+
+const saveEdit = async () => {
+  if (!editingId || !user) return;
+  
+  try {
+    const body: any = {
+      title: editForm.title.trim(),
+      category: editForm.subtitle.trim() || 'Manual',
+      amount: Math.abs(Number(editForm.amount)),
+    };
+
+    const item = items.find(x => x.id === editingId);
+    if (item?.isGroup && item.groupId) {
+      body.group_id = item.groupId;
+    } else {
+      body.user_id = user.id;
+    }
+
+    const updated = await updateExpense(editingId, body);
+
+    setItems(prev => prev.map(x => 
+      x.id === editingId 
+        ? { ...x, title: updated.title, subtitle: updated.category, amount: updated.amount }
+        : x
+    ));
+
+    cancelEdit();
+  } catch (err: any) {
+    console.error(err);
+    alert(err?.response?.data?.detail || 'Update failed');
+  }
+};
 
   const loadMore = useCallback(async () => {
     if (!hasMore || loading) return;
@@ -195,13 +244,13 @@ const ReceiptsView: React.FC<{ injectedReceipts?: ReceiptItem[] }> = ({ injected
     const ok = confirm('Are you sure you want to delete this receipt?');
     if (!ok) return;
     try {
-      // TODO: call API to delete the receipt permanently
-      await deleteMock(id);
+      // DONE: call API to delete the expense permanently
+      await deleteExpense(id);
       setItems(prev => prev.filter(x => x.id !== id));
-      alert('Deleted (mock). Replace with API call.');
-    } catch (err) {
+      alert('Deleted expense succesfully');
+    } catch (err: any) {
       console.error(err);
-      alert('Delete failed (mock).');
+      alert(err?.response?.data?.detail || 'Delete failed.');
     }
   };
 
@@ -250,6 +299,36 @@ const ReceiptsView: React.FC<{ injectedReceipts?: ReceiptItem[] }> = ({ injected
         >
           {items.map(it => (
             <article key={it.id} className="bp-tx" style={{ flexDirection:'column', alignItems:'stretch', padding:12 }}>
+              {editingId === it.id ? (
+            // EDIT MODE
+              <div style={{ display:'grid', gap:10 }}>
+                <input 
+                  placeholder="Title" 
+                  value={editForm.title} 
+                  onChange={e => setEditForm(prev => ({ ...prev, title: e.target.value }))}
+                  style={{ padding:8, borderRadius:6, border:'1px solid #e4e4ee' }}
+                />
+                <input 
+                  placeholder="Category" 
+                  value={editForm.subtitle} 
+                  onChange={e => setEditForm(prev => ({ ...prev, subtitle: e.target.value }))}
+                  style={{ padding:8, borderRadius:6, border:'1px solid #e4e4ee' }}
+                />
+                <input 
+                  placeholder="Amount" 
+                  type="number"
+                  value={editForm.amount} 
+                  onChange={e => setEditForm(prev => ({ ...prev, amount: e.target.value }))}
+                  style={{ padding:8, borderRadius:6, border:'1px solid #e4e4ee' }}
+                />
+                <div style={{ display:'flex', gap:8 }}>
+                  <button className="bp-add-btn" onClick={saveEdit}>Save</button>
+                  <button className="btn" onClick={cancelEdit}>Cancel</button>
+                </div>
+              </div>
+          ) : (
+            //VIEW MODE
+            <>
               <div style={{ display:'flex', alignItems:'center', gap:12 }}>
                 <div style={{ width:56, height:56, borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', background:'#fff', color:'var(--text-dark)', fontWeight:800, boxShadow:'0 4px 14px rgba(0,0,0,0.04)' }}>
                   {it.initial}
@@ -270,11 +349,14 @@ const ReceiptsView: React.FC<{ injectedReceipts?: ReceiptItem[] }> = ({ injected
                 <div>Added: {it.dateAdded}</div>
                 <div style={{ display:'flex', gap:8, alignItems:'center' }}>
                   <div>{it.isGroup ? `Group: ${it.groupName}` : 'Independent'}</div>
+                  <button className="btn" onClick={() => startEdit(it)} style={{ padding:'6px 8px' }}>Edit</button>
                   <button className="btn" onClick={() => handleDelete(it.id)} style={{ padding:'6px 8px' }}>Delete</button>
                 </div>
               </div>
-            </article>
-          ))}
+            </>
+          )}
+          </article>
+        ))}
         </div>
 
         <div ref={sentinelRef} style={{ height: 2 }} />

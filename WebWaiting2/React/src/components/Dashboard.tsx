@@ -1,5 +1,6 @@
 // src/components/Dashboard.tsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import apiClient from '../services/api-client';
 import { useAuth } from '../hooks/useAuth';
 import '../App.css';
 import ThemeToggle from './ThemeToggle';
@@ -8,6 +9,7 @@ import Profile from './Profile';
 import Support from './Support';
 import GroupDetail from './GroupDetail';
 import Receipts from './Receipts';
+
 
 interface Tx {
     id: number;
@@ -23,12 +25,46 @@ const Dashboard: React.FC = () => {
     const [screen, setScreen] = useState<'home' | 'groups' | 'receipts' | 'profile' | 'support' | 'groupDetail'>('home');
     const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
 
-    const sampleTx: Tx[] = [
-        { id: 1, title: 'Electricity Bill', cat: 'Utilities', amount: -150, thumb: 'E' },
-        { id: 2, title: 'Grocery', cat: 'Food', amount: -85, thumb: 'G' },
-        { id: 3, title: 'Salary', cat: 'Income', amount: +2200, thumb: 'S' },
-        { id: 4, title: 'Internet', cat: 'Utilities', amount: -40, thumb: 'I' },
-    ];
+    const [recentTx, setRecentTx] = useState<Tx[]>([]);
+    
+    // Fetch last 5 transactions from API
+    const fetchRecentTransactions = async () => {
+        try {
+            const res = await apiClient.get('/expenses', {
+                params: {
+                    offset: 0,
+                    limit: 5,
+                    sort_by: 'created_at',
+                    order: 'desc'
+                }
+            });
+            
+            const items = Array.isArray(res.data) ? res.data : [];
+            const mapped: Tx[] = items.map((x: any) => ({
+                id: x.id,
+                title: x.title,
+                cat: x.category || 'Other',
+                amount: x.amount,
+                thumb: x.title ? x.title[0].toUpperCase() : 'T'
+            }));
+            
+            setRecentTx(mapped);
+        } catch (err) {
+            console.error('Failed to fetch recent transactions', err);
+        }
+    };
+
+    useEffect(() => {
+        fetchRecentTransactions();
+    }, []);
+
+// Refetch when navigating to home
+    useEffect(() => {
+        if (screen === 'home') {
+            fetchRecentTransactions();
+        }
+    }, [screen]);
+
 
     const handleLogout = async () => {
         setIsLoggingOut(true);
@@ -101,7 +137,12 @@ const Dashboard: React.FC = () => {
                         <div className="bp-section-title">Recent Transactions</div>
 
                         <div className="bp-tx-list">
-                            {sampleTx.map(tx => (
+                            {recentTx.length === 0 ? (
+                                <div style={{ textAlign: 'center', color: 'var(--muted-dark)', padding: 20 }}>
+                                    No recent transactions
+                                </div>
+                            ) : ( 
+                            recentTx.map(tx => (
                                 <div className="bp-tx" key={tx.id}>
                                     <div className="bp-thumb">{tx.thumb}</div>
                                     <div className="bp-meta">
@@ -112,7 +153,8 @@ const Dashboard: React.FC = () => {
                                         {tx.amount < 0 ? '-' : '+'}${Math.abs(tx.amount)}
                                     </div>
                                 </div>
-                            ))}
+                            ))
+                        )}
                         </div>
 
                         <button className="bp-add-btn" onClick={() => setScreen('receipts')}>
