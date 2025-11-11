@@ -24,6 +24,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import com.example.budgeting.android.data.model.BottomNavItem
 import kotlinx.coroutines.launch
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.activity.compose.BackHandler
+import android.app.Activity
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 
 val bottomNavItems = listOf(
     BottomNavItem("Expenses", Icons.Default.Home),
@@ -37,50 +45,70 @@ val bottomNavItems = listOf(
 fun MainScreen(
     onLogout: () -> Unit
 ) {
+    val context = LocalContext.current
+    val activity = context as? Activity
+    val navController = rememberNavController()
     val pagerState = rememberPagerState(pageCount = { 4 })
     val coroutineScope = rememberCoroutineScope()
-    // Hold the selected group ID in main so that the group detail screen will not include the navigation bar
-    // TODO: might refactor this later
-    val selectedGroupId = remember { mutableStateOf<Int?>(null) }
+    val lastBackPress = remember { mutableStateOf(0L) }
 
-    Scaffold(
-        bottomBar = {
-            NavigationBar {
-                bottomNavItems.forEachIndexed { index, item ->
-                    NavigationBarItem(
-                        selected = pagerState.currentPage == index,
-                        onClick = {
-                            coroutineScope.launch {
-                                pagerState.animateScrollToPage(index)
-                            }
-                        },
-                        icon = { Icon(item.icon, contentDescription = item.title) },
-                        label = { Text(item.title) }
-                    )
+    NavHost(navController = navController, startDestination = "main") {
+        composable("main") {
+            // Handle back: go to home tab if not on it; otherwise double-press to exit
+            BackHandler {
+                if (pagerState.currentPage != 0) {
+                    coroutineScope.launch { pagerState.animateScrollToPage(0) }
+                } else {
+                    val now = System.currentTimeMillis()
+                    if (now - lastBackPress.value < 2000L) {
+                        activity?.finish()
+                    } else {
+                        lastBackPress.value = now
+                        Toast.makeText(context, "Press back again to exit", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+
+            Scaffold(
+                bottomBar = {
+                    NavigationBar {
+                        bottomNavItems.forEachIndexed { index, item ->
+                            NavigationBarItem(
+                                selected = pagerState.currentPage == index,
+                                onClick = {
+                                    coroutineScope.launch {
+                                        pagerState.animateScrollToPage(index)
+                                    }
+                                },
+                                icon = { Icon(item.icon, contentDescription = item.title) },
+                                label = { Text(item.title) }
+                            )
+                        }
+                    }
+                }
+            ) { padding ->
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier
+                        .padding(padding)
+                        .fillMaxSize()
+                ) { page ->
+                    when (page) {
+                        0 -> ExpensesScreen(onLogout = onLogout)
+                        1 -> GroupsScreen(onOpenGroup = { id -> navController.navigate("groupDetails/$id") })
+                        2 -> ReceiptsScreen()
+                        3 -> ProfileScreen()
+                    }
                 }
             }
         }
-    ) { padding ->
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-        ) { page ->
-            when (page) {
-                0 -> ExpensesScreen(onLogout = onLogout)
-                1 -> GroupsScreen(onOpenGroup = { id -> selectedGroupId.value = id })
-                2 -> ReceiptsScreen()
-                3 -> ProfileScreen()
-            }
-        }
-    }
 
-    // Overlay Group Details when selected
-    selectedGroupId.value?.let { id ->
-        GroupDetailsScreen(
-            groupId = id,
-            onBack = { selectedGroupId.value = null }
-        )
+        composable("groupDetails/{groupId}") { backStackEntry ->
+            val groupId = backStackEntry.arguments?.getString("groupId")?.toIntOrNull() ?: return@composable
+            GroupDetailsScreen(
+                groupId = groupId,
+                onBack = { navController.popBackStack() }
+            )
+        }
     }
 }

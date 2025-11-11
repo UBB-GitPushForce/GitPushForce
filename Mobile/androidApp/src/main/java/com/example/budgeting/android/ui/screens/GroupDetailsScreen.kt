@@ -1,47 +1,21 @@
 package com.example.budgeting.android.ui.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.shape.*
+import androidx.compose.material.icons.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.*
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.navigationBarsPadding
-import com.example.budgeting.android.ui.viewmodels.GroupDetailsViewModel
-import com.example.budgeting.android.ui.viewmodels.GroupDetailsViewModelFactory
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.activity.compose.BackHandler
+import com.example.budgeting.android.ui.viewmodels.*
+import com.example.budgeting.android.data.model.Expense
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,6 +27,10 @@ fun GroupDetailsScreen(
     val vm: GroupDetailsViewModel = viewModel(
         factory = GroupDetailsViewModelFactory(context)
     )
+
+    BackHandler {
+        onBack()
+    }
     
     LaunchedEffect(groupId) { 
         vm.loadGroup(groupId) 
@@ -71,7 +49,8 @@ fun GroupDetailsScreen(
             CenterAlignedTopAppBar(
                 title = { Text(title, color = MaterialTheme.colorScheme.onBackground) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = onBack)
+                     {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
@@ -147,7 +126,8 @@ fun GroupDetailsScreen(
                         items(expensesState) { groupExpense ->
                             BubbleRowLeft(
                                 text = "${groupExpense.expense.title} - $${String.format("%.2f", groupExpense.expense.amount)}",
-                                author = groupExpense.userName
+                                author = groupExpense.userName,
+                                description = groupExpense.description
                             )
                         }
                     }
@@ -158,7 +138,7 @@ fun GroupDetailsScreen(
 }
 
 @Composable
-private fun BubbleRowLeft(text: String, author: String) {
+private fun BubbleRowLeft(text: String, author: String, description: String?) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Filled.Person, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -171,7 +151,13 @@ private fun BubbleRowLeft(text: String, author: String) {
                 .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(10.dp))
                 .padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
-            Text(text, color = MaterialTheme.colorScheme.onSurface)
+            Column {
+                Text(text, color = MaterialTheme.colorScheme.onSurface)
+                if (!description.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.size(4.dp))
+                    Text(description, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                }
+            }
         }
     }
 }
@@ -200,6 +186,18 @@ private fun BottomAddExpenseBar(
     groupId: Int,
     vm: GroupDetailsViewModel
 ) {
+    val context = LocalContext.current
+    val evm: ExpenseViewModel = viewModel(factory = ExpenseViewModelFactory(context))
+    LaunchedEffect(Unit) { evm.loadExpenses() }
+    val personalExpenses by evm.expenses.collectAsState()
+    val showPicker = remember { mutableStateOf(false) }
+    val description = remember { mutableStateOf("") }
+
+    // If the picker dialog is open, back should close it first (and not navigate)
+    BackHandler(enabled = showPicker.value) {
+        showPicker.value = false
+    }
+
     Surface(color = MaterialTheme.colorScheme.background) {
         Row(
             modifier = Modifier
@@ -208,36 +206,138 @@ private fun BottomAddExpenseBar(
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            val text = remember { mutableStateOf("") }
             TextField(
-                value = text.value,
-                onValueChange = { text.value = it },
+                value = description.value,
+                onValueChange = { description.value = it },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Add expense") },
+                placeholder = { Text("Write a short description") },
                 colors = TextFieldDefaults.colors(
                     unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                     focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                     focusedIndicatorColor = MaterialTheme.colorScheme.primary,
                     unfocusedIndicatorColor = MaterialTheme.colorScheme.surfaceVariant
-                )
+                ),
+                shape = RoundedCornerShape(12.dp)
             )
             Spacer(modifier = Modifier.size(8.dp))
             Button(
-                onClick = { 
-                    // TODO: Implement add expense functionality
-                    // For now, just clear the text field
-                    text.value = ""
-                },
+                onClick = { showPicker.value = true },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 ),
-                shape = RoundedCornerShape(10.dp)
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.height(52.dp)
+            ) { Text("+") }
+        }
+    }
+
+    if (showPicker.value) {
+        SelectPersonalExpenseDialog(
+            expenses = personalExpenses,
+            onDismiss = { showPicker.value = false },
+            onConfirm = { selected ->
+                vm.addExpensesFromPersonal(selected, description.value, "You")
+                description.value = ""
+                showPicker.value = false
+            }
+        )
+    }
+}
+
+@Composable
+private fun SelectPersonalExpenseDialog(
+    expenses: List<Expense>,
+    onDismiss: () -> Unit,
+    onConfirm: (List<Expense>) -> Unit
+) {
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            color = MaterialTheme.colorScheme.background,
+            shape = RoundedCornerShape(16.dp),
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(12.dp)
+                    .fillMaxWidth()
+                    .heightIn(max = 480.dp)
             ) {
-                Text("+")
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = onDismiss) { Text("✕", color = MaterialTheme.colorScheme.onBackground) }
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        Text(text = "Choose an expense", color = MaterialTheme.colorScheme.onBackground)
+                    }
+                    Spacer(modifier = Modifier.size(32.dp))
+                }
+
+                val selected = remember { mutableStateListOf<Int>() }
+
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    itemsIndexed(expenses) { index, exp ->
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (selected.contains(index)) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    if (selected.contains(index)) selected.remove(index) else selected.add(index)
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(text = exp.title, color = MaterialTheme.colorScheme.onSurface)
+                                    Text(text = exp.category, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                                }
+                                Text(
+                                    text = "$${"%.2f".format(exp.amount)}",
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Row(
+                    modifier = Modifier
+                        .padding(12.dp)
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) { Text("Cancel") }
+                    Button(
+                        onClick = {
+                            val items = selected.map { expenses[it] }
+                            onConfirm(items)
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    ) { Text("Add") }
+                }
             }
         }
     }
 }
-
 

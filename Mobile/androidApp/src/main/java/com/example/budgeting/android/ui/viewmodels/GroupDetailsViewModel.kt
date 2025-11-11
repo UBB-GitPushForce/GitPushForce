@@ -19,7 +19,8 @@ import kotlinx.coroutines.launch
 
 data class GroupExpense(
     val expense: Expense,
-    val userName: String
+    val userName: String,
+    val description: String? = null
 )
 
 class GroupDetailsViewModel(context: Context) : ViewModel() {
@@ -141,11 +142,22 @@ class GroupDetailsViewModel(context: Context) : ViewModel() {
             } else {
                 "Group Member"
             }
-            GroupExpense(
-                expense = expense,
-                userName = userName
-            )
+            GroupExpense(expense = expense, userName = userName, description = null)
         }
+    }
+
+    fun addExpenseFromPersonal(expense: Expense, description: String?, userName: String = "You") {
+        _expenses.value = listOf(
+            GroupExpense(expense = expense, userName = userName, description = description?.ifBlank { null })
+        ) + _expenses.value
+    }
+
+    fun addExpensesFromPersonal(expenses: List<Expense>, description: String?, userName: String = "You") {
+        if (expenses.isEmpty()) return
+        val items = expenses.map {
+            GroupExpense(expense = it, userName = userName, description = description?.ifBlank { null })
+        }
+        _expenses.value = items + _expenses.value
     }
 }
 
