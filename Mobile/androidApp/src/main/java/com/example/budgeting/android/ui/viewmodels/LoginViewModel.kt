@@ -47,18 +47,16 @@ class LoginViewModel(context: Context) : ViewModel() {
                 if (response.isSuccessful && response.body() != null) {
                     // Step 3a: On success, update state
                     val body = response.body()!!
-                    val user = body.user
-                    val token = body.accessToken
-
-                    // save token for future api calls
-                    TokenHolder.token = token
-                    tokenDataStore.saveToken(token)
-
+                    // Token and user ID are already saved by AuthRepository
                     _uiState.update { it.copy(isLoading = false, loginSuccess = true) }
-                    println("SUCCESS: Logged in as ${user.firstName} ${user.lastName} (ID: ${user.id})")
+                    println("SUCCESS: Logged in as ${body.user.firstName} ${body.user.lastName} (ID: ${body.user.id})")
                 } else {
                     // Step 3b: On server error (e.g. wrong password), update state with error
-                    val errorMessage = "Login failed: ${response.code()} - ${response.message()}"
+                    val errorMessage = try {
+                        response.errorBody()?.string() ?: "Login failed: ${response.code()} - ${response.message()}"
+                    } catch (e: Exception) {
+                        "Login failed: ${response.code()} - ${response.message()}"
+                    }
                     _uiState.update { it.copy(isLoading = false, error = errorMessage) }
                 }
             } catch (e: Exception) {
