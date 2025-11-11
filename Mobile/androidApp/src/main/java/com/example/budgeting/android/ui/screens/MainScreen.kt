@@ -18,6 +18,8 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import com.example.budgeting.android.data.model.BottomNavItem
@@ -37,6 +39,9 @@ fun MainScreen(
 ) {
     val pagerState = rememberPagerState(pageCount = { 4 })
     val coroutineScope = rememberCoroutineScope()
+    // Hold the selected group ID in main so that the group detail screen will not include the navigation bar
+    // TODO: might refactor this later
+    val selectedGroupId = remember { mutableStateOf<Int?>(null) }
 
     Scaffold(
         bottomBar = {
@@ -64,10 +69,18 @@ fun MainScreen(
         ) { page ->
             when (page) {
                 0 -> ExpensesScreen(onLogout = onLogout)
-                1 -> GroupsScreen()
+                1 -> GroupsScreen(onOpenGroup = { id -> selectedGroupId.value = id })
                 2 -> ReceiptsScreen()
                 3 -> ProfileScreen()
             }
         }
+    }
+
+    // Overlay Group Details when selected
+    selectedGroupId.value?.let { id ->
+        GroupDetailsScreen(
+            groupId = id,
+            onBack = { selectedGroupId.value = null }
+        )
     }
 }
