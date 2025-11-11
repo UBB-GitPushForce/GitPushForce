@@ -91,4 +91,7 @@ dependencies {
 
     // DataStore for token persistence
     implementation("androidx.datastore:datastore-preferences:1.1.1")
+
+    // Coil for image loading in Compose
+    implementation("io.coil-kt:coil-compose:2.6.0")
 }
