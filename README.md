@@ -26,6 +26,7 @@ The main repository for the project.
 🟩 **GET /groups/{group_id}** get certain group by id<br>
 🟩 **GET /groups/{group_id}/users** get all users from a group<br>
 🟩 **GET /groups/user/{user_id}** get all groups from an user<br>
+🟩 **GET /groups/{group_id}/expenses** get all expenses from a group<br>
 🟦 **POST /groups** create new group<br>
 🟦 **POST /groups/{group_id}/users/{user_id}** add an user to a group<br>
 🟧 **PUT /groups/{group_id}** update a group<br>
