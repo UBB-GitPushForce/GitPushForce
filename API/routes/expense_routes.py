@@ -48,7 +48,6 @@ def parse_date_string(date_str: Optional[str]) -> Optional[datetime]:
 @router.post("/", response_model=Expense, status_code=201)
 def create_expense(
     expense_in: ExpenseCreate,
-    user_id: int = Depends(get_current_user_id),
     service: ExpenseService = Depends(get_expense_service)
 ):
     try:
@@ -60,11 +59,10 @@ def create_expense(
 @router.get("/{expense_id}", response_model=Expense)
 def get_expense(
     expense_id: int,
-    user_id: int = Depends(get_current_user_id),
     service: ExpenseService = Depends(get_expense_service)
 ):
     try:
-        return service.get_expense_by_id(expense_id, user_id)
+        return service.get_expense_by_id(expense_id)
     except NoResultFound as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
@@ -110,7 +108,6 @@ def get_user_expenses(
 
 @router.get("/all", response_model=List[Expense])
 def get_all_expenses(
-    user_id: int = Depends(get_current_user_id),  # Still require auth
     offset: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     sort_by: str = Query("created_at"),
@@ -150,15 +147,15 @@ def get_all_expenses(
     )
 
 
-@router.put("/{expense_id}", response_model=Expense)
+@router.put("/{expense_id}")
 def update_expense(
     expense_id: int,
     expense_in: ExpenseUpdate,
-    user_id: int = Depends(get_current_user_id),
     service: ExpenseService = Depends(get_expense_service)
 ):
     try:
-        return service.update_expense(expense_id, expense_in, user_id)
+        service.update_expense(expense_id, expense_in)
+        return "Successfull update"
     except NoResultFound as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except ValueError as e:
@@ -168,10 +165,9 @@ def update_expense(
 @router.delete("/{expense_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_expense(
     expense_id: int,
-    user_id: int = Depends(get_current_user_id),
     service: ExpenseService = Depends(get_expense_service)
 ):
     try:
-        service.delete_expense(expense_id, user_id)
+        service.delete_expense(expense_id)
     except NoResultFound as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
