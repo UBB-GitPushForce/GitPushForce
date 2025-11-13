@@ -1,5 +1,5 @@
 import React, {createContext, useState, useCallback, ReactNode, useEffect} from 'react';
-import authService from '../services/auth-services';
+import authService from '../services/auth-service';
 import apiClient from '../services/api-client';
 
 interface User {
