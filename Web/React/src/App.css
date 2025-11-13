@@ -1,5 +1,6 @@
 /* =========================
-   App.css - Complete rewrite (web layout friendly)
+   App.css - Complete rewrite (web + mobile friendly)
+   Replaces the entire file content
    ========================= */
 
 /* -------------------------
@@ -49,75 +50,20 @@ body{
     box-sizing: border-box;
 }
 
-/* Main dashboard wrapper (now web-friendly) */
-.bp-wrap{
-    min-height:100vh;
-    display:flex;
-    align-items:flex-start; /* don't center vertically like a phone UI */
-    justify-content:center;
-    background: var(--bg-dark);
-    padding:28px 20px;
-    box-sizing:border-box;
-    font-family: Inter, Arial, sans-serif;
+.card {
+    background: var(--card-light);
+    border-radius: 16px;
+    box-shadow: var(--shadow-strong);
+    padding: 32px 28px;
+    max-width: 360px;
+    width: 100%;
+    box-sizing: border-box;
+    color: var(--text-light);
+    border: 0;
 }
 
-/* Card becomes a centered page container with larger max-width for web */
-.bp-card{
-    width:100%;
-    max-width:1100px; /* web-friendly width */
-    margin: 0 auto;
-    background: var(--card-dark);
-    border-radius:12px;
-    padding:20px 22px;
-    box-shadow: 0 8px 30px rgba(2,6,23,0.6);
-    border: 1px solid rgba(255,255,255,0.03);
-    box-sizing:border-box;
-    color: var(--text-dark);
-}
+/* ... login/register, inputs, buttons same as before (kept) ... */
 
-/* top bar with greeting + logout */
-.bp-topbar{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:12px;
-}
-
-/* Top navigation (web) - hidden on small screens, visible on wider */
-.bp-top-nav {
-    display: none; /* default hidden for mobile, shown via media query on desktop */
-    margin-top: 14px;
-    padding-top: 10px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid rgba(0,0,0,0.04);
-    display:flex;
-    gap: 12px;
-    align-items:center;
-}
-
-/* Style for nav items in top nav (reuse bp-nav-item styling) */
-.bp-top-nav .bp-nav-item {
-    display:flex;
-    align-items:center;
-    gap:8px;
-    padding:8px 12px;
-    border-radius:8px;
-    cursor:pointer;
-    color: var(--muted-dark);
-    font-weight:600;
-    text-decoration:none;
-}
-.bp-top-nav .bp-nav-item.active {
-    color: var(--purple-1);
-    background: linear-gradient(90deg, rgba(124,58,237,0.06), rgba(108,52,235,0.03));
-}
-
-/* bottom navigation retained for mobile (kept for small screens) */
-.bp-bottom-nav{ display:flex; justify-content:space-around; gap:6px; padding:8px 6px; margin-top:6px; }
-.bp-nav-item{ display:flex; flex-direction:column; align-items:center; gap:6px; font-size:12px; color: var(--muted-dark); text-decoration:none; cursor:pointer; }
-.bp-nav-item.active{ color: var(--purple-1); }
-
-/* Other card / components styles (kept mostly intact) */
 .title {
     font-weight: 700;
     font-size: 1.7rem;
@@ -137,12 +83,12 @@ label {
     display: block;
 }
 
-input[type="text"], input[type="password"], input[type="email"], input[type="number"], select, textarea {
+input[type="text"], input[type="password"], input[type="email"], input[type="date"], select, textarea {
     width: 100%;
-    padding: 10px;
-    margin-bottom: 12px;
+    padding: 12px;
+    margin-bottom: 16px;
     border: 1px solid #e4e4ee;
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 1rem;
     background: #f5f5fa;
     color: var(--text-light);
@@ -156,12 +102,13 @@ input:focus, textarea:focus, select:focus {
 }
 
 .btn {
+    width: auto;
     padding: 10px 14px;
     border: none;
     border-radius: 10px;
     background: linear-gradient(90deg, var(--purple-1) 60%, var(--purple-2) 100%);
     color: #fff;
-    font-size: 0.98rem;
+    font-size: 1rem;
     font-weight: 600;
     margin-top: 6px;
     cursor: pointer;
@@ -184,7 +131,40 @@ input:focus, textarea:focus, select:focus {
 
 /* -------------------------
    Budget prototype styles (bp-*)
+   Prefixed and scoped to avoid conflicts
    ------------------------- */
+
+.bp-wrap{
+    min-height:100vh;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    background: var(--bg-dark); /* default look; overridden by theme-light */
+    padding:20px;
+    box-sizing:border-box;
+    font-family: Inter, Arial, sans-serif;
+}
+
+/* Default bp-card is mobile-first, but we adapt on desktop below */
+.bp-card{
+    width:100%;
+    max-width:420px;
+    background: var(--card-dark);
+    border-radius:20px;
+    padding:20px 18px;
+    box-shadow: 0 8px 30px rgba(2,6,23,0.6);
+    border: 1px solid rgba(255,255,255,0.03);
+    box-sizing:border-box;
+    color: var(--text-dark);
+}
+
+/* top bar with greeting + logout */
+.bp-topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+}
 
 .bp-title{
     font-weight:800;
@@ -206,6 +186,35 @@ input:focus, textarea:focus, select:focus {
     border-radius:10px;
     cursor:pointer;
     font-weight:700;
+}
+
+/* TOP NAV (desktop) */
+.bp-top-nav{
+    display:none; /* mobile: hidden; desktop enabled via media query */
+    gap:12px;
+    margin-top:12px;
+    align-items:center;
+    flex-wrap:wrap;
+    padding:10px;
+    border-radius:12px;
+    background: transparent;
+}
+
+/* individual item in top nav */
+.bp-top-nav .bp-nav-item{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:8px 10px;
+    border-radius:10px;
+    color: var(--muted-dark);
+    cursor:pointer;
+    font-weight:700;
+    font-size:14px;
+}
+.bp-top-nav .bp-nav-item.active{
+    color: var(--purple-1);
+    background: linear-gradient(90deg, rgba(124,58,237,0.06), rgba(108,52,235,0.02));
 }
 
 /* sections */
@@ -285,9 +294,8 @@ input:focus, textarea:focus, select:focus {
 /* add receipts button */
 .bp-add-btn{
     margin-top:14px;
-    width:auto;
     border-radius:14px;
-    padding:10px 16px;
+    padding:10px 14px;
     text-align:center;
     font-weight:700;
     background: linear-gradient(135deg,var(--purple-1),var(--purple-2));
@@ -300,47 +308,34 @@ input:focus, textarea:focus, select:focus {
 /* dotted separator */
 .bp-dotted{ border-top:2px dotted rgba(255,255,255,0.06); margin-top:14px; padding-top:10px; }
 
+/* bottom navigation (mobile) */
+.bp-bottom-nav{ display:flex; justify-content:space-around; gap:6px; padding:8px 6px; margin-top:6px; }
+.bp-nav-item{ display:flex; flex-direction:column; align-items:center; gap:6px; font-size:12px; color: var(--muted-dark); text-decoration:none; cursor:pointer; }
+.bp-nav-item.active{ color: var(--purple-1); }
+
 /* helper for unimplemented messages */
 .bp-small-muted{ color: var(--muted-dark); font-size:13px; text-align:center; margin-top:8px; }
 
-/* groups / create-group styles */
+/* groups / create-group styles (kept for later) */
 .bp-group-card{ display:flex; gap:12px; background:#0f2248; padding:10px; border-radius:12px; align-items:center; }
 .bp-group-thumb{ width:64px; height:64px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:800; color:#fff; background: linear-gradient(135deg, rgba(124,58,237,0.14), rgba(108,52,235,0.06)); }
 .bp-create-group{ margin-top:12px; background: linear-gradient(135deg,var(--purple-1),var(--purple-2)); color:#fff; padding:12px; border-radius:12px; text-align:center; font-weight:800; box-shadow:0 6px 30px rgba(124,58,237,0.25); cursor:pointer; border:0; width:50%; align-self:flex-end; }
 
-/* Receipts wide layout (adjusted) */
-.bp-card.receipts-wide {
-  max-width: none;
-  width: calc(100% - 40px);
-  padding-left: 28px;
-  padding-right: 28px;
-}
+@media (min-width:760px){
+    .bp-card{ 
+      transform:scale(1.02);
+      max-width: 1100px;            /* wider layout for web */
+      padding: 26px 28px;
+    }
 
-/* center the inner grid for receipts */
-.receipts-grid-container {
-  max-width: none;
-  margin: 0 auto;
-}
+    /* Show top nav on larger screens */
+    .bp-top-nav{ display:flex; }
 
-/* small responsiveness tweaks */
-@media (max-width: 1200px) {
-  .bp-card.receipts-wide {
-    width: calc(100% - 32px);
-  }
-}
+    /* Hide bottom nav on larger screens */
+    .bp-bottom-nav{ display:none; }
 
-@media (max-width: 760px) {
-  .bp-card{ max-width:420px; } /* keep compact on small screens */
-  .bp-wrap { padding: 18px; }
-  .bp-top-nav { display: none; } /* hide top nav on small */
-  .bp-bottom-nav { display:flex; } /* show bottom nav on mobile */
-}
-
-/* Desktop styles */
-@media (min-width: 760px){
-    .bp-card{ transform:none; } /* remove mobile scale */
-    .bp-top-nav { display:flex; } /* show top nav on desktop */
-    .bp-bottom-nav { display: none; } /* hide bottom nav on desktop */
+    /* Slight layout polish */
+    .bp-row{ gap: 18px; }
 }
 
 /* -------------------------
@@ -415,6 +410,19 @@ body.theme-light .bp-logout {
     background: rgba(255,255,255,0.92);
 }
 
+/* Ensure base .card (login/register) adapts to dark theme below */
+body.theme-light .card {
+    background: var(--card-light);
+    color: var(--text-light);
+    box-shadow: var(--shadow-strong);
+}
+
+/* DARK THEME */
+body.theme-dark {
+    background: var(--bg-dark);
+    color: var(--text-dark);
+}
+
 /* card (login/register) in dark theme */
 body.theme-dark .wrap {
     background: transparent;
@@ -428,7 +436,7 @@ body.theme-dark .card {
 body.theme-dark .title { color: var(--text-dark); text-shadow: 0 6px 22px rgba(255,255,255,0.06); }
 body.theme-dark .sub { color: var(--muted-dark); }
 
-/* reinforce dark components */
+/* bp-card already defaults to dark vars; reinforce colors */
 body.theme-dark .bp-card { background: var(--card-dark); color: var(--text-dark); }
 body.theme-dark .bp-box { background: #0f2248; border: 1px solid rgba(255,255,255,0.03); }
 body.theme-dark .bp-box .value { color: var(--text-dark); }
@@ -443,7 +451,8 @@ body.theme-dark .bp-logout {
 }
 
 /* -------------------------
-   Theme toggle */
+   Theme toggle (switch) styling
+   ------------------------- */
 .theme-toggle{
     position: relative;
     display: inline-block;
@@ -482,7 +491,42 @@ body.theme-dark .bp-logout {
     transform: translateX(22px);
 }
 
-/* small accessibility / utility tweaks */
+/* -------------------------
+   Small accessibility / utility tweaks
+   ------------------------- */
 a { cursor: pointer; }
 button:disabled { opacity: 0.65; cursor: not-allowed; }
+
+/* --- Receipts wide layout --- */
+.bp-card.receipts-wide {
+  max-width: 1200px;
+  width: calc(100% - 80px);
+  padding-left: 28px;
+  padding-right: 28px;
+}
+
+/* center the inner grid and limit columns so at 1920px we have about 4 columns */
+.receipts-grid-container {
+  max-width: 1200px; /* ~4 columns at 260px each */
+  margin: 0 auto;
+}
+
+/* small responsiveness tweaks */
+@media (max-width: 1200px) {
+  .bp-card.receipts-wide {
+    width: calc(100% - 40px);
+    max-width: 980px;
+  }
+}
+
+@media (max-width: 760px) {
+  .bp-card.receipts-wide {
+    width: calc(100% - 24px);
+    max-width: 760px;
+  }
+
+  /* mobile: keep bottom nav visible, hide top nav */
+  .bp-top-nav { display: none !important; }
+  .bp-bottom-nav { display: flex !important; }
+}
 

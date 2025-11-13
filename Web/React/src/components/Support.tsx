@@ -30,7 +30,8 @@ const Support: React.FC<{ navigate?: (to: string) => void }> = ({ navigate }) =>
 
     return (
         <>
-            <div style={{ marginTop: 12, fontWeight: 800, fontSize: 20, color: 'var(--text-dark)' }}>Customer Support</div>
+            {/* Title changed to "?" as requested */}
+            <div style={{ marginTop: 12, fontWeight: 800, fontSize: 20, color: 'var(--text-dark)' }}>?</div>
 
             <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{ color: 'var(--muted-dark)' }}>If you need help, use one of the options below.</div>
