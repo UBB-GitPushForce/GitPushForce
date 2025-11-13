@@ -18,9 +18,12 @@ import androidx.compose.ui.unit.dp
 import com.example.budgeting.android.data.model.Expense
 
 @Composable
-fun ExpenseItem(expense: Expense) {
+fun ExpenseItem(
+    expense: Expense,
+    modifier: Modifier
+) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(8.dp),
         shape = RoundedCornerShape(16.dp),

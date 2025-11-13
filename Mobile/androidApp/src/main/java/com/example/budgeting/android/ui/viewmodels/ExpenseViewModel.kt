@@ -1,6 +1,7 @@
 package com.example.budgeting.android.ui.viewmodels
 
 import android.content.Context
+import android.util.Log
 import com.example.budgeting.android.data.model.Expense
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -35,6 +36,67 @@ class ExpenseViewModel(context: Context) : ViewModel() {
 
                 if (response.isSuccessful && response.body() != null) {
                     _expenses.value = response.body()!!
+                } else {
+                    _error.value = "Error: ${response.code()} - ${response.message()}"
+                }
+            } catch (e: Exception) {
+                _error.value = e.message
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun addExpense(expense: Expense) {
+        _isLoading.value = true
+        _error.value = null
+        viewModelScope.launch {
+            try {
+                expense.user_id = tokenDataStore.getUserId()
+                val response = expenseRepository.addExpense(expense)
+
+                if (response.isSuccessful) {
+                    _expenses.value += response.body()!!
+                } else {
+                    _error.value = "Error: ${response.code()} - ${response.message()}"
+                }
+            } catch (e: Exception) {
+                _error.value = e.message
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun updateExpense(expense: Expense) {
+        _isLoading.value = true
+        _error.value = null
+        viewModelScope.launch {
+            try {
+                val response = expenseRepository.updateExpense(id = expense.id!!, expense = expense)
+
+                if (response.isSuccessful) {
+                    _expenses.value = _expenses.value.map { if (it.id == expense.id) expense else it }
+                } else {
+                    _error.value = "Error: ${response.code()} - ${response.message()}"
+                }
+            } catch (e: Exception) {
+                _error.value = e.message
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun deleteExpense(expense: Expense) {
+        _isLoading.value = true
+        _error.value = null
+        viewModelScope.launch {
+            try {
+                val response = expenseRepository.deleteExpense(expense.id!!)
+
+                if (response.isSuccessful) {
+                    _expenses.value -= expense
                 } else {
                     _error.value = "Error: ${response.code()} - ${response.message()}"
                 }
