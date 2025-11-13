@@ -9,6 +9,8 @@ import Profile from './Profile';
 import Support from './Support';
 import GroupDetail from './GroupDetail';
 import Receipts from './Receipts';
+import ChatBot from './ChatBot';
+import Data from './Data';
 
 
 interface Tx {
@@ -22,7 +24,7 @@ interface Tx {
 const Dashboard: React.FC = () => {
     const { user, logout } = useAuth();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
-    const [screen, setScreen] = useState<'home' | 'groups' | 'receipts' | 'profile' | 'support' | 'groupDetail'>('home');
+    const [screen, setScreen] = useState<'home' | 'groups' | 'receipts' | 'profile' | 'support' | 'groupDetail' | 'chat' | 'data'>('home');
     const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
 
     const [recentTx, setRecentTx] = useState<Tx[]>([]);
@@ -58,7 +60,7 @@ const Dashboard: React.FC = () => {
         fetchRecentTransactions();
     }, []);
 
-// Refetch when navigating to home
+    // Refetch when navigating to home
     useEffect(() => {
         if (screen === 'home') {
             fetchRecentTransactions();
@@ -110,7 +112,48 @@ const Dashboard: React.FC = () => {
                     </div>
                 </div>
 
+                {/* TOP NAV - visible on desktop */}
+                <nav className="bp-top-nav" aria-label="main navigation">
+                    <div className={`bp-nav-item ${screen === 'home' ? 'active' : ''}`} onClick={() => navigate('home')} role="button">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 11.5L12 4l9 7.5" strokeWidth="1.4"/></svg>
+                        <div>Home</div>
+                    </div>
+
+                    <div className={`bp-nav-item ${screen === 'groups' ? 'active' : ''}`} onClick={() => navigate('groups')} role="button">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" strokeWidth="1.4"/></svg>
+                        <div>Groups</div>
+                    </div>
+
+                    <div className={`bp-nav-item ${screen === 'receipts' ? 'active' : ''}`} onClick={() => navigate('receipts')} role="button">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 9h6M9 13h6M3 7h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" strokeWidth="1.4"/></svg>
+                        <div>Receipts</div>
+                    </div>
+
+                    <div className={`bp-nav-item ${screen === 'data' ? 'active' : ''}`} onClick={() => navigate('data')} role="button">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18" strokeWidth="1.4"/></svg>
+                        <div>Data</div>
+                    </div>
+
+                    <div className={`bp-nav-item ${screen === 'chat' ? 'active' : ''}`} onClick={() => navigate('chat')} role="button">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 0-2-2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" strokeWidth="1.4"/></svg>
+                        <div>AI</div>
+                    </div>
+
+                    <div style={{ marginLeft: 'auto' }} />
+
+                    <div className={`bp-nav-item ${screen === 'profile' ? 'active' : ''}`} onClick={() => navigate('profile')} role="button">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM3 22v-1a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v1" strokeWidth="1.4"/></svg>
+                        <div>Profile</div>
+                    </div>
+
+                    <div className={`bp-nav-item ${screen === 'support' ? 'active' : ''}`} onClick={() => navigate('support')} role="button">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 0-2-2h-1V9a7 7 0 1 0-14 0v4H3a2 2 0 0 0-2 2v2h22v-2z" strokeWidth="1.4"/></svg>
+                        <div>Support</div>
+                    </div>
+                </nav>
+
                 {/* Router */}
+                <div style={{ marginTop: 14 }}>
                 {screen === 'home' && (
                     <>
                         <div className="bp-section-title">Budget Summary</div>
@@ -157,9 +200,9 @@ const Dashboard: React.FC = () => {
                         )}
                         </div>
 
-                        <button className="bp-add-btn" onClick={() => setScreen('receipts')}>
-                            Add Receipts
-                        </button>
+                        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                            <button className="bp-add-btn" onClick={() => setScreen('receipts')}>Add Receipts</button>
+                        </div>
 
                         <div className="bp-dotted"></div>
                     </>
@@ -180,7 +223,13 @@ const Dashboard: React.FC = () => {
 
                 {screen === 'receipts' && <Receipts navigate={(t: string) => setScreen(t as any)} />}
 
-                {/* Bottom nav */}
+                {screen === 'chat' && <ChatBot />}
+
+                {screen === 'data' && <Data />}
+
+                </div>
+
+                {/* Bottom nav (kept for mobile; will be hidden on desktop via CSS) */}
                 <nav className="bp-bottom-nav" aria-label="bottom navigation">
                     <div className={`bp-nav-item ${screen === 'home' ? 'active' : ''}`} onClick={() => navigate('home')}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 11.5L12 4l9 7.5" strokeWidth="1.4"/></svg>
@@ -195,6 +244,16 @@ const Dashboard: React.FC = () => {
                     <div className={`bp-nav-item ${screen === 'receipts' ? 'active' : ''}`} onClick={() => navigate('receipts')}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 9h6M9 13h6M3 7h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" strokeWidth="1.4"/></svg>
                         <div>Receipts</div>
+                    </div>
+
+                    <div className={`bp-nav-item ${screen === 'data' ? 'active' : ''}`} onClick={() => navigate('data')}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18" strokeWidth="1.4"/></svg>
+                        <div>Data</div>
+                    </div>
+
+                    <div className={`bp-nav-item ${screen === 'chat' ? 'active' : ''}`} onClick={() => navigate('chat')}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 0-2-2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" strokeWidth="1.4"/></svg>
+                        <div>AI</div>
                     </div>
 
                     <div className={`bp-nav-item ${screen === 'profile' ? 'active' : ''}`} onClick={() => navigate('profile')}>

@@ -1,4 +1,3 @@
-// src/components/ReceiptsView.tsx
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import '../App.css';
 import type { ReceiptItem } from './Receipts';
@@ -35,12 +34,29 @@ async function fetchPage(pageIndex: number, pageSize: number, filters: any) {
       order: 'desc',
     };
 
-    if (filters.qTitle) params.category = filters.qTitle;
+    // fixed mappings:
+    // title search
+    if (filters.qTitle) params.title = filters.qTitle;
+    // subtitle/category search
+    if (filters.qSubtitle) params.category = filters.qSubtitle;
+
+    // amount range (keep backend-friendly names used earlier: min_price/max_price)
     if (filters.minAmount != null) params.min_price = filters.minAmount;
     if (filters.maxAmount != null) params.max_price = filters.maxAmount;
+
+    // date added filters (created_at)
     if (filters.dateAddedFrom) params.date_from = filters.dateAddedFrom;
     if (filters.dateAddedTo) params.date_to = filters.dateAddedTo;
-    if (filters.qSubtitle) params.category = filters.qSubtitle;
+
+    // transaction date filters (separate params)
+    if (filters.dateTxFrom) params.tx_date_from = filters.dateTxFrom;
+    if (filters.dateTxTo) params.tx_date_to = filters.dateTxTo;
+
+    // onlyGroup: map to a single param the backend can interpret
+    // (group / independent / any)
+    if (filters.onlyGroup && filters.onlyGroup !== 'any') {
+      params.only_group = filters.onlyGroup === 'group' ? 'group' : 'independent';
+    }
 
     const res = await apiClient.get('/expenses', { params });
 
