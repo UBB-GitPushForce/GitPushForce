@@ -6,7 +6,8 @@ import { useAuth } from '../hooks/useAuth';
 type AlertType =
   | 'ai_alerts'
   | 'spent_over_limit'
-  | 'remaining_too_low';
+  | 'remaining_too_low'
+  | 'reminder';
 
 type AiSchedule = {
   times: string[]; // e.g. ['09:00','18:30']
@@ -21,10 +22,12 @@ type AlertItem = {
   enabled: boolean;
   threshold?: number;
   aiSchedule?: AiSchedule;
+  reminderDate?: string; // for reminder type: YYYY-MM-DD or datetime string
+  reminderNote?: string;
   createdAt: string;
 };
 
-const ALERTS_KEY = 'mock_alerts_v2';
+const ALERTS_KEY = 'mock_alerts_v3';
 
 function loadAlerts(): AlertItem[] {
   try {
@@ -73,6 +76,8 @@ const Alerts: React.FC = () => {
       enabled: a.enabled ?? true,
       threshold: a.threshold ?? 100,
       aiSchedule: a.aiSchedule ?? defaultAiSchedule(),
+      reminderDate: a.reminderDate,
+      reminderNote: a.reminderNote,
       createdAt: new Date().toISOString(),
     };
     setAlerts(prev => [item, ...prev]);
@@ -101,6 +106,9 @@ const Alerts: React.FC = () => {
         break;
       case 'remaining_too_low':
         desc = `Remaining budget dropped below ${a.threshold}.`;
+        break;
+      case 'reminder':
+        desc = `Reminder: ${a.reminderNote || a.name} — due ${a.reminderDate || 'soon'}.`;
         break;
     }
     emitNotification(title, desc, a.id);
@@ -131,8 +139,11 @@ const Alerts: React.FC = () => {
                 <div>
                   <div style={{ fontWeight: 800 }}>{a.name}</div>
                   <div style={{ color: 'var(--muted-dark)', fontSize: 13 }}>
-                    Type: {a.type === 'ai_alerts' ? 'AI Alerts' : a.type === 'spent_over_limit' ? 'Spent over limit Alert' : 'Remaining too low Alert'} • {a.enabled ? 'active' : 'dezactivate'}
+                    Type: {a.type === 'ai_alerts' ? 'AI Alerts' : a.type === 'spent_over_limit' ? 'Spent over limit Alert' : a.type === 'remaining_too_low' ? 'Remaining too low Alert' : 'Reminder'} • {a.enabled ? 'active' : 'dezactivate'}
                   </div>
+                  {a.type === 'reminder' && a.reminderDate && (
+                    <div style={{ color: 'var(--muted-dark)', fontSize: 13 }}>Due: {a.reminderDate} {a.reminderNote ? `• ${a.reminderNote}` : ''}</div>
+                  )}
                 </div>
               </div>
 
@@ -168,12 +179,14 @@ export default Alerts;
    Subcomponent: AlertForm
    ------------------------- */
 
-function AlertForm({ initial, onSave, onCancel }: { initial?: any; onSave: (p: Partial<any>) => void; onCancel: () => void }) {
+function AlertForm({ initial, onSave, onCancel }: { initial?: AlertItem; onSave: (p: Partial<AlertItem>) => void; onCancel: () => void }) {
   const [name, setName] = useState(initial?.name ?? '');
   const [type, setType] = useState<AlertType>(initial?.type ?? 'remaining_too_low');
   const [enabled, setEnabled] = useState<boolean>(initial?.enabled ?? true);
   const [threshold, setThreshold] = useState<number>(initial?.threshold ?? 100);
   const [aiSchedule, setAiSchedule] = useState<AiSchedule>(initial?.aiSchedule ?? defaultAiSchedule());
+  const [reminderDate, setReminderDate] = useState<string | undefined>(initial?.reminderDate);
+  const [reminderNote, setReminderNote] = useState<string | undefined>(initial?.reminderNote);
 
   const addTime = () => setAiSchedule(s => ({ ...s, times: [...s.times, '09:00'] }));
   const removeTime = (idx: number) => setAiSchedule(s => ({ ...s, times: s.times.filter((_,i)=>i!==idx) }));
@@ -188,12 +201,14 @@ function AlertForm({ initial, onSave, onCancel }: { initial?: any; onSave: (p: P
   const removeSpecificDate = (i: number) => setAiSchedule(s => ({ ...s, specificDates: s.specificDates.filter((_,idx)=>idx!==i) }));
 
   const submit = () => {
-    const payload: Partial<any> = {
+    const payload: Partial<AlertItem> = {
       name,
       type,
       enabled,
       threshold,
       aiSchedule,
+      reminderDate,
+      reminderNote,
     };
     onSave(payload);
   };
@@ -211,6 +226,7 @@ function AlertForm({ initial, onSave, onCancel }: { initial?: any; onSave: (p: P
           <option value="ai_alerts">AI Alerts</option>
           <option value="spent_over_limit">Spent over limit Alert</option>
           <option value="remaining_too_low">Remaining too low Alert</option>
+          <option value="reminder">Reminder</option>
         </select>
 
         {(type === 'spent_over_limit' || type === 'remaining_too_low') && (
@@ -266,7 +282,17 @@ function AlertForm({ initial, onSave, onCancel }: { initial?: any; onSave: (p: P
           </>
         )}
 
-        <div style={{ display:'flex', gap:8 }}>
+        {type === 'reminder' && (
+          <>
+            <label>Due date</label>
+            <input type="date" value={reminderDate ?? ''} onChange={e=>setReminderDate(e.target.value)} />
+
+            <label>Note</label>
+            <input value={reminderNote ?? ''} onChange={e=>setReminderNote(e.target.value)} placeholder="e.g. Pay rent" />
+          </>
+        )}
+
+        <div style={{ display: 'flex', gap: 8 }}>
           <button className="bp-add-btn" onClick={submit}>{initial ? 'Save' : 'Add alert'}</button>
           <button className="btn" style={{ background:'transparent', color:'var(--purple-1)', border:'1px solid rgba(0,0,0,0.08)' }} onClick={onCancel}>Cancel</button>
         </div>

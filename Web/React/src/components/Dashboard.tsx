@@ -13,6 +13,7 @@ import ChatBot from './ChatBot';
 import Data from './Data';
 import Alerts from './Alerts';
 import Notifications from './Notifications';
+import Map from './Map';
 
 interface Tx {
   id: number;
@@ -36,6 +37,7 @@ const Dashboard: React.FC = () => {
     | 'data'
     | 'alerts'
     | 'notifications'
+    | 'map'
   >('home');
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [recentTx, setRecentTx] = useState<Tx[]>([]);
@@ -159,6 +161,12 @@ const Dashboard: React.FC = () => {
             <div>Notifications</div>
           </div>
 
+          {/* Map (Goals) page — no image */}
+          <div className={`bp-nav-item ${screen === 'map' ? 'active' : ''}`} onClick={() => navigate('map')} role="button">
+            {/* TODO: add icon if needed */}
+            <div>Map</div>
+          </div>
+
           <div style={{ marginLeft: 'auto' }} />
 
           <div className={`bp-nav-item ${screen === 'profile' ? 'active' : ''}`} onClick={() => navigate('profile')} role="button">
@@ -248,6 +256,8 @@ const Dashboard: React.FC = () => {
           {screen === 'alerts' && <Alerts />}
 
           {screen === 'notifications' && <Notifications />}
+
+          {screen === 'map' && <Map />}
         </div>
 
         {/* BOTTOM NAV — kept for mobile (hidden on desktop by CSS) */}
