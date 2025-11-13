@@ -94,10 +94,10 @@ fun MainScreen(
                         .fillMaxSize()
                 ) { page ->
                     when (page) {
-                        0 -> ExpensesScreen(onLogout = onLogout)
+                        0 -> ExpensesScreen()
                         1 -> GroupsScreen(onOpenGroup = { id -> navController.navigate("groupDetails/$id") })
                         2 -> ReceiptsScreen()
-                        3 -> ProfileScreen()
+                        3 -> ProfileScreen(onLogout = onLogout)
                     }
                 }
             }

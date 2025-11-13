@@ -46,10 +46,5 @@ class ExpenseViewModel(context: Context) : ViewModel() {
         }
     }
 
-    fun logout() {
-        viewModelScope.launch {
-            TokenHolder.token = null
-            tokenDataStore.clearToken()
-        }
-    }
+
 }

@@ -20,7 +20,6 @@ import androidx.compose.ui.unit.dp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExpensesScreen(
-    onLogout: () -> Unit,
     expenseViewModel: ExpenseViewModel = viewModel(
         factory = ExpenseViewModelFactory (LocalContext.current)
     )
@@ -35,29 +34,8 @@ fun ExpensesScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            CenterAlignedTopAppBar(
                 title = { Text("My Expenses") },
-                actions = {
-                    TextButton(
-                        onClick = {
-                            // Clear token and trigger navigation
-                            expenseViewModel.logout()
-                            onLogout()
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        ),
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier
-                            .padding(end = 12.dp, top = 8.dp, bottom = 8.dp)
-                            .height(36.dp)
-                    ) {
-                        Text(
-                            "Logout",
-                        )
-                    }
-                }
             )
         }
     ) { padding ->
