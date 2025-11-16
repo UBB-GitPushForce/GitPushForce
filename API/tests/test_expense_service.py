@@ -159,7 +159,6 @@ def populated_service(expense_service):
     exp5 = ExpenseCreate(title="Shared Ride", category="Transport", amount=20, user_id=None, group_id=10)
     exp6 = ExpenseCreate(title="Team Lunch", category="Food", amount=100, user_id=None, group_id=11)
 
-    
     # Add and manually set created_at for predictable date filtering
     service = expense_service
     service.create_expense(exp1).created_at = base_time - timedelta(days=5) # id 1
