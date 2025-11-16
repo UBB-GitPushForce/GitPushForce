@@ -37,7 +37,7 @@ def parse_date_string(date_str: Optional[str]) -> Optional[datetime]:
     except ValueError:
         try:
             # Try parsing date only (YYYY-MM-DD)
-            return datetime.strptime(date_str, "%Y-%m-d")
+            return datetime.strptime(date_str, "%Y-%m-%d")
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -79,7 +79,7 @@ def get_user_expenses(
     date_from: Optional[str] = Query(None, description="Filter expenses from this date (ISO format: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS)"),
     date_to: Optional[str] = Query(None, description="Filter expenses until this date (ISO format: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS)"),
     category: Optional[str] = Query(None, description="Filter by category"),
-    group_ids: Optional[List[int]] = Query(None, description="Filter by one or more group IDs"), # MODIFIED
+    group_ids: Optional[List[int]] = Query(None, description="Filter by one or more group IDs"),
     service: ExpenseService = Depends(get_expense_service)
 ):
     # Parse date strings to datetime objects
@@ -104,8 +104,53 @@ def get_user_expenses(
         date_from_dt,
         date_to_dt,
         category,
-        group_ids  # MODIFIED
+        group_ids
     )
+
+
+# --- NEW ENDPOINT ADDED ---
+@router.get("/group/{group_id}", response_model=List[Expense])
+def get_group_expenses(
+    group_id: int,
+    offset: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    sort_by: str = Query("created_at"),
+    order: str = Query("desc", regex="^(asc|desc)$"),
+    min_price: Optional[float] = Query(None, ge=0, description="Minimum price filter"),
+    max_price: Optional[float] = Query(None, ge=0, description="Maximum price filter"),
+    date_from: Optional[str] = Query(None, description="Filter expenses from this date (ISO format: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS)"),
+    date_to: Optional[str] = Query(None, description="Filter expenses until this date (ISO format: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS)"),
+    category: Optional[str] = Query(None, description="Filter by category"),
+    service: ExpenseService = Depends(get_expense_service)
+):
+    """
+    Get all expenses for a specific group, with filtering.
+    (Note: Access control to check if user is in this group should be added)
+    """
+    # Parse date strings to datetime objects
+    date_from_dt = parse_date_string(date_from)
+    date_to_dt = parse_date_string(date_to)
+    
+    # Validate price range
+    if min_price is not None and max_price is not None and min_price > max_price:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="min_price cannot be greater than max_price"
+        )
+    
+    return service.get_group_expenses(
+        group_id,
+        offset, 
+        limit, 
+        sort_by, 
+        order,
+        min_price,
+        max_price,
+        date_from_dt,
+        date_to_dt,
+        category
+    )
+# --- END NEW ENDPOINT ---
 
 
 @router.get("/all", response_model=List[Expense])
@@ -159,7 +204,7 @@ def update_expense(
         service.update_expense(expense_id, expense_in)
         return "Successfull update"
     except NoResultFound as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_44_NOT_FOUND, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 

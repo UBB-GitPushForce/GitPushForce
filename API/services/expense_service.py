@@ -42,10 +42,22 @@ class IExpenseService(ABC):
         date_from: Optional[datetime] = None,
         date_to: Optional[datetime] = None,
         category: Optional[str] = None,
-        group_ids: Optional[List[int]] = None # <--- ADD THIS
+        group_ids: Optional[List[int]] = None
     ) -> List[Expense]: ...
     @abstractmethod
-    def get_group_expenses(self, group_id: int, offset: int = 0, limit: int = 100) -> List[Expense]: ...
+    def get_group_expenses(
+        self, 
+        group_id: int, 
+        offset: int = 0, 
+        limit: int = 100,
+        sort_by: str = "created_at", 
+        order: str = "desc",
+        min_price: Optional[float] = None,
+        max_price: Optional[float] = None,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+        category: Optional[str] = None
+    ) -> List[Expense]: ... # MODIFIED
 
     # UPDATE
     @abstractmethod
@@ -117,7 +129,7 @@ class ExpenseService(IExpenseService):
         date_from: Optional[datetime] = None,
         date_to: Optional[datetime] = None,
         category: Optional[str] = None,
-        group_ids: Optional[List[int]] = None # <--- AND ADD THIS
+        group_ids: Optional[List[int]] = None
     ) -> List[Expense]:
         """
         Retrieves all personal expenses for the authenticated user with optional filtering.
@@ -133,15 +145,38 @@ class ExpenseService(IExpenseService):
             date_from,
             date_to,
             category,
-            group_ids # <--- AND PASS THIS
+            group_ids
         )
 
-    def get_group_expenses(self, group_id: int, offset: int = 0, limit: int = 100, sort_by: str = "created_at", order: str = "desc") -> List[Expense]:
+    def get_group_expenses(
+        self, 
+        group_id: int, 
+        offset: int = 0, 
+        limit: int = 100, 
+        sort_by: str = "created_at", 
+        order: str = "desc",
+        min_price: Optional[float] = None,
+        max_price: Optional[float] = None,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+        category: Optional[str] = None
+    ) -> List[Expense]: # MODIFIED
         """
         Retrieves all expenses for a specific group.
         (Access control — verifying that the user is part of the group — should be done at the router/service layer.)
         """
-        return self.repository.get_by_group(group_id, offset, limit, sort_by, order)
+        return self.repository.get_by_group(
+            group_id, 
+            offset, 
+            limit, 
+            sort_by, 
+            order,
+            min_price,
+            max_price,
+            date_from,
+            date_to,
+            category
+        ) # MODIFIED
 
     def update_expense(self, expense_id: int, data: ExpenseUpdate) -> None:
         """

@@ -3,8 +3,8 @@ from datetime import datetime
 from typing import List, Optional
 
 from models.expense import Expense
-from models.users_groups import UsersGroups  # MODIFIED
-from sqlalchemy import and_, asc, desc, or_, select  # MODIFIED
+from models.users_groups import UsersGroups
+from sqlalchemy import and_, asc, desc, or_, select
 from sqlalchemy.orm import Session
 
 
@@ -42,10 +42,22 @@ class IExpenseRepository(ABC):
         date_from: Optional[datetime] = None,
         date_to: Optional[datetime] = None,
         category: Optional[str] = None,
-        group_ids: Optional[List[int]] = None # MODIFIED
+        group_ids: Optional[List[int]] = None
     ) -> List[Expense]: ...
     @abstractmethod
-    def get_by_group(self, group_id: int, offset: int, limit: int) -> List[Expense]: ...
+    def get_by_group(
+        self, 
+        group_id: int, 
+        offset: int, 
+        limit: int,
+        sort_by: str = "created_at", 
+        order: str = "desc",
+        min_price: Optional[float] = None,
+        max_price: Optional[float] = None,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+        category: Optional[str] = None
+    ) -> List[Expense]: ... # MODIFIED
 
     # UPDATE
     @abstractmethod
@@ -118,7 +130,7 @@ class ExpenseRepository(IExpenseRepository):
         date_from: Optional[datetime] = None,
         date_to: Optional[datetime] = None,
         category: Optional[str] = None,
-        group_ids: Optional[List[int]] = None # MODIFIED
+        group_ids: Optional[List[int]] = None
     ) -> List[Expense]:
         sort_column = getattr(Expense, sort_by, Expense.created_at)
         sort_order = desc(sort_column) if order.lower() == "desc" else asc(sort_column)
@@ -166,12 +178,39 @@ class ExpenseRepository(IExpenseRepository):
         )
         return list(self.db.scalars(stmt))
 
-    def get_by_group(self, group_id: int, offset: int, limit: int, sort_by: str = "created_at", order: str = "desc") -> List[Expense]:
+    def get_by_group(
+        self, 
+        group_id: int, 
+        offset: int, 
+        limit: int, 
+        sort_by: str = "created_at", 
+        order: str = "desc",
+        min_price: Optional[float] = None,
+        max_price: Optional[float] = None,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+        category: Optional[str] = None
+    ) -> List[Expense]: # MODIFIED
         sort_column = getattr(Expense, sort_by, Expense.created_at)
         sort_order = desc(sort_column) if order.lower() == "desc" else asc(sort_column)
+        
+        # Build where conditions
+        conditions = [Expense.group_id == group_id] # Base condition
+        
+        if min_price is not None:
+            conditions.append(Expense.amount >= min_price)
+        if max_price is not None:
+            conditions.append(Expense.amount <= max_price)
+        if date_from is not None:
+            conditions.append(Expense.created_at >= date_from)
+        if date_to is not None:
+            conditions.append(Expense.created_at <= date_to)
+        if category is not None:
+            conditions.append(Expense.category == category)
+            
         stmt = (
             select(Expense)
-            .where(Expense.group_id == group_id)
+            .where(and_(*conditions)) # MODIFIED
             .order_by(sort_order)
             .offset(offset)
             .limit(limit)
