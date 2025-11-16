@@ -41,7 +41,8 @@ class IExpenseService(ABC):
         max_price: Optional[float] = None,
         date_from: Optional[datetime] = None,
         date_to: Optional[datetime] = None,
-        category: Optional[str] = None
+        category: Optional[str] = None,
+        group_ids: Optional[List[int]] = None # <--- ADD THIS
     ) -> List[Expense]: ...
     @abstractmethod
     def get_group_expenses(self, group_id: int, offset: int = 0, limit: int = 100) -> List[Expense]: ...
@@ -115,7 +116,8 @@ class ExpenseService(IExpenseService):
         max_price: Optional[float] = None,
         date_from: Optional[datetime] = None,
         date_to: Optional[datetime] = None,
-        category: Optional[str] = None
+        category: Optional[str] = None,
+        group_ids: Optional[List[int]] = None # <--- AND ADD THIS
     ) -> List[Expense]:
         """
         Retrieves all personal expenses for the authenticated user with optional filtering.
@@ -130,7 +132,8 @@ class ExpenseService(IExpenseService):
             max_price,
             date_from,
             date_to,
-            category
+            category,
+            group_ids # <--- AND PASS THIS
         )
 
     def get_group_expenses(self, group_id: int, offset: int = 0, limit: int = 100, sort_by: str = "created_at", order: str = "desc") -> List[Expense]:
