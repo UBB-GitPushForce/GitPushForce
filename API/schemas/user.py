@@ -10,6 +10,9 @@ class UserBase(BaseModel):
     email: EmailStr = Field(..., description="User's unique email address.")
     phone_number: str = Field(..., min_length=1, max_length=50)
 
+    class Config:
+        from_attributes = True
+
 class UserCreate(UserBase):
     password: str = Field(..., min_length=8, description="User's password.")
 
@@ -27,3 +30,7 @@ class UserUpdate(BaseModel):
 class UserPasswordReset(BaseModel):
     token: str = Field(..., description="Password reset token from email.")
     new_password: str = Field(..., min_length=8, description="User's new password.")
+
+
+class UserResponse(UserBase):
+    id: int
