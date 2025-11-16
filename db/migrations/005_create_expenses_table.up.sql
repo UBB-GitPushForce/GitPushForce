@@ -13,6 +13,6 @@ CREATE TABLE IF NOT EXISTS expenses (
     CONSTRAINT chk_expenses_one_fk CHECK (
         (user_id IS NOT NULL AND group_id IS NULL)
         OR
-        (user_id IS NULL AND group_id IS NOT NULL)
+        (user_id IS NOT NULL AND group_id IS NOT NULL)
     )
 );
