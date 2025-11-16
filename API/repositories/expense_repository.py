@@ -3,7 +3,8 @@ from datetime import datetime
 from typing import List, Optional
 
 from models.expense import Expense
-from sqlalchemy import and_, asc, desc, select
+from models.users_groups import UsersGroups  # MODIFIED
+from sqlalchemy import and_, asc, desc, or_, select  # MODIFIED
 from sqlalchemy.orm import Session
 
 
@@ -40,7 +41,8 @@ class IExpenseRepository(ABC):
         max_price: Optional[float] = None,
         date_from: Optional[datetime] = None,
         date_to: Optional[datetime] = None,
-        category: Optional[str] = None
+        category: Optional[str] = None,
+        group_ids: Optional[List[int]] = None # MODIFIED
     ) -> List[Expense]: ...
     @abstractmethod
     def get_by_group(self, group_id: int, offset: int, limit: int) -> List[Expense]: ...
@@ -115,14 +117,35 @@ class ExpenseRepository(IExpenseRepository):
         max_price: Optional[float] = None,
         date_from: Optional[datetime] = None,
         date_to: Optional[datetime] = None,
-        category: Optional[str] = None
+        category: Optional[str] = None,
+        group_ids: Optional[List[int]] = None # MODIFIED
     ) -> List[Expense]:
         sort_column = getattr(Expense, sort_by, Expense.created_at)
         sort_order = desc(sort_column) if order.lower() == "desc" else asc(sort_column)
         
-        # Build where conditions
-        conditions = [Expense.user_id == user_id]
+        # Get all group IDs for the user
+        user_group_ids_stmt = select(UsersGroups.group_id).where(UsersGroups.user_id == user_id)
+        user_group_ids = list(self.db.scalars(user_group_ids_stmt))
         
+        conditions = []
+
+        if group_ids:
+            # User is filtering by specific groups.
+            # Only include groups they are actually a member of.
+            allowed_filter_ids = [gid for gid in group_ids if gid in user_group_ids]
+            if not allowed_filter_ids:
+                conditions.append(Expense.group_id.in_([])) # Will return no results
+            else:
+                conditions.append(Expense.group_id.in_(allowed_filter_ids))
+        else:
+            # No group filter. Show personal expenses OR expenses from any group user is in.
+            base_conditions = [
+                Expense.user_id == user_id,
+                Expense.group_id.in_(user_group_ids)
+            ]
+            conditions.append(or_(*base_conditions))
+        
+        # Add other filters
         if min_price is not None:
             conditions.append(Expense.amount >= min_price)
         if max_price is not None:

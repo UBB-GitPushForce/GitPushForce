@@ -37,7 +37,7 @@ def parse_date_string(date_str: Optional[str]) -> Optional[datetime]:
     except ValueError:
         try:
             # Try parsing date only (YYYY-MM-DD)
-            return datetime.strptime(date_str, "%Y-%m-%d")
+            return datetime.strptime(date_str, "%Y-%m-d")
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -79,6 +79,7 @@ def get_user_expenses(
     date_from: Optional[str] = Query(None, description="Filter expenses from this date (ISO format: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS)"),
     date_to: Optional[str] = Query(None, description="Filter expenses until this date (ISO format: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS)"),
     category: Optional[str] = Query(None, description="Filter by category"),
+    group_ids: Optional[List[int]] = Query(None, description="Filter by one or more group IDs"), # MODIFIED
     service: ExpenseService = Depends(get_expense_service)
 ):
     # Parse date strings to datetime objects
@@ -102,7 +103,8 @@ def get_user_expenses(
         max_price,
         date_from_dt,
         date_to_dt,
-        category
+        category,
+        group_ids  # MODIFIED
     )
 
 

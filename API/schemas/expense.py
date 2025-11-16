@@ -31,6 +31,16 @@ class ExpenseUpdate(BaseModel):
     title: Optional[str] = Field(None, max_length=255)
     category: Optional[str] = Field(None, max_length=100)
     amount: Optional[float] = Field(None, gt=0)
+    user_id: Optional[int] = None
+    group_id: Optional[int] = None
+
+    @model_validator(mode="after")
+    def validate_one_fk(self):
+        if (self.user_id is None and self.group_id is None) or (
+            self.user_id is not None and self.group_id is not None
+        ):
+            raise ValueError("Exactly one of user_id or group_id must be provided.")
+        return self
 
 
 class Expense(ExpenseBase):
