@@ -25,7 +25,6 @@ class ExpenseCreate(ExpenseBase):
         return self
 
 
-
 class ExpenseUpdate(BaseModel):
     title: Optional[str] = Field(None, max_length=255)
     category: Optional[str] = Field(None, max_length=100)
@@ -39,7 +38,6 @@ class ExpenseUpdate(BaseModel):
             raise ValueError("user_id must be provided.")
 
         return self
-
 
 
 class Expense(ExpenseBase):
