@@ -10,7 +10,6 @@ import com.example.budgeting.android.data.model.UserData
 import com.example.budgeting.android.data.model.Expense
 import com.example.budgeting.android.data.network.RetrofitClient
 import com.example.budgeting.android.data.repository.GroupRepository
-import com.example.budgeting.android.data.repository.ExpenseRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,8 +24,11 @@ data class GroupExpense(
 
 class GroupDetailsViewModel(context: Context) : ViewModel() {
     private val tokenDataStore = TokenDataStore(context.applicationContext)
-    private val groupRepository = GroupRepository(RetrofitClient.groupInstance, tokenDataStore)
-    private val expenseRepository = ExpenseRepository(RetrofitClient.expenseInstance, tokenDataStore)
+    private val groupRepository = GroupRepository(
+        RetrofitClient.groupInstance,
+        RetrofitClient.expenseInstance,
+        tokenDataStore
+    )
 
     private val _group = MutableStateFlow<Group?>(null)
     val group: StateFlow<Group?> = _group.asStateFlow()
@@ -44,7 +46,6 @@ class GroupDetailsViewModel(context: Context) : ViewModel() {
     val error: StateFlow<String?> = _error.asStateFlow()
 
     init {
-        // Load token from TokenDataStore into TokenHolder when ViewModel is created
         viewModelScope.launch {
             val savedToken = tokenDataStore.tokenFlow.firstOrNull()
             if (!savedToken.isNullOrBlank()) {
@@ -57,107 +58,178 @@ class GroupDetailsViewModel(context: Context) : ViewModel() {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
+            
             try {
-                // Ensure token is loaded
-                if (TokenHolder.token.isNullOrBlank()) {
-                    val savedToken = tokenDataStore.tokenFlow.firstOrNull()
-                    if (!savedToken.isNullOrBlank()) {
-                        TokenHolder.token = savedToken
-                    }
-                }
+                ensureTokenLoaded()
 
                 // Load group details
                 val groupResponse = groupRepository.getGroup(groupId)
-                if (groupResponse.isSuccessful) {
-                    val group = groupResponse.body()
-                    if (group != null && group.isValid) {
-                        _group.value = group
-                    } else {
-                        _error.value = "Invalid group data received"
-                        _isLoading.value = false
-                        return@launch
-                    }
-                } else {
-                    _error.value = "Failed to load group: ${groupResponse.code()}"
+                if (!groupResponse.isSuccessful || groupResponse.body() == null) {
+                    _error.value = "Failed to load group"
                     _isLoading.value = false
                     return@launch
                 }
+                _group.value = groupResponse.body()
 
                 // Load group members
                 val membersResponse = groupRepository.getUsersByGroup(groupId)
-                if (membersResponse.isSuccessful) {
-                    _members.value = membersResponse.body() ?: emptyList()
+                val membersList = if (membersResponse.isSuccessful && membersResponse.body() != null) {
+                    membersResponse.body()!!
+                } else {
+                    emptyList()
+                }
+                _members.value = membersList
+
+                val expensesResponse = groupRepository.getExpensesByGroup(
+                    groupId = groupId,
+                    offset = 0,
+                    limit = 100,
+                    sortBy = "created_at",
+                    order = "asc"
+                )
+                
+                if (expensesResponse.isSuccessful) {
+                    val expenses = expensesResponse.body() ?: emptyList()
+                    val groupExpenses = mapExpensesToGroupExpenses(expenses, membersList)
+                    _expenses.value = groupExpenses
+                } else {
+                    _error.value = "Error: ${expensesResponse.code()} - ${expensesResponse.message()}"
+                    _expenses.value = emptyList()
                 }
 
-                // Use mock expenses for now
-                val mockExpenses = createMockExpenses(_members.value)
-                _expenses.value = mockExpenses
-
             } catch (e: Exception) {
-                _error.value = "Error loading group details: ${e.message ?: "Unknown error"}"
+                _error.value = e.message ?: "Unknown error"
+                _expenses.value = emptyList()
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
-    private fun createMockExpenses(members: List<UserData>): List<GroupExpense> {
-        val mockExpenses = listOf(
-            Expense(
-                title = "Groceries",
-                category = "Food",
-                amount = 45.50
-            ),
-            Expense(
-                title = "Uber Ride",
-                category = "Transportation",
-                amount = 12.75
-            ),
-            Expense(
-                title = "Movie Tickets",
-                category = "Entertainment",
-                amount = 28.00
-            ),
-            Expense(
-                title = "Restaurant Dinner",
-                category = "Food",
-                amount = 67.30
-            ),
-            Expense(
-                title = "Coffee",
-                category = "Food",
-                amount = 8.50
-            )
-        )
-
-        // Create a map of user IDs to names for display
-        val memberMap = members.associateBy { it.id }
+    private fun mapExpensesToGroupExpenses(
+        expenses: List<Expense>, 
+        members: List<UserData>
+    ): List<GroupExpense> {
+        val userMap = members.associateBy { it.id }
         
-        return mockExpenses.mapIndexed { index, expense ->
-            // Assign expenses to different members in a round-robin fashion
-            val memberIndex = index % members.size.coerceAtLeast(1)
-            val userName = if (members.isNotEmpty()) {
-                val member = members[memberIndex]
-                "${member.firstName} ${member.lastName}"
-            } else {
-                "Group Member"
-            }
-            GroupExpense(expense = expense, userName = userName, description = null)
+        return expenses.map { expense ->
+            val userName = expense.user_id?.let { userId ->
+                userMap[userId]?.let { user ->
+                    "${user.firstName} ${user.lastName}"
+                } ?: "Unknown User"
+            } ?: "Group Member"
+            
+            GroupExpense(
+                expense = expense,
+                userName = userName,
+                description = null
+            )
         }
     }
 
     fun addExpenseFromPersonal(expense: Expense, description: String?, userName: String = "You") {
-        _expenses.value = listOf(
-            GroupExpense(expense = expense, userName = userName, description = description?.ifBlank { null })
-        ) + _expenses.value
+        addExpensesFromPersonal(listOf(expense), description, userName)
     }
 
     fun addExpensesFromPersonal(expenses: List<Expense>, description: String?, userName: String = "You") {
         if (expenses.isEmpty()) return
-        val items = expenses.map {
-            GroupExpense(expense = it, userName = userName, description = description?.ifBlank { null })
+        
+        val groupId = _group.value?.id
+        if (groupId == null) {
+            _error.value = "Group not loaded"
+            return
         }
-        _expenses.value = items + _expenses.value
+        
+        viewModelScope.launch {
+            _isLoading.value = true
+            _error.value = null
+            
+            try {
+                ensureTokenLoaded()
+                
+                val userId = tokenDataStore.getUserId()
+                if (userId == null) {
+                    _error.value = "User not logged in"
+                    _isLoading.value = false
+                    return@launch
+                }
+                
+                val existingExpenses = _expenses.value
+                val createdExpenses = mutableListOf<Expense>()
+                val skippedExpenses = mutableListOf<String>()
+                
+                for (expense in expenses) {
+                    // Check if expense is already in the group
+                    val isDuplicate = existingExpenses.any { groupExpense ->
+                        groupExpense.expense.title == expense.title &&
+                        groupExpense.expense.amount == expense.amount &&
+                        groupExpense.expense.category == expense.category &&
+                        groupExpense.expense.user_id == userId
+                    }
+                    
+                    if (isDuplicate) {
+                        skippedExpenses.add(expense.title)
+                        continue
+                    }
+                    
+                    val expenseToCreate = expense.copy(
+                        id = null,
+                        user_id = userId,
+                        group_id = groupId,
+                        created_at = null
+                    )
+                    
+                    val response = groupRepository.addExpenseToGroup(expenseToCreate)
+                    if (response.isSuccessful && response.body() != null) {
+                        createdExpenses.add(response.body()!!)
+                    } else {
+                        _error.value = "Failed to add expense: ${response.code()}"
+                        _isLoading.value = false
+                        return@launch
+                    }
+                }
+                
+                if (skippedExpenses.isNotEmpty()) {
+                    val skippedMessage = if (skippedExpenses.size == 1) {
+                        "${skippedExpenses.first()} is already in this group"
+                    } else {
+                        "${skippedExpenses.size} expenses are already in this group"
+                    }
+                    _error.value = skippedMessage
+                }
+                
+                val membersList = _members.value
+                val descriptionText = description?.takeIf { it.isNotBlank() }
+                val newGroupExpenses = createdExpenses.map { expense ->
+                    val userName = expense.user_id?.let { userId ->
+                        membersList.find { it.id == userId }?.let { user ->
+                            "${user.firstName} ${user.lastName}"
+                        } ?: "Unknown User"
+                    } ?: "Group Member"
+                    
+                    GroupExpense(
+                        expense = expense,
+                        userName = userName,
+                        description = descriptionText
+                    )
+                }
+                
+                _expenses.value = _expenses.value + newGroupExpenses
+                
+            } catch (e: Exception) {
+                _error.value = "Error adding expenses: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    private suspend fun ensureTokenLoaded() {
+        if (TokenHolder.token.isNullOrBlank()) {
+            val savedToken = tokenDataStore.tokenFlow.firstOrNull()
+            if (!savedToken.isNullOrBlank()) {
+                TokenHolder.token = savedToken
+            }
+        }
     }
 }
-
