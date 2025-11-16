@@ -28,8 +28,10 @@ class Expense(Base):
     group = relationship("Group", back_populates="expenses", passive_deletes=True)
 
     __table_args__ = (
-        CheckConstraint(
-            "((user_id IS NOT NULL AND group_id IS NULL) OR (user_id IS NULL AND group_id IS NOT NULL))",
-            name="chk_expenses_one_fk"
-        ),
-    )
+    CheckConstraint(
+        "((user_id IS NOT NULL AND group_id IS NULL) OR "
+        "(user_id IS NOT NULL AND group_id IS NOT NULL))",
+        name="chk_expenses_one_fk"
+    ),
+)
+
