@@ -41,7 +41,6 @@ fun ReceiptScreen() {
     // Camera result forwarder that the dialog can set
     val cameraResultHandler = remember { mutableStateOf<(String?) -> Unit>({}) }
 
-    // Permission launcher
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { /* permission flow handled by launchCameraWith */ }
@@ -342,7 +341,6 @@ private fun AddReceiptDialog(
                     }
                 }
 
-                // Bottom action button
                 Button(
                     onClick = {
                         val amount = amountText.value.toDoubleOrNull() ?: 0.0
