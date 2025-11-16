@@ -1,21 +1,28 @@
 package com.example.budgeting.android.ui.screens
 
-import androidx.compose.foundation.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.*
-import androidx.compose.foundation.shape.*
-import androidx.compose.material.icons.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.lazy.itemsIndexed
 import com.example.budgeting.android.ui.viewmodels.*
 import com.example.budgeting.android.data.model.Expense
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,28 +43,32 @@ fun GroupDetailsScreen(
         vm.loadGroup(groupId) 
     }
     
-    val groupState by vm.group.collectAsState()
-    val expensesState by vm.expenses.collectAsState()
+    val group by vm.group.collectAsState()
+    val expenses by vm.expenses.collectAsState()
     val isLoading by vm.isLoading.collectAsState()
     val error by vm.error.collectAsState()
-
-    val title = groupState?.name ?: "Group"
-    val description = groupState?.description
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(title, color = MaterialTheme.colorScheme.onBackground) },
+                title = { 
+                    Text(
+                        text = group?.name ?: "Group",
+                        color = MaterialTheme.colorScheme.onBackground
+                    ) 
+                },
                 navigationIcon = {
-                    IconButton(onClick = onBack)
-                     {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
                     }
                 }
             )
         },
         bottomBar = {
-            BottomAddExpenseBar(groupId = groupId, vm = vm)
+            BottomAddExpenseBar(vm = vm)
         }
     ) { paddingValues ->
         Column(
@@ -67,13 +78,15 @@ fun GroupDetailsScreen(
                 .background(MaterialTheme.colorScheme.background)
         ) {
             // Group description
-            description?.let {
-                Text(
-                    text = it,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
+            group?.description?.let { desc ->
+                if (desc.isNotBlank()) {
+                    Text(
+                        text = desc,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
             }
             
             // Error message
@@ -86,49 +99,64 @@ fun GroupDetailsScreen(
                 )
             }
             
-            // Loading or expenses list
-            if (isLoading && expensesState.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Loading expenses...",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+            // Content: Loading or expenses list
+            when {
+                isLoading && expenses.isEmpty() -> {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
                 }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    if (expensesState.isEmpty()) {
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(32.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "No expenses yet. Add one to get started!",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    style = MaterialTheme.typography.bodyMedium
+                expenses.isEmpty() -> {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No expenses yet. Add one to get started!",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+                else -> {
+                    val expensesWithDates = remember(expenses) {
+                        expenses.map { expense ->
+                            val date = parseDateFromString(expense.expense.created_at)
+                            Triple(expense, date, date?.let { formatDateForDisplay(it) })
+                        }
+                    }
+                    
+                    LazyColumn(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        expensesWithDates.forEachIndexed { index, (groupExpense, expenseDate, displayDate) ->
+                            val showDateHeader = index == 0 || 
+                                expenseDate != expensesWithDates.getOrNull(index - 1)?.second
+                            
+                            if (showDateHeader && expenseDate != null) {
+                                item(key = "date_${expenseDate}_$index") {
+                                    DateHeader(displayDate ?: "Unknown Date")
+                                }
+                            }
+                            
+                            item(key = "expense_${groupExpense.expense.id}") {
+                                ExpenseBubble(
+                                    expense = groupExpense.expense,
+                                    userName = groupExpense.userName,
+                                    description = groupExpense.description
                                 )
                             }
-                        }
-                    } else {
-                        items(expensesState) { groupExpense ->
-                            BubbleRowLeft(
-                                text = "${groupExpense.expense.title} - $${String.format("%.2f", groupExpense.expense.amount)}",
-                                author = groupExpense.userName,
-                                description = groupExpense.description
-                            )
                         }
                     }
                 }
@@ -138,24 +166,135 @@ fun GroupDetailsScreen(
 }
 
 @Composable
-private fun BubbleRowLeft(text: String, author: String, description: String?) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Filled.Person, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.size(6.dp))
-            Text(author, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+private fun DateHeader(date: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.padding(horizontal = 16.dp)
+        ) {
+            Text(
+                text = date,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+            )
         }
+    }
+}
+
+
+private fun parseDateFromString(dateString: String?): LocalDate? {
+    if (dateString == null) return null
+    
+    return try {
+        try {
+            val zonedDateTime = java.time.ZonedDateTime.parse(dateString)
+            return zonedDateTime.toLocalDate()
+        } catch (e: Exception) {
+        }
+        
+        try {
+            val dateTime = java.time.LocalDateTime.parse(dateString.take(19))
+            return dateTime.toLocalDate()
+        } catch (e: Exception) {
+        }
+        
+        try {
+            return LocalDate.parse(dateString.take(10))
+        } catch (e: Exception) {
+        }
+        
+        try {
+            val cleaned = dateString.replace("T", " ").take(19)
+            val dateTime = java.time.LocalDateTime.parse(cleaned, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+            return dateTime.toLocalDate()
+        } catch (e: Exception) {
+        }
+        
+        null
+    } catch (e: Exception) {
+        null
+    }
+}
+
+private fun formatDateForDisplay(date: LocalDate): String {
+    val today = LocalDate.now()
+    val yesterday = today.minusDays(1)
+    
+    return when {
+        date == today -> "Today"
+        date == yesterday -> "Yesterday"
+        date.year == today.year -> date.format(DateTimeFormatter.ofPattern("MMM d"))
+        else -> date.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))
+    }
+}
+
+private fun isExpenseAlreadyInGroup(
+    expense: Expense,
+    groupExpenses: List<GroupExpense>
+): Boolean {
+    return groupExpenses.any { groupExpense ->
+        groupExpense.expense.title == expense.title &&
+        groupExpense.expense.amount == expense.amount &&
+        groupExpense.expense.category == expense.category &&
+        groupExpense.expense.user_id == expense.user_id
+    }
+}
+
+@Composable
+private fun ExpenseBubble(
+    expense: Expense,
+    userName: String,
+    description: String?
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        // User name row
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(bottom = 4.dp)
+        ) {
+            Icon(
+                Icons.Filled.Person,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = userName,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+        
+        // Expense bubble
         Box(
             modifier = Modifier
-                .padding(top = 4.dp)
-                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(10.dp))
+                .background(
+                    MaterialTheme.colorScheme.surfaceVariant,
+                    RoundedCornerShape(10.dp)
+                )
                 .padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
             Column {
-                Text(text, color = MaterialTheme.colorScheme.onSurface)
+                Text(
+                    text = "${expense.title} - $${String.format("%.2f", expense.amount)}",
+                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.bodyMedium
+                )
                 if (!description.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.size(4.dp))
-                    Text(description, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = description,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
             }
         }
@@ -163,39 +302,33 @@ private fun BubbleRowLeft(text: String, author: String, description: String?) {
 }
 
 @Composable
-private fun BubbleRowRight(text: String, author: String) {
-    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            Icon(Icons.Filled.Person, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.size(6.dp))
-            Text(author, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-        }
-        Box(
-            modifier = Modifier
-                .padding(top = 4.dp)
-                .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp))
-                .padding(horizontal = 12.dp, vertical = 8.dp)
-        ) {
-            Text(text, color = MaterialTheme.colorScheme.onPrimary)
-        }
-    }
-}
-
-@Composable
 private fun BottomAddExpenseBar(
-    groupId: Int,
     vm: GroupDetailsViewModel
 ) {
     val context = LocalContext.current
-    val evm: ExpenseViewModel = viewModel(factory = ExpenseViewModelFactory(context))
-    LaunchedEffect(Unit) { evm.loadExpenses() }
-    val personalExpenses by evm.expenses.collectAsState()
-    val showPicker = remember { mutableStateOf(false) }
-    val description = remember { mutableStateOf("") }
+    val expenseViewModel: ExpenseViewModel = viewModel(
+        factory = ExpenseViewModelFactory(context)
+    )
+    
+    LaunchedEffect(Unit) { 
+        expenseViewModel.loadExpenses() 
+    }
+    
+    val personalExpenses by expenseViewModel.expenses.collectAsState()
+    val groupExpenses by vm.expenses.collectAsState()
+    val personalExpensesOnly = remember(personalExpenses, groupExpenses) {
+        val existingExpenseIds = groupExpenses.map { it.expense.id }.toSet()
+        personalExpenses.filter { expense ->
+            expense.group_id == null && 
+            !existingExpenseIds.contains(expense.id) &&
+            !isExpenseAlreadyInGroup(expense, groupExpenses)
+        }
+    }
+    var showPicker by remember { mutableStateOf(false) }
+    var description by remember { mutableStateOf("") }
 
-    // If the picker dialog is open, back should close it first (and not navigate)
-    BackHandler(enabled = showPicker.value) {
-        showPicker.value = false
+    BackHandler(enabled = showPicker) {
+        showPicker = false
     }
 
     Surface(color = MaterialTheme.colorScheme.background) {
@@ -204,57 +337,61 @@ private fun BottomAddExpenseBar(
                 .fillMaxWidth()
                 .navigationBarsPadding()
                 .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             TextField(
-                value = description.value,
-                onValueChange = { description.value = it },
+                value = description,
+                onValueChange = { description = it },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Write a short description") },
+                placeholder = { Text("Add description (optional)") },
                 colors = TextFieldDefaults.colors(
                     unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                     focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                     focusedIndicatorColor = MaterialTheme.colorScheme.primary,
                     unfocusedIndicatorColor = MaterialTheme.colorScheme.surfaceVariant
                 ),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true
             )
-            Spacer(modifier = Modifier.size(8.dp))
             Button(
-                onClick = { showPicker.value = true },
+                onClick = { showPicker = true },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 ),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.height(52.dp)
-            ) { Text("+") }
+            ) {
+                Text("+")
+            }
         }
     }
 
-    if (showPicker.value) {
-        SelectPersonalExpenseDialog(
-            expenses = personalExpenses,
-            onDismiss = { showPicker.value = false },
+    if (showPicker) {
+        ExpensePickerDialog(
+            expenses = personalExpensesOnly,
+            onDismiss = { showPicker = false },
             onConfirm = { selected ->
-                vm.addExpensesFromPersonal(selected, description.value, "You")
-                description.value = ""
-                showPicker.value = false
+                vm.addExpensesFromPersonal(selected, description, "You")
+                description = ""
+                showPicker = false
             }
         )
     }
 }
 
 @Composable
-private fun SelectPersonalExpenseDialog(
+private fun ExpensePickerDialog(
     expenses: List<Expense>,
     onDismiss: () -> Unit,
     onConfirm: (List<Expense>) -> Unit
 ) {
-    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+    Dialog(onDismissRequest = onDismiss) {
         Surface(
             color = MaterialTheme.colorScheme.background,
             shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth()
         ) {
             Column(
                 modifier = Modifier
@@ -262,56 +399,85 @@ private fun SelectPersonalExpenseDialog(
                     .fillMaxWidth()
                     .heightIn(max = 480.dp)
             ) {
+                // Header
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 8.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextButton(onClick = onDismiss) { Text("✕", color = MaterialTheme.colorScheme.onBackground) }
-                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        Text(text = "Choose an expense", color = MaterialTheme.colorScheme.onBackground)
+                    TextButton(onClick = onDismiss) {
+                        Text("✕", color = MaterialTheme.colorScheme.onBackground)
                     }
-                    Spacer(modifier = Modifier.size(32.dp))
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Choose expenses",
+                            color = MaterialTheme.colorScheme.onBackground,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(32.dp))
                 }
 
+                // Expense list
                 val selected = remember { mutableStateListOf<Int>() }
-
+                
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    itemsIndexed(expenses) { index, exp ->
+                    itemsIndexed(expenses) { index, expense ->
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = if (selected.contains(index)) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant,
+                            color = if (selected.contains(index)) {
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                            } else {
+                                MaterialTheme.colorScheme.surfaceVariant
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    if (selected.contains(index)) selected.remove(index) else selected.add(index)
+                                    if (selected.contains(index)) {
+                                        selected.remove(index)
+                                    } else {
+                                        selected.add(index)
+                                    }
                                 }
                         ) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(text = exp.title, color = MaterialTheme.colorScheme.onSurface)
-                                    Text(text = exp.category, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                                    Text(
+                                        text = expense.title,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = expense.category,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
                                 }
                                 Text(
-                                    text = "$${"%.2f".format(exp.amount)}",
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    text = "$${"%.2f".format(expense.amount)}",
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    style = MaterialTheme.typography.bodyMedium
                                 )
                             }
                         }
                     }
                 }
 
+                // Action buttons
                 Row(
                     modifier = Modifier
                         .padding(12.dp)
@@ -322,7 +488,9 @@ private fun SelectPersonalExpenseDialog(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp)
-                    ) { Text("Cancel") }
+                    ) {
+                        Text("Cancel")
+                    }
                     Button(
                         onClick = {
                             val items = selected.map { expenses[it] }
@@ -334,10 +502,11 @@ private fun SelectPersonalExpenseDialog(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary
                         )
-                    ) { Text("Add") }
+                    ) {
+                        Text("Add")
+                    }
                 }
             }
         }
     }
 }
-
