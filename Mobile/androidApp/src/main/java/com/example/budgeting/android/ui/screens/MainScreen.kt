@@ -31,7 +31,9 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.activity.compose.BackHandler
 import android.app.Activity
 import android.widget.Toast
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 
 val bottomNavItems = listOf(
     BottomNavItem("Expenses", Icons.Default.Home),
@@ -51,6 +53,11 @@ fun MainScreen(
     val pagerState = rememberPagerState(pageCount = { 4 })
     val coroutineScope = rememberCoroutineScope()
     val lastBackPress = remember { mutableStateOf(0L) }
+    val focusManager = LocalFocusManager.current
+
+    LaunchedEffect(pagerState.currentPage) {
+        focusManager.clearFocus()
+    }
 
     NavHost(navController = navController, startDestination = "main") {
         composable("main") {

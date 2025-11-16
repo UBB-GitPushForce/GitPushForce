@@ -8,11 +8,17 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.budgeting.android.data.auth.TokenHolder
 import com.example.budgeting.android.data.local.TokenDataStore
+import com.example.budgeting.android.data.model.ExpenseFilters
+import com.example.budgeting.android.data.model.SortOption
 import com.example.budgeting.android.data.network.RetrofitClient
 import com.example.budgeting.android.data.repository.ExpenseRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class ExpenseViewModel(context: Context) : ViewModel() {
@@ -26,6 +32,48 @@ class ExpenseViewModel(context: Context) : ViewModel() {
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
+
+    private val _filters = MutableStateFlow(ExpenseFilters(category = "All"))
+    val filters: StateFlow<ExpenseFilters> = _filters.asStateFlow()
+
+    val categories = _expenses.map { list ->
+        list.map { it.category }
+            .distinct()
+            .sorted()
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.Eagerly,
+        emptyList()
+    )
+
+    val filteredExpenses: StateFlow<List<Expense>> =
+        combine(_expenses, _filters) { expenses, filters ->
+
+            var result = expenses
+
+            // Search filter
+            if (filters.search.isNotBlank()) {
+                result = result.filter {
+                    it.title.contains(filters.search, ignoreCase = true)
+                }
+            }
+
+            // Category filter
+            if (filters.category != "All") {
+                result = result.filter { it.category == filters.category }
+            }
+
+            // Sorting
+            result = when (filters.sortOption) {
+                SortOption.AMOUNT_ASC -> result.sortedBy { it.amount }
+                SortOption.AMOUNT_DESC -> result.sortedByDescending { it.amount }
+                SortOption.TITLE_ASC -> result.sortedBy { it.title }
+                SortOption.TITLE_DESC -> result.sortedByDescending { it.title }
+            }
+
+            result
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
 
     fun loadExpenses() {
         viewModelScope.launch {
@@ -108,5 +156,16 @@ class ExpenseViewModel(context: Context) : ViewModel() {
         }
     }
 
+    fun setSearchQuery(query: String) {
+        _filters.value = _filters.value.copy(search = query)
+    }
+
+    fun setCategoryFilter(category: String) {
+        _filters.value = _filters.value.copy(category = category)
+    }
+
+    fun setSortOption(option: SortOption) {
+        _filters.value = _filters.value.copy(sortOption = option)
+    }
 
 }
