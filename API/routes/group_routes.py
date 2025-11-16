@@ -4,7 +4,6 @@ from database import get_db
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from repositories.group_repository import GroupRepository
 from repositories.users_groups_repository import UsersGroupsRepository
-from routes.expense_routes import get_expense_service
 from schemas.expense import Expense
 from schemas.group import Group, GroupCreate, GroupUpdate
 from schemas.user import UserBase
@@ -14,6 +13,8 @@ from services.user_service import UserService
 from services.users_groups_service import UsersGroupsService
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
+
+from routes.expense_routes import get_expense_service
 
 router = APIRouter(tags=["Groups"])
 

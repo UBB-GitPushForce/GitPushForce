@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
 from datetime import datetime
+from typing import List, Optional
 
 from models.expense import Expense
 from repositories.expense_repository import IExpenseRepository
