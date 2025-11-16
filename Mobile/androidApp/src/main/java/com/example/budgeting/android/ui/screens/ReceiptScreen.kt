@@ -2,50 +2,40 @@ package com.example.budgeting.android.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
-import coil.compose.AsyncImage
-import com.example.budgeting.android.data.model.Receipt
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.Manifest
 import android.graphics.Bitmap
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
+import coil.compose.AsyncImage
+import com.example.budgeting.android.data.model.Receipt
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReceiptsScreen() {
+fun ReceiptScreen() {
     val context = LocalContext.current
-
     val receipts = remember {
-        mutableStateListOf(
-            Receipt(id = "mock-1", merchant = "Whole Foods Market", category = "Groceries", amount = 120.0),
-            Receipt(id = "mock-2", merchant = "The Italian Place", category = "Dining", amount = 75.5),
-            Receipt(id = "mock-3", merchant = "Fashion Boutique", category = "Shopping", amount = 250.0),
-            Receipt(id = "mock-4", merchant = "Electric Company", category = "Utilities", amount = 150.0),
-            Receipt(id = "mock-5", merchant = "Movie Theater", category = "Entertainment", amount = 30.0),
-            Receipt(id = "mock-6", merchant = "Gas Station", category = "Transportation", amount = 45.0)
-        )
+        mutableStateListOf<Receipt>()
     }
 
     // Camera result forwarder that the dialog can set
@@ -68,13 +58,19 @@ fun ReceiptsScreen() {
 
     fun launchCameraWith(onPicture: (String?) -> Unit) {
         cameraResultHandler.value = onPicture
-        val hasPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PermissionChecker.PERMISSION_GRANTED
+        val hasPermission = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.CAMERA
+        ) == PermissionChecker.PERMISSION_GRANTED
+
         if (hasPermission) {
             cameraLauncher.launch(null)
         } else {
             permissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
+
+    var showAddDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -91,10 +87,8 @@ fun ReceiptsScreen() {
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val showAddDialog = remember { mutableStateOf(false) }
-
                     Button(
-                        onClick = { showAddDialog.value = true },
+                        onClick = { showAddDialog = true },
                         modifier = Modifier
                             .weight(1f)
                             .height(52.dp),
@@ -106,26 +100,6 @@ fun ReceiptsScreen() {
                     ) {
                         Text("Add receipt")
                     }
-
-                    if (showAddDialog.value) {
-                        AddReceiptDialog(
-                            onDismiss = { showAddDialog.value = false },
-                            onScan = { onPicture -> launchCameraWith(onPicture) },
-                            onAdd = { merchant, category, amount, thumbnailUrl ->
-                                receipts.add(
-                                    0,
-                                    Receipt(
-                                        id = UUID.randomUUID().toString(),
-                                        merchant = merchant.ifBlank { "Untitled" },
-                                        category = category.ifBlank { "Uncategorized" },
-                                        amount = amount,
-                                        thumbnailUrl = thumbnailUrl
-                                    )
-                                )
-                                showAddDialog.value = false
-                            }
-                        )
-                    }
                 }
             }
         }
@@ -136,19 +110,63 @@ fun ReceiptsScreen() {
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Top
-            ) {
-                items(receipts) { receipt ->
-                    ReceiptRow(
-                        title = receipt.merchant,
-                        subtitle = receipt.category,
-                        amount = receipt.amount,
-                        thumbnailUrl = receipt.thumbnailUrl
-                    )
+            if (receipts.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Text("🧾", style = MaterialTheme.typography.displayLarge)
+                        Text(
+                            text = "No receipts yet",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "Tap 'Add receipt' to get started",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Top
+                ) {
+                    items(receipts) { receipt ->
+                        ReceiptRow(
+                            title = receipt.merchant,
+                            subtitle = receipt.category,
+                            amount = receipt.amount,
+                            thumbnailUrl = receipt.thumbnailUrl
+                        )
+                    }
                 }
             }
+        }
+
+        if (showAddDialog) {
+            AddReceiptDialog(
+                onDismiss = { showAddDialog = false },
+                onScan = { onPicture -> launchCameraWith(onPicture) },
+                onAdd = { merchant, category, amount, thumbnailUrl ->
+                    receipts.add(
+                        0,
+                        Receipt(
+                            id = UUID.randomUUID().toString(),
+                            merchant = merchant.ifBlank { "Untitled" },
+                            category = category.ifBlank { "Uncategorized" },
+                            amount = amount,
+                            thumbnailUrl = thumbnailUrl
+                        )
+                    )
+                    showAddDialog = false
+                }
+            )
         }
     }
 }
@@ -167,7 +185,7 @@ private fun AddReceiptDialog(
     onScan: (onPicture: (String?) -> Unit) -> Unit,
     onAdd: (merchant: String, category: String, amount: Double, thumbnailUrl: String?) -> Unit
 ) {
-    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+    Dialog(onDismissRequest = onDismiss) {
         Surface(
             color = MaterialTheme.colorScheme.background,
             shape = RoundedCornerShape(16.dp),
@@ -183,9 +201,14 @@ private fun AddReceiptDialog(
                         .padding(horizontal = 8.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextButton(onClick = onDismiss) { Text("✕", color = MaterialTheme.colorScheme.onBackground) }
+                    TextButton(onClick = onDismiss) {
+                        Text("✕", color = MaterialTheme.colorScheme.onBackground)
+                    }
                     Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        Text(text = "New Receipt", color = MaterialTheme.colorScheme.onBackground)
+                        Text(
+                            text = "New Receipt",
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
                     }
                     Spacer(modifier = Modifier.size(32.dp))
                 }
@@ -247,7 +270,10 @@ private fun AddReceiptDialog(
                                 var dotSeen = false
                                 input.forEach { ch ->
                                     if (ch.isDigit()) append(ch)
-                                    else if (ch == '.' && !dotSeen) { append(ch); dotSeen = true }
+                                    else if (ch == '.' && !dotSeen) {
+                                        append(ch)
+                                        dotSeen = true
+                                    }
                                 }
                             }
                             amountText.value = filtered
@@ -306,7 +332,10 @@ private fun AddReceiptDialog(
                                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         ) {
-                            Icon(imageVector = Icons.Filled.CameraAlt, contentDescription = "Scan")
+                            Icon(
+                                imageVector = Icons.Filled.Camera,
+                                contentDescription = "Scan"
+                            )
                             Spacer(Modifier.size(8.dp))
                             Text("Scan")
                         }
@@ -317,7 +346,12 @@ private fun AddReceiptDialog(
                 Button(
                     onClick = {
                         val amount = amountText.value.toDoubleOrNull() ?: 0.0
-                        onAdd(merchant.value.trim(), category.value.trim(), amount, thumbnail.value)
+                        onAdd(
+                            merchant.value.trim(),
+                            category.value.trim(),
+                            amount,
+                            thumbnail.value
+                        )
                     },
                     enabled = merchant.value.isNotBlank(),
                     modifier = Modifier
@@ -375,7 +409,11 @@ private fun ReceiptRow(
 
         Column(modifier = Modifier.weight(1f)) {
             Text(title, color = MaterialTheme.colorScheme.onSurface)
-            Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+            Text(
+                subtitle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall
+            )
         }
 
         Text(
