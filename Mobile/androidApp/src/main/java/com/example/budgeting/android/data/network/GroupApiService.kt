@@ -4,6 +4,7 @@ import com.example.budgeting.android.data.model.CreateGroupRequest
 import com.example.budgeting.android.data.model.Group
 import com.example.budgeting.android.data.model.UpdateGroupRequest
 import com.example.budgeting.android.data.model.UserData
+import com.example.budgeting.android.data.model.Expense
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -11,6 +12,7 @@ import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface GroupApiService {
     @GET("/groups/")
@@ -48,6 +50,13 @@ interface GroupApiService {
 
     @GET("/groups/{group_id}/users")
     suspend fun getUsersByGroup(@Path("group_id") groupId: Int): Response<List<UserData>>
+
+    @GET("/groups/{group_id}/expenses")
+    suspend fun getExpensesByGroup(
+        @Path("group_id") groupId: Int,
+        @Query("offset") offset: Int = 0,
+        @Query("limit") limit: Int = 100,
+        @Query("sort_by") sortBy: String = "created_at",
+        @Query("order") order: String = "desc"
+    ): Response<okhttp3.ResponseBody>
 }
-
-
