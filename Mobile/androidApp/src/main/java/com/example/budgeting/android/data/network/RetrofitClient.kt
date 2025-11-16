@@ -8,19 +8,17 @@ import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 
 object RetrofitClient {
-    
-    // Load environment variables from .env file using dotenv
     private val BASE_URL: String = BuildConfig.BASE_URL
 
-    // Moshi is a modern JSON library for parsing JSON into Kotlin objects.
     private val moshi = Moshi.Builder()
         .add(KotlinJsonAdapterFactory())
         .build()
     
-    // Create Moshi converter factory
+    fun getMoshi(): Moshi = moshi
+    
     private val moshiConverterFactory = MoshiConverterFactory.create(moshi)
+        .asLenient()
 
-    // A lazy delegate means the Retrofit instance is created only once, the first time it's needed.
     val authInstance: AuthApiService by lazy {
         val client = OkHttpClient.Builder()
             .addInterceptor(TokenAuthInterceptor())
@@ -62,6 +60,4 @@ object RetrofitClient {
 
         retrofit.create(GroupApiService::class.java)
     }
-
 }
-
