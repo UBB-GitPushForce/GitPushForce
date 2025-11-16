@@ -103,7 +103,7 @@ fun MainScreen(
                     when (page) {
                         0 -> ExpensesScreen()
                         1 -> GroupsScreen(onOpenGroup = { id -> navController.navigate("groupDetails/$id") })
-                        2 -> ReceiptsScreen()
+                        2 -> ReceiptScreen()
                         3 -> ProfileScreen(onLogout = onLogout)
                     }
                 }
