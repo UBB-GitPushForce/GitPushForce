@@ -19,11 +19,9 @@ class ExpenseCreate(ExpenseBase):
 
     @model_validator(mode="after")
     def validate_one_fk(self):
-        """Ensure exactly one of user_id or group_id is set."""
-        if (self.user_id is None and self.group_id is None) or (
-            self.user_id is not None and self.group_id is not None
-        ):
-            raise ValueError("Exactly one of user_id or group_id must be provided.")
+        if self.user_id is None:
+            raise ValueError("user_id must be provided.")
+
         return self
 
 
@@ -36,10 +34,9 @@ class ExpenseUpdate(BaseModel):
 
     @model_validator(mode="after")
     def validate_one_fk(self):
-        if (self.user_id is None and self.group_id is None) or (
-            self.user_id is not None and self.group_id is not None
-        ):
-            raise ValueError("Exactly one of user_id or group_id must be provided.")
+        if self.user_id is None:
+            raise ValueError("user_id must be provided.")
+
         return self
 
 

@@ -184,9 +184,9 @@ def populated_service(expense_service):
     exp3 = ExpenseCreate(title="Groceries", category="Food", amount=50, user_id=2)
     exp4 = ExpenseCreate(title="Dinner", category="Food", amount=30, user_id=1)
     # --- Group Expenses ---
-    exp5 = ExpenseCreate(title="Shared Ride", category="Transport", amount=20, user_id=None, group_id=10)
-    exp6 = ExpenseCreate(title="Team Lunch", category="Food", amount=100, user_id=None, group_id=11)
-    exp7 = ExpenseCreate(title="Office Supplies", category="Work", amount=75, user_id=None, group_id=10) # Added for group filter test
+    exp5 = ExpenseCreate(title="Shared Ride", category="Transport", amount=20, user_id=5, group_id=10)
+    exp6 = ExpenseCreate(title="Team Lunch", category="Food", amount=100, user_id=5, group_id=11)
+    exp7 = ExpenseCreate(title="Office Supplies", category="Work", amount=75, user_id=5, group_id=10) # Added for group filter test
 
     # Add and manually set created_at for predictable date filtering
     service = expense_service
@@ -257,7 +257,7 @@ def test_get_user_expenses_sorted(expense_service, mock_repo):
 def test_get_group_expenses_sorted(expense_service, mock_repo):
     titles = ["G", "C", "E"]
     for t in titles:
-        expense_service.create_expense(ExpenseCreate(title=t, category="Trip", amount=20, user_id=None, group_id=7))
+        expense_service.create_expense(ExpenseCreate(title=t, category="Trip", amount=20, user_id=1, group_id=7))
     # This call now correctly passes the default values for the new arguments
     result = expense_service.get_group_expenses(group_id=7, sort_by="title", order="desc")
     assert [e.title for e in result] == ["G", "E", "C"]
