@@ -13,7 +13,7 @@ class MockExpenseRepository:
     def __init__(self):
         self.expenses = {}
         self.counter = 1
-        self.users_groups = {}  # ADDED: To store user_id: [group_id1, group_id2]
+        self.users_groups = {}  # Stores user_id: [group_id1, group_id2]
 
     def add(self, expense: Expense):
         expense.id = self.counter
@@ -71,9 +71,8 @@ class MockExpenseRepository:
         date_from: Optional[datetime] = None,
         date_to: Optional[datetime] = None,
         category: Optional[str] = None,
-        group_ids: Optional[List[int]] = None  # ADDED
+        group_ids: Optional[List[int]] = None
     ):
-        # --- MODIFIED LOGIC ---
         user_group_ids = self.users_groups.get(user_id, [])
         all_expenses = list(self.expenses.values())
         potential_expenses = []
@@ -89,11 +88,10 @@ class MockExpenseRepository:
             for e in all_expenses:
                 if e.user_id == user_id or e.group_id in user_group_ids:
                     potential_expenses.append(e)
-        # --- END MODIFIED LOGIC ---
         
         # Apply other filters
         filtered = []
-        for e in potential_expenses: # MODIFIED: was 'expenses'
+        for e in potential_expenses:
             if min_price is not None and e.amount < min_price:
                 continue
             if max_price is not None and e.amount > max_price:
@@ -109,10 +107,40 @@ class MockExpenseRepository:
         filtered.sort(key=attrgetter(sort_by), reverse=(order.lower() == "desc"))
         return filtered[offset: offset + limit]
 
-    def get_by_group(self, group_id: int, offset: int = 0, limit: int = 100, sort_by: str = "created_at", order: str = "desc"):
+    # --- THIS IS THE MODIFIED METHOD ---
+    def get_by_group(
+        self, 
+        group_id: int, 
+        offset: int = 0, 
+        limit: int = 100, 
+        sort_by: str = "created_at", 
+        order: str = "desc",
+        min_price: Optional[float] = None,
+        max_price: Optional[float] = None,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+        category: Optional[str] = None
+    ):
         expenses = [e for e in self.expenses.values() if e.group_id == group_id]
-        expenses.sort(key=attrgetter(sort_by), reverse=(order.lower() == "desc"))
-        return expenses[offset: offset + limit]
+        
+        # Apply filters
+        filtered = []
+        for e in expenses:
+            if min_price is not None and e.amount < min_price:
+                continue
+            if max_price is not None and e.amount > max_price:
+                continue
+            if date_from is not None and e.created_at < date_from:
+                continue
+            if date_to is not None and e.created_at > date_to:
+                continue
+            if category is not None and e.category != category:
+                continue
+            filtered.append(e)
+        
+        filtered.sort(key=attrgetter(sort_by), reverse=(order.lower() == "desc"))
+        return filtered[offset: offset + limit]
+    # --- END MODIFIED METHOD ---
 
     def update(self, expense_id: int, fields: dict):
         exp = self.expenses.get(expense_id)
@@ -155,9 +183,10 @@ def populated_service(expense_service):
     exp2 = ExpenseCreate(title="Movie", category="Entertainment", amount=15, user_id=1)
     exp3 = ExpenseCreate(title="Groceries", category="Food", amount=50, user_id=2)
     exp4 = ExpenseCreate(title="Dinner", category="Food", amount=30, user_id=1)
-    # --- ADDED Group Expenses ---
+    # --- Group Expenses ---
     exp5 = ExpenseCreate(title="Shared Ride", category="Transport", amount=20, user_id=None, group_id=10)
     exp6 = ExpenseCreate(title="Team Lunch", category="Food", amount=100, user_id=None, group_id=11)
+    exp7 = ExpenseCreate(title="Office Supplies", category="Work", amount=75, user_id=None, group_id=10) # Added for group filter test
 
     # Add and manually set created_at for predictable date filtering
     service = expense_service
@@ -165,20 +194,20 @@ def populated_service(expense_service):
     service.create_expense(exp2).created_at = base_time - timedelta(days=3) # id 2
     service.create_expense(exp3).created_at = base_time - timedelta(days=2) # id 3
     service.create_expense(exp4).created_at = base_time - timedelta(days=1) # id 4
-    # --- ADDED ---
     service.create_expense(exp5).created_at = base_time - timedelta(days=6) # id 5
     service.create_expense(exp6).created_at = base_time - timedelta(days=0) # id 6
+    service.create_expense(exp7).created_at = base_time - timedelta(days=2) # id 7
     
     # Update mock repo entries with the new timestamps
     service.repository.expenses[1].created_at = base_time - timedelta(days=5)
     service.repository.expenses[2].created_at = base_time - timedelta(days=3)
     service.repository.expenses[3].created_at = base_time - timedelta(days=2)
     service.repository.expenses[4].created_at = base_time - timedelta(days=1)
-    # --- ADDED ---
     service.repository.expenses[5].created_at = base_time - timedelta(days=6)
     service.repository.expenses[6].created_at = base_time - timedelta(days=0)
+    service.repository.expenses[7].created_at = base_time - timedelta(days=2)
 
-    # --- ADDED: Set up group memberships ---
+    # Set up group memberships
     service.repository.users_groups = {
         1: [10], # User 1 is in group 10
         2: [11]  # User 2 is in group 11
@@ -229,6 +258,7 @@ def test_get_group_expenses_sorted(expense_service, mock_repo):
     titles = ["G", "C", "E"]
     for t in titles:
         expense_service.create_expense(ExpenseCreate(title=t, category="Trip", amount=20, user_id=None, group_id=7))
+    # This call now correctly passes the default values for the new arguments
     result = expense_service.get_group_expenses(group_id=7, sort_by="title", order="desc")
     assert [e.title for e in result] == ["G", "E", "C"]
 
@@ -257,54 +287,54 @@ def test_get_all_expenses_filtered(populated_service):
     
     # Price filters
     res_min = service.get_all_expenses(min_price=20)
-    assert {e.title for e in res_min} == {"Groceries", "Dinner", "Shared Ride", "Team Lunch"} # MODIFIED
+    assert {e.title for e in res_min} == {"Groceries", "Dinner", "Shared Ride", "Team Lunch", "Office Supplies"}
     
     res_max = service.get_all_expenses(max_price=10)
     assert {e.title for e in res_max} == {"Coffee"}
     
     res_range = service.get_all_expenses(min_price=10, max_price=40)
-    assert {e.title for e in res_range} == {"Movie", "Dinner", "Shared Ride"} # MODIFIED
+    assert {e.title for e in res_range} == {"Movie", "Dinner", "Shared Ride"}
     
     # Category filter
     res_cat = service.get_all_expenses(category="Food")
-    assert {e.title for e in res_cat} == {"Coffee", "Groceries", "Dinner", "Team Lunch"} # MODIFIED
+    assert {e.title for e in res_cat} == {"Coffee", "Groceries", "Dinner", "Team Lunch"}
     
     # Date filter
     res_date_from = service.get_all_expenses(date_from=base_time - timedelta(days=2.5))
-    assert {e.title for e in res_date_from} == {"Groceries", "Dinner", "Team Lunch"} # MODIFIED
+    assert {e.title for e in res_date_from} == {"Groceries", "Dinner", "Team Lunch", "Office Supplies"}
     
     res_date_to = service.get_all_expenses(date_to=base_time - timedelta(days=4))
-    assert {e.title for e in res_date_to} == {"Coffee", "Shared Ride"} # MODIFIED
+    assert {e.title for e in res_date_to} == {"Coffee", "Shared Ride"}
     
     # Combined filter
     res_combo = service.get_all_expenses(category="Food", min_price=40)
-    assert {e.title for e in res_combo} == {"Groceries", "Team Lunch"} # MODIFIED
+    assert {e.title for e in res_combo} == {"Groceries", "Team Lunch"}
 
 def test_get_user_expenses_filtered(populated_service):
     service, base_time = populated_service
     
     # User 1 is in group [10].
     # User 1 personal: Coffee (5), Movie (15), Dinner (30)
-    # Group 10: Shared Ride (20)
+    # Group 10: Shared Ride (20), Office Supplies (75)
     # User 2 personal: Groceries (50)
     # Group 11: Team Lunch (100)
     
     # Get all for user 1 (should be personal + group 10)
     all_user1 = service.get_user_expenses(user_id=1)
-    assert {e.title for e in all_user1} == {"Coffee", "Movie", "Dinner", "Shared Ride"} # MODIFIED
-    assert len(all_user1) == 4 # MODIFIED
+    assert {e.title for e in all_user1} == {"Coffee", "Movie", "Dinner", "Shared Ride", "Office Supplies"}
+    assert len(all_user1) == 5
 
     # Filter user 1 by category
     res_cat = service.get_user_expenses(user_id=1, category="Food")
-    assert {e.title for e in res_cat} == {"Coffee", "Dinner"} # Unchanged (Shared Ride is Transport)
+    assert {e.title for e in res_cat} == {"Coffee", "Dinner"}
     
     # Filter user 1 by price
     res_price = service.get_user_expenses(user_id=1, min_price=20)
-    assert {e.title for e in res_price} == {"Dinner", "Shared Ride"} # MODIFIED
+    assert {e.title for e in res_price} == {"Dinner", "Shared Ride", "Office Supplies"}
     
     # Filter user 1 by date
     res_date = service.get_user_expenses(user_id=1, date_from=base_time - timedelta(days=4))
-    assert {e.title for e in res_date} == {"Movie", "Dinner"} # Unchanged (Shared Ride is day -6)
+    assert {e.title for e in res_date} == {"Movie", "Dinner", "Office Supplies"}
 
     # Filter user 1 but get no results (should be none)
     res_none = service.get_user_expenses(user_id=1, category="Entertainment", max_price=10)
@@ -312,7 +342,7 @@ def test_get_user_expenses_filtered(populated_service):
 
     # Check user 2 (should be personal + group 11)
     res_user2 = service.get_user_expenses(user_id=2, category="Food")
-    assert {e.title for e in res_user2} == {"Groceries", "Team Lunch"} # MODIFIED
+    assert {e.title for e in res_user2} == {"Groceries", "Team Lunch"}
 
 
 # --- ADDED NEW TEST for group_ids filter ---
@@ -322,12 +352,12 @@ def test_get_user_expenses_group_filter(populated_service):
 
     # User 1 is in group [10].
     # User 2 is in group [11].
-    # Expense 5 (id 5, "Shared Ride") is in group 10.
-    # Expense 6 (id 6, "Team Lunch") is in group 11.
+    # Expense 5 ("Shared Ride"), 7 ("Office Supplies") are in group 10.
+    # Expense 6 ("Team Lunch") is in group 11.
 
     # Ask for user 1, filtering by group 10
     res_user1_group10 = service.get_user_expenses(user_id=1, group_ids=[10])
-    assert {e.title for e in res_user1_group10} == {"Shared Ride"}
+    assert {e.title for e in res_user1_group10} == {"Shared Ride", "Office Supplies"}
 
     # Ask for user 1, filtering by group 11 (which they are not in)
     res_user1_group11 = service.get_user_expenses(user_id=1, group_ids=[11])
@@ -335,7 +365,7 @@ def test_get_user_expenses_group_filter(populated_service):
 
     # Ask for user 1, filtering by both (should only get 10)
     res_user1_both = service.get_user_expenses(user_id=1, group_ids=[10, 11])
-    assert {e.title for e in res_user1_both} == {"Shared Ride"}
+    assert {e.title for e in res_user1_both} == {"Shared Ride", "Office Supplies"}
 
     # Ask for user 2, filtering by group 11
     res_user2_group11 = service.get_user_expenses(user_id=2, group_ids=[11])
@@ -344,3 +374,31 @@ def test_get_user_expenses_group_filter(populated_service):
     # Ask for user 2, filtering by group 10 (which they are not in)
     res_user2_group10 = service.get_user_expenses(user_id=2, group_ids=[10])
     assert len(res_user2_group10) == 0
+
+
+# --- ADDED NEW TEST for get_group_expenses filtering ---
+def test_get_group_expenses_filtered(populated_service):
+    service, base_time = populated_service
+    
+    # Group 10 has:
+    # - "Shared Ride" (20, "Transport", day -6)
+    # - "Office Supplies" (75, "Work", day -2)
+    
+    # Filter by price
+    res_min = service.get_group_expenses(group_id=10, min_price=50)
+    assert {e.title for e in res_min} == {"Office Supplies"}
+    
+    res_max = service.get_group_expenses(group_id=10, max_price=30)
+    assert {e.title for e in res_max} == {"Shared Ride"}
+    
+    # Filter by category
+    res_cat = service.get_group_expenses(group_id=10, category="Work")
+    assert {e.title for e in res_cat} == {"Office Supplies"}
+    
+    # Filter by date
+    res_date = service.get_group_expenses(group_id=10, date_from=base_time - timedelta(days=3))
+    assert {e.title for e in res_date} == {"Office Supplies"}
+    
+    # Combined
+    res_combo = service.get_group_expenses(group_id=10, category="Transport", min_price=30)
+    assert len(res_combo) == 0 # "Shared Ride" is only 20
