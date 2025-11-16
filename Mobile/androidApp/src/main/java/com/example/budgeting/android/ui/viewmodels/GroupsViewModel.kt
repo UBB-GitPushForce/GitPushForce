@@ -18,7 +18,11 @@ import kotlinx.coroutines.launch
 
 class GroupsViewModel(context: Context) : ViewModel() {
     private val tokenDataStore = TokenDataStore(context.applicationContext)
-    private val repository = GroupRepository(RetrofitClient.groupInstance, tokenDataStore)
+    private val repository = GroupRepository(
+        RetrofitClient.groupInstance,
+        RetrofitClient.expenseInstance,
+        tokenDataStore
+    )
 
     private val _groups = MutableStateFlow<List<Group>>(emptyList())
     val groups: StateFlow<List<Group>> = _groups.asStateFlow()
