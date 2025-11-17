@@ -6,10 +6,8 @@ from models.group import Group
 from repositories.users_groups_repository import IUsersGroupsRepository
 from utils.helpers.logger import Logger
 
-
-class IUsersGroupsService(ABC):
-    """
-    Defines the interface for user–group relationship operations.
+"""
+    Defines the interface for userï¿½group relationship operations.
 
     Args:
         user_id (int) identifier of the user
@@ -21,7 +19,8 @@ class IUsersGroupsService(ABC):
     Exceptions:
         None directly in interface
     """
-
+class IUsersGroupsService(ABC):
+    
     # CREATE
     @abstractmethod
     def add_user_to_group(self, user_id: int, group_id: int) -> None: ...

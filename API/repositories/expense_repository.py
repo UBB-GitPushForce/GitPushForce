@@ -258,9 +258,6 @@ class ExpenseRepository(IExpenseRepository):
         date_to: Optional[datetime] = None,
         category: Optional[str] = None
     ) -> List[Expense]: # MODIFIED
-        def get_by_group(
-        ...
-    ) -> List[Expense]:
         """
         Retrieves expenses for a group with pagination and filters.
 

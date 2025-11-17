@@ -12,7 +12,7 @@ class UsersGroups(Base):
         group_id (int) identifier of the linked group
 
     Returns:
-        UsersGroups object representing one user–group link
+        UsersGroups object representing one userï¿½group link
 
     Exceptions:
         None
