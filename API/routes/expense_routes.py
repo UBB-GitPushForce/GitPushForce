@@ -100,6 +100,62 @@ def create_expense(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
+@router.get("/all", response_model=List[Expense])
+def get_all_expenses(
+    offset: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    sort_by: str = Query("created_at"),
+    order: str = Query("desc", regex="^(asc|desc)$"),
+    min_price: Optional[float] = Query(None, ge=0, description="Minimum price filter"),
+    max_price: Optional[float] = Query(None, ge=0, description="Maximum price filter"),
+    date_from: Optional[str] = Query(None, description="Filter expenses from this date (ISO format: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS)"),
+    date_to: Optional[str] = Query(None, description="Filter expenses until this date (ISO format: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS)"),
+    category: Optional[str] = Query(None, description="Filter by category"),
+    service: ExpenseService = Depends(get_expense_service)
+):
+    """
+    Retrieves all expenses in the system with filtering.
+
+    Args:
+        offset (int) items to skip
+        limit (int) maximum items to return
+        sort_by (str) field used for sorting
+        order (str) sort direction
+        min_price (float) minimum amount filter
+        max_price (float) maximum amount filter
+        date_from (str) start date filter
+        date_to (str) end date filter
+        category (str) category filter
+        service (ExpenseService) expense service instance
+
+    Returns:
+        list[Expense] filtered expenses for all users
+
+    Exceptions:
+        HTTPException returned when inputs are invalid
+    """
+    date_from_dt = parse_date_string(date_from)
+    date_to_dt = parse_date_string(date_to)
+    
+    if min_price is not None and max_price is not None and min_price > max_price:
+        raise HTTPException(
+            status_code=status.http_400_bad_request,
+            detail="min_price cannot be greater than max_price"
+        )
+    
+    return service.get_all_expenses(
+        offset, 
+        limit, 
+        sort_by, 
+        order,
+        min_price,
+        max_price,
+        date_from_dt,
+        date_to_dt,
+        category
+    )
+
+
 @router.get("/{expense_id}", response_model=Expense)
 def get_expense(
     expense_id: int,
@@ -233,62 +289,6 @@ def get_group_expenses(
     
     return service.get_group_expenses(
         group_id,
-        offset, 
-        limit, 
-        sort_by, 
-        order,
-        min_price,
-        max_price,
-        date_from_dt,
-        date_to_dt,
-        category
-    )
-
-
-@router.get("/all", response_model=List[Expense])
-def get_all_expenses(
-    offset: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
-    sort_by: str = Query("created_at"),
-    order: str = Query("desc", regex="^(asc|desc)$"),
-    min_price: Optional[float] = Query(None, ge=0, description="Minimum price filter"),
-    max_price: Optional[float] = Query(None, ge=0, description="Maximum price filter"),
-    date_from: Optional[str] = Query(None, description="Filter expenses from this date (ISO format: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS)"),
-    date_to: Optional[str] = Query(None, description="Filter expenses until this date (ISO format: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS)"),
-    category: Optional[str] = Query(None, description="Filter by category"),
-    service: ExpenseService = Depends(get_expense_service)
-):
-    """
-    Retrieves all expenses in the system with filtering.
-
-    Args:
-        offset (int) items to skip
-        limit (int) maximum items to return
-        sort_by (str) field used for sorting
-        order (str) sort direction
-        min_price (float) minimum amount filter
-        max_price (float) maximum amount filter
-        date_from (str) start date filter
-        date_to (str) end date filter
-        category (str) category filter
-        service (ExpenseService) expense service instance
-
-    Returns:
-        list[Expense] filtered expenses for all users
-
-    Exceptions:
-        HTTPException returned when inputs are invalid
-    """
-    date_from_dt = parse_date_string(date_from)
-    date_to_dt = parse_date_string(date_to)
-    
-    if min_price is not none and max_price is not none and min_price > max_price:
-        raise httpException(
-            status_code=status.http_400_bad_request,
-            detail="min_price cannot be greater than max_price"
-        )
-    
-    return service.get_all_expenses(
         offset, 
         limit, 
         sort_by, 

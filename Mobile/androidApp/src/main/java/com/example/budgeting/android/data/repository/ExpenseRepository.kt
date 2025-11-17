@@ -3,22 +3,73 @@ package com.example.budgeting.android.data.repository
 import com.example.budgeting.android.data.local.TokenDataStore
 import com.example.budgeting.android.data.model.Expense
 import com.example.budgeting.android.data.network.ExpenseApiService
-import com.example.budgeting.android.ui.component.ExpenseItem
-import kotlinx.coroutines.flow.firstOrNull
-import kotlin.math.exp
 
-class ExpenseRepository(private val apiService: ExpenseApiService, private val tokenDataStore: TokenDataStore) {
+class ExpenseRepository(
+    private val api: ExpenseApiService,
+    private val tokenDataStore: TokenDataStore
+) {
 
-    suspend fun getExpenses() =
-        apiService.getExpenses()
+    // ---------------------------
+    // PERSONAL EXPENSES
+    // ---------------------------
+    suspend fun getPersonalExpenses(
+        search: String?,
+        category: String?,
+        sortBy: String?,
+        order: String?
+    ): List<Expense> {
+        return api.getPersonalExpenses(
+            search = search,
+            category = category,
+            sortBy = sortBy,
+            order = order
+        )
+    }
 
-    suspend fun addExpense(expense: Expense) =
-        apiService.addExpense(expense = expense)
+    // ---------------------------
+    // ALL EXPENSES
+    // ---------------------------
+    suspend fun getAllExpenses(
+        category: String?,
+        sortBy: String?,
+        order: String?
+    ): List<Expense> {
+        return api.getAllExpenses(
+            category = category,
+            sortBy = sortBy,
+            order = order
+        )
+    }
 
-    suspend fun updateExpense(id: Int, expense: Expense) =
-        apiService.updateExpense(id = id, expense = expense)
+    // ---------------------------
+    // GROUP EXPENSES
+    // ---------------------------
+    suspend fun getGroupExpenses(
+        groupId: Int,
+        category: String?,
+        sortBy: String?,
+        order: String?
+    ): List<Expense> {
+        return api.getGroupExpenses(
+            groupId = groupId,
+            category = category,
+            sortBy = sortBy,
+            order = order
+        )
+    }
 
-    suspend fun deleteExpense(id: Int) =
-        apiService.deleteExpense(id = id)
+    // ---------------------------
+    // CRUD
+    // ---------------------------
+    suspend fun addExpense(expense: Expense): Expense {
+        return api.addExpense(expense).body() ?: throw Exception("Failed to add expense")
+    }
 
+    suspend fun updateExpense(id: Int, expense: Expense): String {
+        return api.updateExpense(id, expense)
+    }
+
+    suspend fun deleteExpense(id: Int): String {
+        return api.deleteExpense(id)
+    }
 }
