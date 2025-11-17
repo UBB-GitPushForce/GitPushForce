@@ -6,7 +6,7 @@ from repositories.group_repository import GroupRepository
 from repositories.users_groups_repository import UsersGroupsRepository
 from schemas.expense import Expense
 from schemas.group import Group, GroupCreate, GroupUpdate
-from schemas.user import UserBase
+from schemas.user import UserBase, UserResponse
 from services.expense_service import ExpenseService
 from services.group_service import GroupService
 from services.user_service import UserService
@@ -261,7 +261,7 @@ def get_groups_by_user(
     return service.get_user_groups(user_id)
 
 
-@router.get("/{group_id}/users", response_model=List[UserBase])
+@router.get("/{group_id}/users", response_model=List[UserResponse])
 def get_users_by_group(
     group_id: int,
     service: UsersGroupsService = Depends(get_users_groups_service)
