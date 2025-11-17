@@ -5,6 +5,24 @@ from models.base import Base
 
 
 class Group(Base):
+    """
+    Defines the Group model used to store a single group record.
+
+    Args:
+        id (int) unique identifier for the group
+        name (str) name of the group
+        description (str) short text describing the group
+        created_at (datetime) creation timestamp
+        users (list[User]) users linked to this group
+        expenses (list[Expense]) expenses linked to this group
+
+    Returns:
+        Group object representing one stored group
+
+    Exceptions:
+        None
+    """
+
     __tablename__ = "groups"
 
     id = Column(Integer, primary_key=True, index=True)

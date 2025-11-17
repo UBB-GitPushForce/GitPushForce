@@ -23,8 +23,35 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 72  # 3 days
 
 
 class PasswordUtil:
+    """
+    Provides password hashing and verification utilities.
+
+    Args:
+        password (str) input password
+        plain_password (str) provided password
+        hashed_password (str) stored hashed password
+
+    Returns:
+        str for hashed password or bool for verification result
+
+    Exceptions:
+        None
+    """
+
     @staticmethod
     def hash_password(password: str) -> str:
+        """
+        Hashes a plaintext password.
+
+        Args:
+            password (str) the raw password
+
+        Returns:
+            str hashed password string
+
+        Exceptions:
+            None
+        """
         Logger().debug("Hashing password")
         salt = bcrypt.gensalt()
         hashed = bcrypt.hashpw(password.encode("utf-8"), salt)
@@ -32,11 +59,40 @@ class PasswordUtil:
 
     @staticmethod
     def verify_password(plain_password: str, hashed_password: str) -> bool:
+        """
+        Verifies a password against its hashed version.
+
+        Args:
+            plain_password (str) user-provided password
+            hashed_password (str) stored hashed password
+
+        Returns:
+            bool result of comparison
+
+        Exceptions:
+            None
+        """
         Logger().debug("Verifying password")
         return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
 
 
 class IUserService(ABC):
+    """
+    Defines the interface for user authentication and account actions.
+
+    Args:
+        user_in (UserCreate or UserLogin) user-provided data
+        token (str) authentication token
+        new_password (str) updated password
+        email (str) user email
+
+    Returns:
+        dict response payloads
+
+    Exceptions:
+        HTTPException raised for invalid credentials or conflicting data
+    """
+
     @abstractmethod
     def register_user(self, user_in: UserCreate) -> dict: ...
     @abstractmethod
@@ -48,16 +104,53 @@ class IUserService(ABC):
 
 
 class UserService:
+    """
+    Manages user authentication, JWT handling, password resets, and user updates.
+
+    Args:
+        db (Session) active database session
+
+    Returns:
+        UserService instance
+
+    Exceptions:
+        HTTPException raised for invalid tokens or failed authentication
+    """
+
     security = HTTPBearer()
     logger = Logger()
 
     def __init__(self, db: Session):
+        """
+        Initializes the UserService with a database session.
+
+        Args:
+            db (Session) database connection
+
+        Returns:
+            None
+
+        Exceptions:
+            None
+        """
         self.repository = UserRepository(db)
         self.logger.debug("UserService initialized with DB session")
 
     # -------------------------- JWT Methods --------------------------
 
     def _encode_token(self, user_id: int) -> str:
+        """
+        Creates a JWT access token.
+
+        Args:
+            user_id (int) id of the user
+
+        Returns:
+            str encoded JWT token
+
+        Exceptions:
+            None
+        """
         self.logger.debug(f"Encoding JWT for user_id={user_id}")
         payload = {
             "sub": str(user_id),
@@ -69,6 +162,18 @@ class UserService:
         return token
 
     def _decode_token(self, token: str) -> int:
+        """
+        Validates and decodes a JWT token.
+
+        Args:
+            token (str) JWT token string
+
+        Returns:
+            int user id extracted from token
+
+        Exceptions:
+            HTTPException raised for expired or invalid tokens
+        """
         self.logger.debug("Decoding JWT token")
         try:
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -82,6 +187,18 @@ class UserService:
             raise HTTPException(status_code=401, detail="Invalid token.")
 
     def auth_wrapper(self, request: Request):
+        """
+        Extracts and validates the authentication token from headers or cookies.
+
+        Args:
+            request (Request) incoming HTTP request
+
+        Returns:
+            int authenticated user's id
+
+        Exceptions:
+            HTTPException raised when token is missing or invalid
+        """
         auth_header = request.headers.get("Authorization")
         token = None
         if auth_header and auth_header.startswith("Bearer "):
@@ -97,10 +214,34 @@ class UserService:
     # -------------------------- User Methods --------------------------
 
     def get_all_users(self):
+        """
+        Fetches all users.
+
+        Args:
+            None
+
+        Returns:
+            list all stored user objects
+
+        Exceptions:
+            None
+        """
         self.logger.info("Fetching all users")
         return self.repository.get_all()
 
     def register_user(self, user_in: UserCreate) -> dict:
+        """
+        Registers a new user and issues a JWT token.
+
+        Args:
+            user_in (UserCreate) user registration data
+
+        Returns:
+            dict containing access token and user id
+
+        Exceptions:
+            HTTPException raised if email is already used
+        """
         self.logger.info(f"Registering user with email={user_in.email}")
 
         if self.repository.get_by_email(user_in.email):
@@ -122,6 +263,18 @@ class UserService:
         return {"access_token": token, "user": id}
 
     def login_user(self, user_in: UserLogin) -> dict:
+        """
+        Authenticates a user and returns a JWT token.
+
+        Args:
+            user_in (UserLogin) login credentials
+
+        Returns:
+            dict containing token and user data
+
+        Exceptions:
+            HTTPException raised for invalid email or password
+        """
         self.logger.info(f"User attempting login: {user_in.email}")
 
         user = self.repository.get_by_email(user_in.email)
@@ -134,6 +287,18 @@ class UserService:
         return {"access_token": token, "user": user}
 
     def get_user_by_id(self, user_id: int) -> User:
+        """
+        Retrieves a user by their id.
+
+        Args:
+            user_id (int) id of the user
+
+        Returns:
+            User matching user object
+
+        Exceptions:
+            HTTPException raised when user does not exist
+        """
         self.logger.debug(f"Fetching user by id={user_id}")
         user = self.repository.get_by_id(user_id)
         if not user:
@@ -143,6 +308,19 @@ class UserService:
         return user
 
     def update_user(self, user_id: int, user_in: UserUpdate) -> User:
+        """
+        Updates a user's information.
+
+        Args:
+            user_id (int) id of the user
+            user_in (UserUpdate) update payload
+
+        Returns:
+            User updated user object
+
+        Exceptions:
+            HTTPException raised for email conflicts
+        """
         self.logger.info(f"Updating user id={user_id}")
 
         fields = user_in.model_dump(exclude_unset=True)
@@ -160,6 +338,18 @@ class UserService:
         return user
 
     def delete_user(self, user_id: int) -> None:
+        """
+        Deletes a user account.
+
+        Args:
+            user_id (int) id of the user
+
+        Returns:
+            None
+
+        Exceptions:
+            None
+        """
         self.logger.info(f"Deleting user id={user_id}")
         self.repository.delete(user_id)
         self.logger.info(f"User deleted id={user_id}")
@@ -167,6 +357,18 @@ class UserService:
     # -------------------------- Password Reset --------------------------
 
     def request_password_reset(self, email: str) -> dict:
+        """
+        Generates a password reset token for a user.
+
+        Args:
+            email (str) user's email
+
+        Returns:
+            dict message confirming reset process
+
+        Exceptions:
+            None (even if user does not exist)
+        """
         self.logger.info(f"Password reset requested for email={email}")
         user = self.repository.get_by_email(email)
         if not user:
@@ -179,6 +381,18 @@ class UserService:
         return {"message": "Check the API console for the token."}
 
     def _create_reset_token(self, user_id: int) -> str:
+        """
+        Creates a short-lived token for password resets.
+
+        Args:
+            user_id (int) id of the user
+
+        Returns:
+            str encoded reset token
+
+        Exceptions:
+            None
+        """
         self.logger.debug(f"Creating reset token for user_id={user_id}")
         payload = {
             "sub": str(user_id),
@@ -189,6 +403,18 @@ class UserService:
         return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
     def _decode_reset_token(self, token: str) -> int:
+        """
+        Validates and decodes a password reset token.
+
+        Args:
+            token (str) reset token
+
+        Returns:
+            int user id extracted from token
+
+        Exceptions:
+            HTTPException raised for expired or invalid tokens
+        """
         self.logger.debug("Decoding password reset token")
         try:
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -204,6 +430,19 @@ class UserService:
             raise HTTPException(status_code=400, detail="Invalid reset token.")
 
     def reset_password(self, token: str, new_password: str) -> dict:
+        """
+        Resets a user's password using a valid reset token.
+
+        Args:
+            token (str) password reset token
+            new_password (str) new confidential password
+
+        Returns:
+            dict confirmation message
+
+        Exceptions:
+            HTTPException raised if token is invalid or user does not exist
+        """
         self.logger.info("Processing password reset")
         user_id = self._decode_reset_token(token)
         user = self.repository.get_by_id(user_id)

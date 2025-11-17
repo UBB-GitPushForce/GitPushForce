@@ -6,6 +6,9 @@ __pycache__/
 # C extensions
 *.so
 
+# Visual studio folder
+.vs/
+
 # Distribution / packaging
 .Python
 build/
@@ -50,6 +53,7 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
+
 
 # Translations
 *.mo
@@ -177,7 +181,7 @@ cython_debug/
 
 # Abstra
 # Abstra is an AI-powered process automation framework.
-# Ignore directories containing user credentials, local state, and settings.
+# Ignore directori	es containing user credentials, local state, and settings.
 # Learn more at https://abstra.io/docs
 .abstra/
 

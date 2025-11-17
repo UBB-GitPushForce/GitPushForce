@@ -5,6 +5,28 @@ from models.base import Base
 
 
 class User(Base):
+    """
+    Defines the User model used to store a single user record.
+
+    Args:
+        id (int) unique identifier for the user
+        first_name (str) user first name
+        last_name (str) user last name
+        email (str) user email address
+        hashed_password (str) user password hash
+        phone_number (str) user phone number
+        created_at (datetime) creation timestamp
+        updated_at (datetime) update timestamp
+        expenses (list[Expense]) expenses linked to this user
+        groups (list[Group]) groups this user is part of
+
+    Returns:
+        User object representing one stored user
+
+    Exceptions:
+        CheckConstraintError raised when phone_number contains nonnumeric characters
+    """
+
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
