@@ -30,8 +30,8 @@ async function fetchPage(pageIndex: number, pageSize: number, filters: any) {
     const params: any = {
       offset: pageIndex * pageSize,
       limit: pageSize,
-      sort_by: 'created_at',
-      order: 'desc',
+      sort_by: filters.sortBy || 'created_at',
+      order: filters.sortOrder || 'desc',
     };
 
     // fixed mappings:
@@ -47,10 +47,6 @@ async function fetchPage(pageIndex: number, pageSize: number, filters: any) {
     // date added filters (created_at)
     if (filters.dateAddedFrom) params.date_from = filters.dateAddedFrom;
     if (filters.dateAddedTo) params.date_to = filters.dateAddedTo;
-
-    // transaction date filters (separate params)
-    if (filters.dateTxFrom) params.tx_date_from = filters.dateTxFrom;
-    if (filters.dateTxTo) params.tx_date_to = filters.dateTxTo;
 
     // onlyGroup: map to a single param the backend can interpret
     // (group / independent / any)
@@ -108,7 +104,7 @@ async function updateExpense(id: number, body: any) {
   }
 }
 
-const ReceiptsView: React.FC<{ injectedReceipts?: ReceiptItem[] }> = ({ injectedReceipts = [] }) => {
+const ReceiptsView: React.FC<{ onNeedRefresh?: () => void }> = ({ onNeedRefresh }) => {
   const { user } = useAuth();
   const [items, setItems] = useState<ReceiptItem[]>([]);
   const [pageIndex, setPageIndex] = useState(0);
@@ -127,25 +123,34 @@ const ReceiptsView: React.FC<{ injectedReceipts?: ReceiptItem[] }> = ({ injected
     maxAmount: '',
     dateAddedFrom: '',
     dateAddedTo: '',
-    dateTxFrom: '',
-    dateTxTo: '',
     onlyGroup: 'any',
+    selectedCategory: '',
+    sortBy: 'created_at',
+    sortOrder: 'desc',
   });
+
+  const [categories, setCategories] = useState<string[]>([]);
+
+  // Extract unique categories from items - accumulate, don't replace
+  useEffect(() => {
+    const newCategories = items.map(item => item.subtitle).filter(Boolean);
+    setCategories(prev => {
+      const combined = new Set([...prev, ...newCategories]);
+      return Array.from(combined);
+    });
+  }, [items]);
 
   const loadFirst = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetchPage(0, PAGE_SIZE, filters);
-      // Filter out duplicates
-      const apiIds = new Set(res.items.map(item => item.id));
-      const uniqueInjected = injectedReceipts.filter(item => !apiIds.has(item.id));
-      setItems([...uniqueInjected, ...res.items]);
+      setItems(res.items);
       setHasMore(res.hasMore);
       setPageIndex(1);
     } finally {
       setLoading(false);
     }
-  }, [filters, injectedReceipts]);
+  }, [filters]);
 
   useEffect(() => { loadFirst(); }, [loadFirst]);
 
@@ -170,7 +175,7 @@ const saveEdit = async () => {
     const body: any = {
       title: editForm.title.trim(),
       category: editForm.subtitle.trim() || 'Manual',
-      amount: Math.abs(Number(editForm.amount)),
+      amount: Number(editForm.amount),
     };
 
     const item = items.find(x => x.id === editingId);
@@ -184,9 +189,25 @@ const saveEdit = async () => {
 
     setItems(prev => prev.map(x => 
       x.id === editingId 
-        ? { ...x, title: updated.title, subtitle: updated.category, amount: updated.amount }
+        ? { 
+            ...x, 
+            title: updated.title || editForm.title, 
+            subtitle: updated.category || editForm.subtitle, 
+            amount: updated.amount !== undefined ? updated.amount : Number(editForm.amount)
+          }
         : x
     ));
+
+    // Update categories with the new/updated category
+    const newCategory = updated.category || editForm.subtitle;
+    if (newCategory && newCategory.trim()) {
+      setCategories(prev => {
+        if (!prev.includes(newCategory)) {
+          return [...prev, newCategory];
+        }
+        return prev;
+      });
+    }
 
     cancelEdit();
   } catch (err: any) {
@@ -220,22 +241,17 @@ const saveEdit = async () => {
     return () => io.disconnect();
   }, [loadMore]);
 
-  useEffect(() => {
-    if (!injectedReceipts || injectedReceipts.length === 0) return;
-    setItems(prev => [...injectedReceipts, ...prev]);
-  }, [injectedReceipts]);
-
   const onApply = () => {
     const f: any = {
       qTitle: local.qTitle?.trim() || undefined,
-      qSubtitle: local.qSubtitle?.trim() || undefined,
+      qSubtitle: local.selectedCategory || local.qSubtitle?.trim() || undefined,
       minAmount: local.minAmount ? Number(local.minAmount) : null,
       maxAmount: local.maxAmount ? Number(local.maxAmount) : null,
       dateAddedFrom: local.dateAddedFrom || null,
       dateAddedTo: local.dateAddedTo || null,
-      dateTxFrom: local.dateTxFrom || null,
-      dateTxTo: local.dateTxTo || null,
       onlyGroup: local.onlyGroup || 'any',
+      sortBy: local.sortBy,
+      sortOrder: local.sortOrder,
     };
     setItems([]); setPageIndex(0); setHasMore(true);
     setFilters(f);
@@ -249,9 +265,10 @@ const saveEdit = async () => {
       maxAmount: '',
       dateAddedFrom: '',
       dateAddedTo: '',
-      dateTxFrom: '',
-      dateTxTo: '',
       onlyGroup: 'any',
+      selectedCategory: '',
+      sortBy: 'created_at',
+      sortOrder: 'desc',
     });
     setFilters({}); setItems([]); setPageIndex(0); setHasMore(true);
   };
@@ -278,10 +295,21 @@ const saveEdit = async () => {
           <input placeholder="Search subtitle" value={local.qSubtitle} onChange={e=>setLocal(s=>({...s, qSubtitle: e.target.value}))} style={{ flex:'1 1 160px', padding:10, borderRadius:8, border:'1px solid #e4e4ee' }} />
           <input placeholder="Min amount" type="number" value={local.minAmount} onChange={e=>setLocal(s=>({...s, minAmount: e.target.value}))} style={{ width:120, padding:10, borderRadius:8, border:'1px solid #e4e4ee' }} />
           <input placeholder="Max amount" type="number" value={local.maxAmount} onChange={e=>setLocal(s=>({...s, maxAmount: e.target.value}))} style={{ width:120, padding:10, borderRadius:8, border:'1px solid #e4e4ee' }} />
-          <select value={local.onlyGroup} onChange={e=>setLocal(s=>({...s, onlyGroup: e.target.value}))} style={{ padding:8, borderRadius:8 }}>
-            <option value="any">All</option>
-            <option value="group">Group only</option>
-            <option value="independent">Independent</option>
+          <select value={local.selectedCategory} onChange={e=>setLocal(s=>({...s, selectedCategory: e.target.value}))} style={{ padding:8, borderRadius:8, minWidth:150 }}>
+            <option value="">All Categories</option>
+            {categories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+          <select value={local.sortBy} onChange={e=>setLocal(s=>({...s, sortBy: e.target.value}))} style={{ padding:8, borderRadius:8, minWidth:130 }}>
+            <option value="created_at">Sort by Date</option>
+            <option value="amount">Sort by Amount</option>
+            <option value="title">Sort by Title</option>
+            <option value="category">Sort by Category</option>
+          </select>
+          <select value={local.sortOrder} onChange={e=>setLocal(s=>({...s, sortOrder: e.target.value}))} style={{ padding:8, borderRadius:8, minWidth:110 }}>
+            <option value="desc">Descending</option>
+            <option value="asc">Ascending</option>
           </select>
           <button className="btn" onClick={onApply}>Apply</button>
           <button className="btn" style={{ background:'transparent', color:'var(--purple-1)', border:'1px solid rgba(0,0,0,0.08)' }} onClick={onClear}>Clear</button>
@@ -293,13 +321,6 @@ const saveEdit = async () => {
             <input type="date" value={local.dateAddedFrom} onChange={e=>setLocal(s=>({...s, dateAddedFrom: e.target.value}))} />
             <div style={{ fontSize:13, color:'var(--muted-dark)' }}>—</div>
             <input type="date" value={local.dateAddedTo} onChange={e=>setLocal(s=>({...s, dateAddedTo: e.target.value}))} />
-          </div>
-
-          <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-            <div style={{ fontSize:13, color:'var(--muted-dark)' }}>Transaction date:</div>
-            <input type="date" value={local.dateTxFrom} onChange={e=>setLocal(s=>({...s, dateTxFrom: e.target.value}))} />
-            <div style={{ fontSize:13, color:'var(--muted-dark)' }}>—</div>
-            <input type="date" value={local.dateTxTo} onChange={e=>setLocal(s=>({...s, dateTxTo: e.target.value}))} />
           </div>
         </div>
       </div>
@@ -351,12 +372,14 @@ const saveEdit = async () => {
                 </div>
 
                 <div style={{ flex:1 }}>
-                  <div style={{ fontWeight:800, color:'var(--text-dark)' }}>{it.title}</div>
-                  <div style={{ color:'var(--muted-dark)', fontSize:13 }}>{it.subtitle}</div>
+                  <div style={{ fontWeight:800, color:'#000', fontSize:16, marginBottom:6 }}>{it.title}</div>
+                  <div>
+                    <span style={{ padding:'4px 10px', borderRadius:4, background:'var(--purple-1)', color:'#fff', fontSize:12, fontWeight:600 }}>{it.subtitle}</span>
+                  </div>
                 </div>
 
                 <div style={{ textAlign:'right' }}>
-                  <div style={{ fontWeight:800, color: it.amount < 0 ? '#ff6b6b' : '#34d399', fontSize:16 }}>{it.amount < 0 ? '-' : '+'}${Math.abs(it.amount)}</div>
+                  <div style={{ fontWeight:800, color: '#ff6b6b', fontSize:16 }}>-€{it.amount}</div>
                   <div style={{ fontSize:12, color:'var(--muted-dark)' }}>{it.dateTransaction}</div>
                 </div>
               </div>

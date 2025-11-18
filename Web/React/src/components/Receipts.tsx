@@ -33,11 +33,11 @@ const Receipts: React.FC<{ navigate?: (to: string) => void }> = ({ navigate }) =
   // groupId when adding a group-linked receipt
   const [selectedGroup, setSelectedGroup] = useState<number | null>(null);
 
-  // injected receipts (appear immediately in view after creation)
-  const [injectedReceipts, setInjectedReceipts] = useState<ReceiptItem[]>([]);
+  // refreshKey: increment to trigger ReceiptsView reload
+  const [refreshKey, setRefreshKey] = useState<number>(0);
 
-  const addInjectedReceipt = (it: ReceiptItem) => {
-    setInjectedReceipts(prev => [it, ...prev]);
+  const triggerRefresh = () => {
+    setRefreshKey(prev => prev + 1);
   };
 
   return (
@@ -132,7 +132,7 @@ const Receipts: React.FC<{ navigate?: (to: string) => void }> = ({ navigate }) =
 
           <div style={{ marginTop:12 }}>
             <div className="receipts-grid-container">
-              <ReceiptsView injectedReceipts={injectedReceipts} />
+              <ReceiptsView key={refreshKey} />
             </div>
           </div>
         </div>
@@ -150,7 +150,7 @@ const Receipts: React.FC<{ navigate?: (to: string) => void }> = ({ navigate }) =
 
           <div style={{ marginTop:12 }}>
             <ReceiptsManual
-              onCreated={(it) => { addInjectedReceipt(it); setSubpage('view'); }}
+              onCreated={(it) => { triggerRefresh(); setSubpage('view'); }}
               groupId={selectedGroup}
             />
           </div>
@@ -168,7 +168,7 @@ const Receipts: React.FC<{ navigate?: (to: string) => void }> = ({ navigate }) =
           </div>
 
           <div style={{ marginTop:12 }}>
-            <ReceiptsUpload onUploaded={(it) => { addInjectedReceipt(it); setSubpage('view'); }} groupId={selectedGroup} />
+            <ReceiptsUpload onUploaded={(it) => { triggerRefresh(); setSubpage('view'); }} groupId={selectedGroup} />
           </div>
         </div>
       )}
@@ -184,7 +184,7 @@ const Receipts: React.FC<{ navigate?: (to: string) => void }> = ({ navigate }) =
           </div>
 
           <div style={{ marginTop:12 }}>
-            <ReceiptsCamera onUploaded={(it) => { addInjectedReceipt(it); setSubpage('view'); }} groupId={selectedGroup} />
+            <ReceiptsCamera onUploaded={(it) => { triggerRefresh(); setSubpage('view'); }} groupId={selectedGroup} />
           </div>
         </div>
       )}

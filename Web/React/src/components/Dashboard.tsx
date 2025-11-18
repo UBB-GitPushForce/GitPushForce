@@ -41,6 +41,7 @@ const Dashboard: React.FC = () => {
   >('home');
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [recentTx, setRecentTx] = useState<Tx[]>([]);
+  const [totalSpent, setTotalSpent] = useState<number>(0);
 
   // Fetch last 5 transactions from API (mock safe)
   const fetchRecentTransactions = async () => {
@@ -70,12 +71,35 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Fetch total spent amount
+  const fetchTotalSpent = async () => {
+    try {
+      const res = await apiClient.get('/expenses', {
+        params: {
+          offset: 0,
+          limit: 100,
+        },
+      });
+
+      const items = Array.isArray(res.data) ? res.data : [];
+      const total = items.reduce((sum: number, exp: any) => sum + (exp.amount || 0), 0);
+      setTotalSpent(total);
+    } catch (err) {
+      console.error('Failed to fetch total spent', err);
+      setTotalSpent(0);
+    }
+  };
+
   useEffect(() => {
     fetchRecentTransactions();
+    fetchTotalSpent();
   }, []);
 
   useEffect(() => {
-    if (screen === 'home') fetchRecentTransactions();
+    if (screen === 'home') {
+      fetchRecentTransactions();
+      fetchTotalSpent();
+    }
   }, [screen]);
 
   const handleLogout = async () => {
@@ -188,22 +212,10 @@ const Dashboard: React.FC = () => {
               <div className="bp-section-title">Budget Summary</div>
 
               <div className="bp-row" style={{ marginTop: 10 }}>
-                <div className="bp-box">
-                  <div className="label">Spent</div>
-                  <div className="value">$1,250</div>
+                <div className="bp-box" style={{ flex: 1 }}>
+                  <div className="label">Total Spent</div>
+                  <div className="value" style={{ color: '#ff6b6b' }}>-€{totalSpent.toFixed(2)}</div>
                 </div>
-                <div className="bp-box">
-                  <div className="label">Remaining</div>
-                  <div className="value">$750</div>
-                </div>
-              </div>
-
-              <div className="bp-total">
-                <div>
-                  <div style={{ color: 'var(--muted-dark)', fontSize: 13 }}>Total Budget</div>
-                  <div style={{ fontWeight: 800, fontSize: 18 }}>$2,000</div>
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--muted-dark)' }}>Monthly</div>
               </div>
 
               <div className="bp-section-title">Recent Transactions</div>
@@ -221,8 +233,8 @@ const Dashboard: React.FC = () => {
                         <div className="bp-tx-title">{tx.title}</div>
                         <div className="bp-tx-cat">{tx.cat}</div>
                       </div>
-                      <div className={`bp-amount ${tx.amount < 0 ? 'negative' : 'positive'}`}>
-                        {tx.amount < 0 ? '-' : '+'}${Math.abs(tx.amount)}
+                      <div className="bp-amount negative">
+                        -€{tx.amount}
                       </div>
                     </div>
                   ))
