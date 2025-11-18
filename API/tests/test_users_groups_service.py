@@ -6,7 +6,7 @@ from services.users_groups_service import UsersGroupsService
 
 class MockUsersGroupsRepository:
     """
-    Provides an in-memory mock repository for managing user–group relations.
+    Provides an in-memory mock repository for managing user group relations.
 
     Args:
         None
@@ -230,7 +230,6 @@ def test_get_user_groups(service, mock_repo):
     groups = service.get_user_groups(1)
     assert len(groups) == 2
     assert {g.id for g in groups} == {10, 20}
-
 
 def test_get_users_from_group(service, mock_repo):
     """
