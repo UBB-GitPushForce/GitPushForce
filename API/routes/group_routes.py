@@ -6,7 +6,7 @@ from repositories.group_repository import GroupRepository
 from repositories.users_groups_repository import UsersGroupsRepository
 from schemas.expense import Expense
 from schemas.group import Group, GroupCreate, GroupUpdate
-from schemas.user import UserBase, UserResponse
+from schemas.user import UserResponse
 from services.expense_service import ExpenseService
 from services.group_service import GroupService
 from services.user_service import UserService
