@@ -31,12 +31,40 @@ class UsersGroupsRepository(IUsersGroupsRepository):
         self.db = db
 
     def add_user_to_group(self, user_id: int, group_id: int) -> None:
+        """
+        Links a user to a group.
+
+        Args:
+            user_id (int) id of the user
+            group_id (int) id of the group
+
+        Returns:
+            None no return value
+
+        Exceptions:
+            None
+        """
+
         users_groups = UsersGroups(user_id=user_id, group_id=group_id)
         self.db.add(users_groups)
         self.db.commit()
         self.db.refresh(users_groups)
 
     def remove_user_from_group(self, user_id: int, group_id: int) -> None:
+        """
+        Removes a user from a group.
+
+        Args:
+            user_id (int) id of the user
+            group_id (int) id of the group
+
+        Returns:
+            None no return value
+
+        Exceptions:
+            None
+        """
+
         stmt = (
             delete(UsersGroups)
             .where(UsersGroups.user_id == user_id and UsersGroups.group_id == group_id)
@@ -45,6 +73,19 @@ class UsersGroupsRepository(IUsersGroupsRepository):
         self.db.commit()
 
     def get_groups_by_user(self, user_id: int) -> List[Group]:
+        """
+        Retrieves all groups linked to a user.
+
+        Args:
+            user_id (int) id of the user
+
+        Returns:
+            list[Group] groups the user belongs to
+
+        Exceptions:
+            None
+        """
+
         stmt = (
             select(Group)
             .join(UsersGroups, UsersGroups.group_id == Group.id)
@@ -53,6 +94,19 @@ class UsersGroupsRepository(IUsersGroupsRepository):
         return list(self.db.scalars(stmt))
 
     def get_users_by_group(self, group_id: int) -> List[User]:
+        """
+        Retrieves all users linked to a group.
+
+        Args:
+            group_id (int) id of the group
+
+        Returns:
+            list[User] users belonging to the group
+
+        Exceptions:
+            None
+        """
+
         stmt = (
             select(User)
             .join(UsersGroups, UsersGroups.user_id == User.id)

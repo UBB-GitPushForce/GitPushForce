@@ -31,17 +31,21 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.budgeting.android.data.model.Expense
 import com.example.budgeting.android.data.model.SortOption
+import com.example.budgeting.android.ui.viewmodels.ExpenseMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExpensesScreen(
     expenseViewModel: ExpenseViewModel = viewModel(
-        factory = ExpenseViewModelFactory (LocalContext.current)
+        factory = ExpenseViewModelFactory(LocalContext.current)
     )
 ) {
-    val expenses by expenseViewModel.filteredExpenses.collectAsState()
+    val expenses by expenseViewModel.expenses.collectAsState()
     val isLoading by expenseViewModel.isLoading.collectAsState()
     val error by expenseViewModel.error.collectAsState()
+    val mode by expenseViewModel.mode.collectAsState()
+
+    val filters by expenseViewModel.filters.collectAsState()
     val focusManager = LocalFocusManager.current
 
     var showDialog by remember { mutableStateOf(false) }
@@ -56,103 +60,94 @@ fun ExpensesScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("My Expenses") },
+                title = { Text("Expenses") }
             )
         },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
                     selectedExpense = null
-                    showDialog = true },
-                shape = RoundedCornerShape(16.dp)
+                    showDialog = true
+                },
+                shape = RoundedCornerShape(16.dp),
+                containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Expense")
             }
         }
     ) { padding ->
 
-        val filters by expenseViewModel.filters.collectAsState()
-
         Column(
             modifier = Modifier
                 .padding(padding)
-                .pointerInput(Unit){ detectTapGestures { focusManager.clearFocus() } }
+                .padding(horizontal = 16.dp)
+                .pointerInput(Unit) { detectTapGestures { focusManager.clearFocus() } }
         ) {
-            if (!isLoading) {
-                FilterBar(
-                    search = filters.search,
-                    onSearchChange = { expenseViewModel.setSearchQuery(it) },
-                    categories = expenseViewModel.categories.collectAsState().value,
-                    selectedCategory = filters.category,
-                    onCategorySelected = { expenseViewModel.setCategoryFilter(it) },
-                    sortOption = filters.sortOption,
-                    onSortSelected = { expenseViewModel.setSortOption(it) }
-                )
-            }
 
-            Box {
+            // -------------------------------------------------------------------
+            // MODE TOGGLE: PERSONAL | GROUP | ALL
+            // -------------------------------------------------------------------
+            ModeSelector(
+                selected = mode,
+                onSelected = { expenseViewModel.setMode(it) }
+            )
+
+            Spacer(Modifier.height(4.dp))
+
+            // -------------------------------------------------------------------
+            // FILTER BAR
+            // -------------------------------------------------------------------
+            FilterBar(
+                search = filters.search,
+                onSearchChange = { expenseViewModel.setSearchQuery(it) },
+
+                categories = expenseViewModel.categories.collectAsState().value,
+                selectedCategory = filters.category,
+                onCategorySelected = { expenseViewModel.setCategoryFilter(it) },
+
+                sortOption = filters.sortOption,
+                onSortSelected = { expenseViewModel.setSortOption(it) }
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            // -------------------------------------------------------------------
+            // CONTENT AREA
+            // -------------------------------------------------------------------
+            Box(modifier = Modifier.fillMaxSize()) {
+
                 when {
-                    isLoading -> Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(padding),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
+                    isLoading -> CenterLoading()
 
-                    error != null -> Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(padding),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(text = "Error: $error", color = MaterialTheme.colorScheme.error)
-                    }
+                    error != null -> CenterError(error!!)
 
-                    expenses.isEmpty() -> Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(padding),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("No bills yet")
-                    }
+                    expenses.isEmpty() -> EmptyState()
 
-                    else ->
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(MaterialTheme.colorScheme.background)
-                        ) {
-                            items(expenses) { expense ->
-                                ExpenseItem(
-                                    expense = expense,
-                                    modifier = Modifier.combinedClickable(
-                                        onClick = {
-                                            selectedExpense = expense
-                                            showDialog = true
-                                        },
-                                        onLongClick = {
-                                            selectedExpense = expense
-                                            showDeleteDialog = true
-                                        }
-                                    )
-                                )
-                            }
+                    else -> ExpensesList(
+                        expenses = expenses,
+                        onClick = { expense ->
+                            selectedExpense = expense
+                            showDialog = true
+                        },
+                        onLongClick = { expense ->
+                            selectedExpense = expense
+                            showDeleteDialog = true
                         }
+                    )
                 }
             }
         }
 
-
+        // ADD/EDIT DIALOG
         if (showDialog) {
             AddEditExpenseDialog(
                 expense = selectedExpense,
                 onDismiss = { showDialog = false },
                 onSave = { expense ->
-                    if (selectedExpense != null) expenseViewModel.updateExpense(expense.copy(id = selectedExpense!!.id))
-                    else expenseViewModel.addExpense(expense)
+                    if (selectedExpense != null)
+                        expenseViewModel.updateExpense(expense.copy(id = selectedExpense!!.id))
+                    else
+                        expenseViewModel.addExpense(expense)
 
                     selectedExpense = null
                     showDialog = false
@@ -160,117 +155,118 @@ fun ExpensesScreen(
             )
         }
 
+        // DELETE CONFIRMATION
         if (showDeleteDialog && selectedExpense != null) {
-            AlertDialog(
-                onDismissRequest = { showDeleteDialog = false },
-                title = { Text("Delete Expense") },
-                text = { Text("Are you sure you want to delete '${selectedExpense!!.title}'?") },
-                confirmButton = {
-                    TextButton(onClick = {
-                        expenseViewModel.deleteExpense(selectedExpense!!)
-                        showDeleteDialog = false
-                        selectedExpense = null
-                    }) {
-                        Text("Delete", color = MaterialTheme.colorScheme.error)
-                    }
+            DeleteExpenseDialog(
+                expense = selectedExpense!!,
+                onConfirm = {
+                    expenseViewModel.deleteExpense(selectedExpense!!)
+                    showDeleteDialog = false
+                    selectedExpense = null
                 },
-                dismissButton = {
-                    TextButton(onClick = {
-                        showDeleteDialog = false
-                        selectedExpense = null
-                    }) {
-                        Text("Cancel")
-                    }
+                onDismiss = {
+                    showDeleteDialog = false
+                    selectedExpense = null
                 }
             )
         }
-
     }
 }
+
 
 @Composable
 fun FilterBar(
     search: String,
     onSearchChange: (String) -> Unit,
-
-    // Categories
     categories: List<String>,
     selectedCategory: String,
     onCategorySelected: (String) -> Unit,
-
-    // Sorting
     sortOption: SortOption,
     onSortSelected: (SortOption) -> Unit
 ) {
-    var categoryMenuOpen by remember { mutableStateOf(false) }
-    var sortMenuOpen by remember { mutableStateOf(false) }
+    var showCategoryMenu by remember { mutableStateOf(false) }
+    var showSortMenu by remember { mutableStateOf(false) }
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+        Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
 
-        // SEARCH BAR
         OutlinedTextField(
             value = search,
             onValueChange = onSearchChange,
             label = { Text("Search") },
-            modifier = Modifier.weight(1f),
-            singleLine = true
+            singleLine = true,
+            modifier = Modifier.weight(1f)
         )
 
-        Spacer(Modifier.width(10.dp))
+        Spacer(Modifier.width(8.dp))
 
-        // CATEGORY ICON (Highlights when active)
+        // Category button
         Box {
-            IconButton(onClick = { categoryMenuOpen = true }) {
+            IconButton(onClick = { showCategoryMenu = true }) {
                 Icon(
-                    imageVector = Icons.Default.Category,
+                    Icons.Default.Category,
+                    contentDescription = "Category",
                     tint =
                         if (selectedCategory != "All")
                             MaterialTheme.colorScheme.primary
                         else
-                            MaterialTheme.colorScheme.onSurfaceVariant,
-                    contentDescription = "Select Category"
+                            MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-
             DropdownMenu(
-                expanded = categoryMenuOpen,
-                onDismissRequest = { categoryMenuOpen = false }
+                expanded = showCategoryMenu,
+                onDismissRequest = { showCategoryMenu = false }
             ) {
                 CategoryMenu(
                     categories = categories,
                     selected = selectedCategory,
                     onSelected = {
                         onCategorySelected(it)
-                        categoryMenuOpen = false
+                        showCategoryMenu = false
                     }
                 )
             }
         }
 
-        // SORT ICON
+        // Sort button
         Box {
-            IconButton(onClick = { sortMenuOpen = true }) {
+            IconButton(onClick = { showSortMenu = true }) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Sort,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    Icons.AutoMirrored.Filled.Sort,
                     contentDescription = "Sort"
                 )
             }
-
             DropdownMenu(
-                expanded = sortMenuOpen,
-                onDismissRequest = { sortMenuOpen = false }
+                expanded = showSortMenu,
+                onDismissRequest = { showSortMenu = false }
             ) {
                 SortMenu { option ->
                     onSortSelected(option)
-                    sortMenuOpen = false
+                    showSortMenu = false
                 }
             }
+        }
+    }
+}
+
+
+@Composable
+fun ModeSelector(
+    selected: ExpenseMode,
+    onSelected: (ExpenseMode) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+        ExpenseMode.entries.forEach { mode ->
+            FilterChip(
+                selected = selected == mode,
+                onClick = { onSelected(mode) },
+                label = { Text(mode.name.lowercase().replaceFirstChar { it.uppercase() }) }
+            )
         }
     }
 }
@@ -281,9 +277,7 @@ fun CategoryMenu(
     selected: String,
     onSelected: (String) -> Unit
 ) {
-    val allCategories = listOf("All") + categories
-
-    allCategories.forEach { category ->
+    categories.forEach { category ->
         DropdownMenuItem(
             text = {
                 Text(
@@ -303,7 +297,7 @@ fun CategoryMenu(
 fun SortMenu(onSelected: (SortOption) -> Unit) {
     SortOption.entries.forEach { option ->
         DropdownMenuItem(
-            text = { Text(option.name.replace("_"," ")) },
+            text = { Text(option.label.replace("_", " ")) },
             onClick = { onSelected(option) }
         )
     }
@@ -367,3 +361,76 @@ fun AddEditExpenseDialog(
         }
     )
 }
+
+@Composable
+fun CenterLoading() {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator()
+    }
+}
+
+@Composable
+fun CenterError(message: String) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("Error: $message", color = MaterialTheme.colorScheme.error)
+    }
+}
+
+@Composable
+fun EmptyState() {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(
+            "No expenses found",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+fun ExpensesList(
+    expenses: List<Expense>,
+    onClick: (Expense) -> Unit,
+    onLongClick: (Expense) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        items(expenses) { expense ->
+            ExpenseItem(
+                expense = expense,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp)
+                    .combinedClickable(
+                        onClick = { onClick(expense) },
+                        onLongClick = { onLongClick(expense) }
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+fun DeleteExpenseDialog(
+    expense: Expense,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Delete Expense") },
+        text = { Text("Are you sure you want to delete '${expense.title}'?") },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text("Delete", color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+

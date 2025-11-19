@@ -73,16 +73,41 @@ class ExpenseRepository(IExpenseRepository):
         self.db = db
 
     def add(self, expense: Expense) -> Expense:
+        """
+        Saves a new expense.
+
+        Args:
+            expense (Expense) expense to add
+
+        Returns:
+            Expense saved expense object
+
+        Exceptions:
+            None
+        """
         self.db.add(expense)
         self.db.commit()
         self.db.refresh(expense)
         return expense
 
     def get_by_id(self, expense_id: int) -> Optional[Expense]:
+        """
+        Retrieves one expense by id.
+
+        Args:
+            expense_id (int) id of the expense
+
+        Returns:
+            Expense or None matching expense or no result
+
+        Exceptions:
+            None
+        """
         stmt = select(Expense).where(Expense.id == expense_id)
         return self.db.scalars(stmt).first()
 
     def get_all(
+
         self, 
         offset: int, 
         limit: int, 
@@ -94,6 +119,26 @@ class ExpenseRepository(IExpenseRepository):
         date_to: Optional[datetime] = None,
         category: Optional[str] = None
     ) -> List[Expense]:
+        """
+        Retrieves expenses with pagination sorting and filtering.
+
+        Args:
+            offset (int) items to skip
+            limit (int) maximum items to return
+            sort_by (str) field used for sorting
+            order (str) sorting direction
+            min_price (float) filter for minimum amount
+            max_price (float) filter for maximum amount
+            date_from (datetime) filter for start date
+            date_to (datetime) filter for end date
+            category (str) filter for category field
+
+        Returns:
+            list[Expense] filtered and sorted expenses
+
+        Exceptions:
+            None
+        """
         sort_column = getattr(Expense, sort_by, Expense.created_at)
         sort_order = desc(sort_column) if order.lower() == "desc" else asc(sort_column)
         
@@ -132,6 +177,28 @@ class ExpenseRepository(IExpenseRepository):
         category: Optional[str] = None,
         group_ids: Optional[List[int]] = None
     ) -> List[Expense]:
+        """
+        Retrieves expenses for a user with optional group and filter rules.
+
+        Args:
+            user_id (int) id of the user
+            offset (int) items to skip
+            limit (int) maximum items to return
+            sort_by (str) field used for sorting
+            order (str) sorting direction
+            min_price (float) filter for minimum amount
+            max_price (float) filter for maximum amount
+            date_from (datetime) filter for start date
+            date_to (datetime) filter for end date
+            category (str) filter for category field
+            group_ids (list[int]) allowed group ids
+
+        Returns:
+            list[Expense] user related expenses
+
+        Exceptions:
+            None
+        """
         sort_column = getattr(Expense, sort_by, Expense.created_at)
         sort_order = desc(sort_column) if order.lower() == "desc" else asc(sort_column)
         
@@ -191,6 +258,28 @@ class ExpenseRepository(IExpenseRepository):
         date_to: Optional[datetime] = None,
         category: Optional[str] = None
     ) -> List[Expense]: # MODIFIED
+        """
+        Retrieves expenses for a group with pagination and filters.
+
+        Args:
+            group_id (int) id of the group
+            offset (int) items to skip
+            limit (int) maximum items to return
+            sort_by (str) field used for sorting
+            order (str) sorting direction
+            min_price (float) filter for minimum amount
+            max_price (float) filter for maximum amount
+            date_from (datetime) filter for start date
+            date_to (datetime) filter for end date
+            category (str) filter for category field
+
+        Returns:
+            list[Expense] filtered group expenses
+
+        Exceptions:
+            None
+        """
+
         sort_column = getattr(Expense, sort_by, Expense.created_at)
         sort_order = desc(sort_column) if order.lower() == "desc" else asc(sort_column)
         
@@ -218,6 +307,19 @@ class ExpenseRepository(IExpenseRepository):
         return list(self.db.scalars(stmt))
 
     def update(self, expense_id: int, fields: dict) -> None:
+        """
+        Updates specific fields of an expense.
+
+        Args:
+            expense_id (int) id of the expense
+            fields (dict) key value fields to update
+
+        Returns:
+            None no return value
+
+        Exceptions:
+            KeyError raised when a field does not exist on the model
+        """
         expense = self.get_by_id(expense_id)
         for key, value in fields.items():
             if hasattr(expense, key):
@@ -226,6 +328,18 @@ class ExpenseRepository(IExpenseRepository):
         self.db.refresh(expense)
 
     def delete(self, expense_id: int) -> None:
+        """
+        Removes an expense by id.
+
+        Args:
+            expense_id (int) id of the expense
+
+        Returns:
+            None no return value
+
+        Exceptions:
+            None
+        """
         expense = self.get_by_id(expense_id)
         self.db.delete(expense)
         self.db.commit()

@@ -9,7 +9,7 @@ const ReceiptsManual: React.FC<{ onCreated: (it: ReceiptItem) => void; groupId?:
   const [title, setTitle] = useState('');
   const { user } = useAuth();
   const [subtitle, setSubtitle] = useState('');
-  const [amount, setAmount] = useState<number | ''>('');
+  const [amount, setAmount] = useState<string>('');
   const [dateTx, setDateTx] = useState<string>(new Date().toISOString().slice(0,10));
 
   const mockGroups = [
@@ -82,7 +82,7 @@ const ReceiptsManual: React.FC<{ onCreated: (it: ReceiptItem) => void; groupId?:
       <input type="text" value={subtitle} onChange={e=>setSubtitle(e.target.value)} placeholder="E.g. Food" />
 
       <label>Amount</label>
-      <input type="number" value={amount as any} onChange={e=>setAmount(e.target.value === '' ? '' : Number(e.target.value))} placeholder="-50" required />
+      <input type="number" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="50" required step="any" />
 
       <label>Transaction date</label>
       <input type="date" value={dateTx} onChange={e=>setDateTx(e.target.value)} />

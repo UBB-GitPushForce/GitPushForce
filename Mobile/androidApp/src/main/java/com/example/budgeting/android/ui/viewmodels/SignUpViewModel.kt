@@ -95,4 +95,66 @@ class SignUpViewModel(context: Context) : ViewModel() {
             )
         }
     }
+
+    /**
+     * Validates a single field and updates the error state immediately.
+     */
+    fun validateField(fieldName: String, value: String): Boolean {
+        val errors = mutableMapOf<String, String>()
+        
+        when (fieldName) {
+            "firstName" -> {
+                if (value.isBlank()) {
+                    errors["firstName"] = "First name is required"
+                } else if (value.length < 2) {
+                    errors["firstName"] = "First name must be at least 2 characters"
+                }
+            }
+            "lastName" -> {
+                if (value.isBlank()) {
+                    errors["lastName"] = "Last name is required"
+                } else if (value.length < 2) {
+                    errors["lastName"] = "Last name must be at least 2 characters"
+                }
+            }
+            "email" -> {
+                if (value.isBlank()) {
+                    errors["email"] = "Email is required"
+                } else if (!RegistrationErrorHandler.isValidEmail(value)) {
+                    errors["email"] = "Please enter a valid email address"
+                }
+            }
+            "phoneNumber" -> {
+                if (value.isBlank()) {
+                    errors["phoneNumber"] = "Phone number is required"
+                } else if (!RegistrationErrorHandler.isValidPhoneNumber(value)) {
+                    errors["phoneNumber"] = "Please enter a valid phone number"
+                }
+            }
+            "password" -> {
+                if (value.isBlank()) {
+                    errors["password"] = "Password is required"
+                } else if (value.length < 6) {
+                    errors["password"] = "Password must be at least 6 characters"
+                }
+            }
+        }
+
+        if (errors.isNotEmpty()) {
+            _uiState.update { state ->
+                val updatedFieldErrors = state.fieldErrors.toMutableMap().apply {
+                    putAll(errors)
+                }
+                state.copy(
+                    error = "Please fix the error below",
+                    fieldErrors = updatedFieldErrors
+                )
+            }
+            return false
+        } else {
+            // Clear error for this field if validation passes
+            clearFieldError(fieldName)
+            return true
+        }
+    }
 }

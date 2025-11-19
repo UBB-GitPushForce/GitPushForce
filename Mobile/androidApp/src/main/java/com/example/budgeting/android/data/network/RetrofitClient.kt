@@ -1,5 +1,6 @@
 package com.example.budgeting.android.data.network
 
+import android.util.Log
 import com.example.budgeting.android.BuildConfig
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -19,7 +20,7 @@ object RetrofitClient {
     private val moshiConverterFactory = MoshiConverterFactory.create(moshi)
         .asLenient()
 
-    val authInstance: AuthApiService by lazy {
+    val authInstance: AuthApiService = run {
         val client = OkHttpClient.Builder()
             .addInterceptor(TokenAuthInterceptor())
             .build()
@@ -33,7 +34,7 @@ object RetrofitClient {
         retrofit.create(AuthApiService::class.java)
     }
 
-    val expenseInstance: ExpenseApiService by lazy {
+    val expenseInstance: ExpenseApiService = run {
         val client = OkHttpClient.Builder()
             .addInterceptor(TokenAuthInterceptor())
             .build()
@@ -47,7 +48,7 @@ object RetrofitClient {
         retrofit.create(ExpenseApiService::class.java)
     }
 
-    val groupInstance: GroupApiService by lazy {
+    val groupInstance: GroupApiService = run {
         val client = OkHttpClient.Builder()
             .addInterceptor(TokenAuthInterceptor())
             .build()

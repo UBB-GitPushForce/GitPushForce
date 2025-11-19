@@ -1,29 +1,32 @@
 package com.example.budgeting.android.ui.viewmodels
 
 import android.content.Context
-import android.util.Log
-import com.example.budgeting.android.data.model.Expense
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.budgeting.android.data.auth.TokenHolder
 import com.example.budgeting.android.data.local.TokenDataStore
+import com.example.budgeting.android.data.model.Expense
 import com.example.budgeting.android.data.model.ExpenseFilters
 import com.example.budgeting.android.data.model.SortOption
 import com.example.budgeting.android.data.network.RetrofitClient
 import com.example.budgeting.android.data.repository.ExpenseRepository
+import com.example.budgeting.android.data.repository.GroupRepository
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+enum class ExpenseMode {
+    PERSONAL,
+    ALL,
+    GROUP
+}
+
 class ExpenseViewModel(context: Context) : ViewModel() {
-    private val tokenDataStore = TokenDataStore(context.applicationContext)
-    private val expenseRepository = ExpenseRepository(RetrofitClient.expenseInstance, tokenDataStore)
+
+    private val tokenStore = TokenDataStore(context)
+    private val repository = ExpenseRepository(RetrofitClient.expenseInstance, tokenStore)
+    private val groupRepository = GroupRepository(RetrofitClient.groupInstance, RetrofitClient.expenseInstance, tokenStore)
+
     private val _expenses = MutableStateFlow<List<Expense>>(emptyList())
     val expenses: StateFlow<List<Expense>> = _expenses.asStateFlow()
 
@@ -33,83 +36,162 @@ class ExpenseViewModel(context: Context) : ViewModel() {
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
-    private val _filters = MutableStateFlow(ExpenseFilters(category = "All"))
+    private val _filters = MutableStateFlow(ExpenseFilters())
     val filters: StateFlow<ExpenseFilters> = _filters.asStateFlow()
 
-    val categories = _expenses.map { list ->
-        list.map { it.category }
-            .distinct()
-            .sorted()
-    }.stateIn(
-        viewModelScope,
-        SharingStarted.Eagerly,
-        emptyList()
-    )
+    private val _mode = MutableStateFlow(ExpenseMode.ALL)
+    val mode: StateFlow<ExpenseMode> = _mode.asStateFlow()
 
-    val filteredExpenses: StateFlow<List<Expense>> =
-        combine(_expenses, _filters) { expenses, filters ->
+    private val _groupId = MutableStateFlow<Int?>(null)
+    val groupId: StateFlow<Int?> = _groupId.asStateFlow()
 
-            var result = expenses
+    private val _groupIds = MutableStateFlow<List<Int>>(emptyList())
+    val groupIds: StateFlow<List<Int>> = _groupIds.asStateFlow()
 
-            // Search filter
-            if (filters.search.isNotBlank()) {
-                result = result.filter {
-                    it.title.contains(filters.search, ignoreCase = true)
-                }
-            }
+    private val _categories = MutableStateFlow<List<String>>(emptyList())
+    val categories: StateFlow<List<String>> = _categories
 
-            // Category filter
-            if (filters.category != "All") {
-                result = result.filter { it.category == filters.category }
-            }
+    init {
+        loadUserGroups()
+    }
 
-            // Sorting
-            result = when (filters.sortOption) {
-                SortOption.AMOUNT_ASC -> result.sortedBy { it.amount }
-                SortOption.AMOUNT_DESC -> result.sortedByDescending { it.amount }
-                SortOption.TITLE_ASC -> result.sortedBy { it.title }
-                SortOption.TITLE_DESC -> result.sortedByDescending { it.title }
-            }
-
-            result
-        }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
-
-
+    /** ----------------------------------------------------------
+     *  MAIN: Load expenses using backend filtering
+     * ---------------------------------------------------------- */
     fun loadExpenses() {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
-            try {
-                val response = expenseRepository.getExpenses()
 
-                if (response.isSuccessful && response.body() != null) {
-                    _expenses.value = response.body()!!
-                } else {
-                    _error.value = "Error: ${response.code()} - ${response.message()}"
+            try {
+                _categories.value = listOf("All")
+                val f = _filters.value
+                val data = when (_mode.value) {
+
+                    ExpenseMode.PERSONAL -> {
+                        val response = repository.getPersonalExpenses(
+                            search = f.search,
+                            category = if (f.category == "All" || f.category.isBlank()) null else f.category,
+                            sortBy = f.sortOption.sortBy,
+                            order = f.sortOption.order
+                        )
+                        val filtered = response.filter { it.title.contains(f.search, ignoreCase = true) }
+                        filtered
+                    }
+
+                    ExpenseMode.ALL -> {
+                        val response = repository.getAllExpenses(
+                            category = if (f.category == "All" || f.category.isBlank()) null else f.category,
+                            sortBy = f.sortOption.sortBy,
+                            order = f.sortOption.order
+                        )
+                        val filtered = response.filter { it.title.contains(f.search, ignoreCase = true) }
+                        filtered
+                    }
+
+                    ExpenseMode.GROUP -> {
+                        // fetch expenses from all groups the user is part of
+                        val allExpenses = mutableListOf<Expense>()
+                        _groupIds.value.forEach { groupId ->
+                            val response = repository.getGroupExpenses(
+                                groupId = groupId,
+                                category = if (f.category == "All" || f.category.isBlank()) null else f.category,
+                                sortBy = f.sortOption.sortBy,
+                                order = f.sortOption.order
+                            )
+                            val filtered = response.filter { it.title.contains(f.search, ignoreCase = true) }
+                            allExpenses.addAll(filtered)
+                        }
+                        allExpenses
+                    }
                 }
+
+                _expenses.value = data
+                updateCategories(data)
             } catch (e: Exception) {
-                _error.value = e.message
+                _error.value = e.localizedMessage
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
-    fun addExpense(expense: Expense) {
-        _isLoading.value = true
-        _error.value = null
+    private fun updateCategories(expenses: List<Expense>) {
+        val newCategories = expenses
+            .map { it.category }
+            .filter { it.isNotBlank() }
+            .distinct()
+            .sorted()
+
+        // Merge with existing categories, keep All at top
+        val merged = listOf("All") + (_categories.value - "All" + newCategories).distinct()
+        _categories.value = merged
+    }
+
+    /** ----------------------------------------------------------
+     *  MODES
+     * ---------------------------------------------------------- */
+    fun setMode(newMode: ExpenseMode) {
+        _mode.value = newMode
+        loadExpenses()
+    }
+
+    /** ----------------------------------------------------------
+     *  GROUPS
+     * ---------------------------------------------------------- */
+    private fun loadUserGroups() {
         viewModelScope.launch {
             try {
-                expense.user_id = tokenDataStore.getUserId()
-                val response = expenseRepository.addExpense(expense)
-
-                if (response.isSuccessful) {
-                    _expenses.value += response.body()!!
+                val userId = tokenStore.getUserId()
+                val response = groupRepository.getGroupsByUser(userId!!)
+                if (response.isSuccessful && response.body() != null) {
+                    _groupIds.value = response.body()!!.map { it.id!! } // store all group IDs
                 } else {
-                    _error.value = "Error: ${response.code()} - ${response.message()}"
+                    _error.value = "Error loading user groups"
                 }
             } catch (e: Exception) {
-                _error.value = e.message
+                _error.value = e.localizedMessage
+            }
+        }
+    }
+
+    fun setGroup(groupId: Int) {
+        _groupId.value = groupId
+        _mode.value = ExpenseMode.GROUP
+        loadExpenses()
+    }
+
+    /** ----------------------------------------------------------
+     *  FILTERS
+     * ---------------------------------------------------------- */
+    fun setSearchQuery(query: String) {
+        _filters.value = _filters.value.copy(search = query)
+        loadExpenses()
+    }
+
+    fun setCategoryFilter(category: String) {
+        _filters.value = _filters.value.copy(category = category)
+        loadExpenses()
+    }
+
+    fun setSortOption(option: SortOption) {
+        _filters.value = _filters.value.copy(sortOption = option)
+        loadExpenses()
+    }
+
+    /** ----------------------------------------------------------
+     *  CRUD
+     * ---------------------------------------------------------- */
+    fun addExpense(expense: Expense) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _error.value = null
+            try {
+                expense.user_id = tokenStore.getUserId()
+                repository.addExpense(expense)
+                loadExpenses() // refresh
+            } catch (e: Exception) {
+                _error.value = e.localizedMessage
             } finally {
                 _isLoading.value = false
             }
@@ -117,19 +199,15 @@ class ExpenseViewModel(context: Context) : ViewModel() {
     }
 
     fun updateExpense(expense: Expense) {
-        _isLoading.value = true
-        _error.value = null
         viewModelScope.launch {
+            _isLoading.value = true
+            _error.value = null
             try {
-                val response = expenseRepository.updateExpense(id = expense.id!!, expense = expense)
-
-                if (response.isSuccessful) {
-                    _expenses.value = _expenses.value.map { if (it.id == expense.id) expense else it }
-                } else {
-                    _error.value = "Error: ${response.code()} - ${response.message()}"
-                }
+                expense.user_id = tokenStore.getUserId()
+                repository.updateExpense(expense.id!!, expense)
+                loadExpenses()
             } catch (e: Exception) {
-                _error.value = e.message
+                _error.value = e.localizedMessage
             } finally {
                 _isLoading.value = false
             }
@@ -137,35 +215,17 @@ class ExpenseViewModel(context: Context) : ViewModel() {
     }
 
     fun deleteExpense(expense: Expense) {
-        _isLoading.value = true
-        _error.value = null
         viewModelScope.launch {
+            _isLoading.value = true
+            _error.value = null
             try {
-                val response = expenseRepository.deleteExpense(expense.id!!)
-
-                if (response.isSuccessful) {
-                    _expenses.value -= expense
-                } else {
-                    _error.value = "Error: ${response.code()} - ${response.message()}"
-                }
+                repository.deleteExpense(expense.id!!)
+                loadExpenses()
             } catch (e: Exception) {
-                _error.value = e.message
+                _error.value = e.localizedMessage
             } finally {
                 _isLoading.value = false
             }
         }
     }
-
-    fun setSearchQuery(query: String) {
-        _filters.value = _filters.value.copy(search = query)
-    }
-
-    fun setCategoryFilter(category: String) {
-        _filters.value = _filters.value.copy(category = category)
-    }
-
-    fun setSortOption(option: SortOption) {
-        _filters.value = _filters.value.copy(sortOption = option)
-    }
-
 }

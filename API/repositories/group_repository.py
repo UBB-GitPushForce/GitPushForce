@@ -33,24 +33,91 @@ class GroupRepository(IGroupRepository):
         self.db = db
 
     def add(self, group: Group) -> Group:
+        """
+        Creates a new group.
+
+        Args:
+            group (Group) group to add
+
+        Returns:
+            Group saved group object
+
+        Exceptions:
+            None
+        """
+        
         self.db.add(group)
         self.db.commit()
         self.db.refresh(group)
         return group
 
     def get_by_id(self, group_id: int) -> Optional[Group]:
+        """
+        Retrieves one group by id.
+
+        Args:
+            group_id (int) id of the group
+
+        Returns:
+            Group or None matching group or no result
+
+        Exceptions:
+            None
+        """
+        
         stmt = select(Group).where(Group.id == group_id)
         return self.db.scalars(stmt).first()
 
     def get_by_name(self, name: str) -> Optional[Group]:
+        """
+        Retrieves one group by name.
+
+        Args:
+            name (str) name of the group
+
+        Returns:
+            Group or None matching group or no result
+
+        Exceptions:
+            None
+        """
+        
         stmt = select(Group).where(Group.name == name)
         return self.db.scalars(stmt).first()
 
     def get_all(self, offset: int = 0, limit: int = 100) -> List[Group]:
+        """
+        Retrieves all groups with pagination.
+
+        Args:
+            offset (int) items to skip
+            limit (int) maximum items to return
+
+        Returns:
+            list[Group] paginated groups
+
+        Exceptions:
+            None
+        """
+
         stmt = select(Group).order_by(Group.id).offset(offset).limit(limit)
         return list(self.db.scalars(stmt))
 
     def update(self, group_id: int, fields: dict) -> None:
+        """
+        Updates specific fields of a group.
+
+        Args:
+            group_id (int) id of the group
+            fields (dict) key value fields to update
+
+        Returns:
+            Group updated group object
+
+        Exceptions:
+            KeyError raised when a field does not exist on the model
+        """
+
         group = self.get_by_id(group_id)
         for key, value in fields.items():
             if hasattr(group, key):
@@ -60,6 +127,19 @@ class GroupRepository(IGroupRepository):
         return group
 
     def delete(self, group_id: int) -> None:
+        """
+        Removes a group by id.
+
+        Args:
+            group_id (int) id of the group
+
+        Returns:
+            None no return value
+
+        Exceptions:
+            None
+        """
+
         group = self.get_by_id(group_id)
         self.db.delete(group)
         self.db.commit()
