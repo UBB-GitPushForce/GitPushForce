@@ -28,6 +28,7 @@ class Group(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
     description = Column(String(255))
+    invitation_code = Column(String(255), nullable=False, unique=True)  # <-- ADDED
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     users = relationship(

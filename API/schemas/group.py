@@ -39,6 +39,7 @@ class GroupCreate(GroupBase):
     Exceptions:
         None
     """
+    # invitation_code is NOT included; backend generates it
     pass
 
 
@@ -67,6 +68,7 @@ class Group(GroupBase):
     Args:
         id (int) unique identifier of the group
         created_at (datetime) timestamp of group creation
+        invitation_code (str) unique invitation code for joining the group
 
     Returns:
         Group API response model
@@ -76,3 +78,4 @@ class Group(GroupBase):
     """
     id: int
     created_at: datetime
+    invitation_code: str  
