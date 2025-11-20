@@ -4,7 +4,7 @@ from typing import List
 from models.group import Group
 from models.user import User
 from models.users_groups import UsersGroups
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, func
 from sqlalchemy.orm import Session
 
 
@@ -18,6 +18,8 @@ class IUsersGroupsRepository(ABC):
     def get_groups_by_user(self, user_id: int) -> List[Group]: ...
     @abstractmethod
     def get_users_by_group(self, group_id: int) -> List[User]: ...
+    @abstractmethod
+    def get_nr_of_users_from_group(self, group_id: int) -> int: ...
 
     # UPDATE (No, wtf do you want to update??)
 
@@ -113,3 +115,11 @@ class UsersGroupsRepository(IUsersGroupsRepository):
             .where(UsersGroups.group_id == group_id)
         )
         return list(self.db.scalars(stmt))
+
+    def get_nr_of_users_from_group(self, group_id: int) -> int:
+        stmt = (
+            select(func.count(UsersGroups.user_id))
+            .where(UsersGroups.group_id == group_id)
+        )
+
+        return self.db.scalar(stmt)

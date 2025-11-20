@@ -30,6 +30,8 @@ class IUsersGroupsService(ABC):
     def get_users_from_group(self, group_id: int) -> List[User]: ...
     @abstractmethod
     def get_user_groups(self, user_id: int) -> List[Group]: ...
+    @abstractmethod
+    def get_nr_of_users_from_group(self, group_id: int) -> int: ...
 
     # DELETE
     @abstractmethod
@@ -102,6 +104,9 @@ class UsersGroupsService(IUsersGroupsService):
         """
         self.logger.debug(f"Getting groups for user {user_id}")
         return self.repository.get_groups_by_user(user_id)
+
+    def get_nr_of_users_from_group(self, group_id: int) -> int:
+        return self.repository.get_nr_of_users_from_group(group_id)
 
     def delete_user_from_group(self, user_id: int, group_id: int) -> None:
         """

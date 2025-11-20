@@ -285,6 +285,17 @@ def get_users_by_group(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
+@router.get("/{group_id}/users/nr", response_model=int)
+def get_nr_of_users_from_group(
+    group_id: int,
+    service: UsersGroupsService = Depends(get_users_groups_service)
+):
+    try:
+        return service.get_nr_of_users_from_group(group_id)
+    except NoResultFound as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
 @router.get("/{group_id}/expenses", response_model=List[Expense])
 def get_expenses_by_group(
         group_id: int,
