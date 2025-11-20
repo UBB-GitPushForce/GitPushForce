@@ -17,6 +17,8 @@ class IGroupRepository(ABC):
     @abstractmethod
     def get_by_name(self, name: str) -> Optional[Group]: ...
     @abstractmethod
+    def get_by_invitation_code(self, code: str) -> Optional[Group]: ...  # <-- ADDED
+    @abstractmethod
     def get_all(self, offset: int = 0, limit: int = 100) -> List[Group]: ...
 
     # UPDATE
@@ -45,7 +47,6 @@ class GroupRepository(IGroupRepository):
         Exceptions:
             None
         """
-        
         self.db.add(group)
         self.db.commit()
         self.db.refresh(group)
@@ -64,7 +65,6 @@ class GroupRepository(IGroupRepository):
         Exceptions:
             None
         """
-        
         stmt = select(Group).where(Group.id == group_id)
         return self.db.scalars(stmt).first()
 
@@ -81,8 +81,23 @@ class GroupRepository(IGroupRepository):
         Exceptions:
             None
         """
-        
         stmt = select(Group).where(Group.name == name)
+        return self.db.scalars(stmt).first()
+
+    def get_by_invitation_code(self, code: str) -> Optional[Group]:
+        """
+        Retrieves one group by invitation code.
+
+        Args:
+            code (str) unique invitation code
+
+        Returns:
+            Group or None matching group
+
+        Exceptions:
+            None
+        """
+        stmt = select(Group).where(Group.invitation_code == code)
         return self.db.scalars(stmt).first()
 
     def get_all(self, offset: int = 0, limit: int = 100) -> List[Group]:
@@ -99,11 +114,10 @@ class GroupRepository(IGroupRepository):
         Exceptions:
             None
         """
-
         stmt = select(Group).order_by(Group.id).offset(offset).limit(limit)
         return list(self.db.scalars(stmt))
 
-    def update(self, group_id: int, fields: dict) -> None:
+    def update(self, group_id: int, fields: dict) -> Group:
         """
         Updates specific fields of a group.
 
@@ -117,7 +131,6 @@ class GroupRepository(IGroupRepository):
         Exceptions:
             KeyError raised when a field does not exist on the model
         """
-
         group = self.get_by_id(group_id)
         for key, value in fields.items():
             if hasattr(group, key):
@@ -139,7 +152,6 @@ class GroupRepository(IGroupRepository):
         Exceptions:
             None
         """
-
         group = self.get_by_id(group_id)
         self.db.delete(group)
         self.db.commit()

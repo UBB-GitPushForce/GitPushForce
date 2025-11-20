@@ -5,6 +5,7 @@ from models.group import Group
 from repositories.group_repository import IGroupRepository
 from schemas.group import GroupCreate, GroupUpdate
 from sqlalchemy.exc import NoResultFound
+from utils.helpers.generate_invitation_code import generate_invitation_code
 
 
 class IGroupService(ABC):
@@ -77,7 +78,18 @@ class GroupService(IGroupService):
         Exceptions:
             None
         """
-        group = Group(name=data.name, description=data.description)
+
+        # Generate unique 6-character invitation code
+        code = generate_invitation_code()
+        while self.repository.get_by_invitation_code(code):
+            code = generate_invitation_code()
+
+        group = Group(
+            name=data.name,
+            description=data.description,
+            invitation_code=code
+        )
+
         return self.repository.add(group)
 
     def get_group_by_id(self, group_id: int) -> Group:

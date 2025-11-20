@@ -6,6 +6,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    Text,
     func,
 )
 from sqlalchemy.orm import relationship
@@ -25,6 +26,7 @@ class Expense(Base):
         title (str) short text for the expense name
         category (str) text label that groups similar expenses
         amount (float) numeric value of the expense
+        description (str) long optional text describing the expense
         created_at (datetime) creation timestamp
         user (User) related user object
         group (Group) related group object
@@ -44,16 +46,16 @@ class Expense(Base):
     title = Column(String(255))
     category = Column(String(100))
     amount = Column(Float, nullable=False)
+    description = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="expenses", passive_deletes=True)
     group = relationship("Group", back_populates="expenses", passive_deletes=True)
 
     __table_args__ = (
-    CheckConstraint(
-        "((user_id IS NOT NULL AND group_id IS NULL) OR "
-        "(user_id IS NOT NULL AND group_id IS NOT NULL))",
-        name="chk_expenses_one_fk"
-    ),
-)
-
+        CheckConstraint(
+            "((user_id IS NOT NULL AND group_id IS NULL) OR "
+            "(user_id IS NOT NULL AND group_id IS NOT NULL))",
+            name="chk_expenses_one_fk"
+        ),
+    )

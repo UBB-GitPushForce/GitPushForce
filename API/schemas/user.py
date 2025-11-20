@@ -48,6 +48,7 @@ class UserCreate(UserBase):
         None
     """
     password: str = Field(..., min_length=8, description="User's password.")
+    # budget is NOT included here — DB default is used
 
 
 class UserLogin(BaseModel):
@@ -78,6 +79,7 @@ class UserUpdate(BaseModel):
         email (EmailStr) updated email
         phone_number (str) updated phone number
         password (str) updated password
+        budget (int) updated user budget
 
     Returns:
         UserUpdate validated update data
@@ -90,6 +92,7 @@ class UserUpdate(BaseModel):
     email: Optional[EmailStr] = Field(None, description="User's unique email address.")
     phone_number: Optional[str] = Field(None, min_length=1, max_length=50)
     password: Optional[str] = Field(None, min_length=8, description="User's password.")
+    budget: Optional[int] = Field(None, ge=0, description="User's budget.")  # added here
 
 
 class UserPasswordReset(BaseModel):
@@ -120,6 +123,7 @@ class UserResponse(UserBase):
         last_name (str) user last name
         email (EmailStr) unique user email
         phone_number (str) phone number
+        budget (int) user budget
 
     Returns:
         UserResponse API response model
@@ -128,3 +132,4 @@ class UserResponse(UserBase):
         None
     """
     id: int
+    budget: int  

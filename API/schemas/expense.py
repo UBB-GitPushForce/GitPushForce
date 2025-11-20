@@ -34,6 +34,7 @@ class ExpenseCreate(ExpenseBase):
     Args:
         user_id (int) id of the user creating the expense
         group_id (int) id of the group assigned to the expense
+        description (str) optional longer description of the expense
 
     Returns:
         ExpenseCreate validated expense creation data
@@ -43,12 +44,12 @@ class ExpenseCreate(ExpenseBase):
     """
     user_id: Optional[int] = None
     group_id: Optional[int] = None
+    description: Optional[str] = None  
 
     @model_validator(mode="after")
     def validate_one_fk(self):
         if self.user_id is None:
             raise ValueError("user_id must be provided.")
-
         return self
 
 
@@ -62,6 +63,7 @@ class ExpenseUpdate(BaseModel):
         amount (float) updated positive amount
         user_id (int) updated user id
         group_id (int) updated group id
+        description (str) updated optional text description
 
     Returns:
         ExpenseUpdate validated update data
@@ -74,12 +76,12 @@ class ExpenseUpdate(BaseModel):
     amount: Optional[float] = Field(None, gt=0)
     user_id: Optional[int] = None
     group_id: Optional[int] = None
+    description: Optional[str] = None 
 
     @model_validator(mode="after")
     def validate_one_fk(self):
         if self.user_id is None:
             raise ValueError("user_id must be provided.")
-
         return self
 
 
@@ -92,6 +94,7 @@ class Expense(ExpenseBase):
         user_id (int) id of the user who owns the expense
         group_id (int) id of the related group
         created_at (datetime) timestamp when the expense was created
+        description (str) optional text description of the expense
 
     Returns:
         Expense API response model
@@ -103,6 +106,7 @@ class Expense(ExpenseBase):
     user_id: Optional[int] = None
     group_id: Optional[int] = None
     created_at: datetime
+    description: Optional[str] = None  
 
     class Config:
         from_attributes = True
