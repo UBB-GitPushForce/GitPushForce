@@ -2,8 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 
 from database import get_db
+from repositories.user_repository import UserRepository
+from repositories.users_groups_repository import UsersGroupsRepository
 from schemas.user import UserCreate, UserLogin, UserPasswordReset, UserUpdate
 from services.user_service import UserService
+from services.users_groups_service import UsersGroupsService
 from utils.helpers import logger
 
 router = APIRouter(tags=["Users"])
@@ -15,6 +18,11 @@ def get_current_user_id(request: Request, db: Session = Depends(get_db)) -> int:
     """
     service = UserService(db)
     return service.auth_wrapper(request)
+
+
+def get_users_groups_service(db: Session = Depends(get_db)) -> UsersGroupsService:
+    group_repo = UsersGroupsRepository(db)
+    return UsersGroupsService(group_repo)
 
 
 @router.get("/")
@@ -86,3 +94,26 @@ def delete_user(
         return {"message": "User deleted successfully."}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+@router.post("/join-group/{invitation_code}")
+def join_group_with_invitation_code(
+    invitation_code: str,
+    user_id: int = Depends(get_current_user_id),
+    service: UsersGroupsService = Depends(get_users_groups_service)
+):
+    """
+    Allows the authenticated user to join a group using an invitation code.
+    """
+    try:
+        service.add_user_to_group_by_invitation_code(user_id, invitation_code)
+        return {
+            "message": "Joined group successfully.",
+        }
+
+    except ValueError as e:
+        # e.g., invalid invitation code
+        raise HTTPException(status_code=400, detail=str(e))
+
+    except Exception as e:
+        logger.Logger().error(e)
+        raise HTTPException(status_code=500, detail="Cannot join group.")

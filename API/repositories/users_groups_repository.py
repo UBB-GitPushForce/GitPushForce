@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from sqlite3 import IntegrityError
 from typing import List
 
 from models.group import Group
@@ -12,6 +13,8 @@ class IUsersGroupsRepository(ABC):
     # CREATE
     @abstractmethod
     def add_user_to_group(self, user_id: int, group_id: int) -> None: ...
+    @abstractmethod
+    def add_user_to_group_by_invitation_code(self, user_id: int, invitation_code: str) -> None: ...
 
     # READ
     @abstractmethod
@@ -51,6 +54,24 @@ class UsersGroupsRepository(IUsersGroupsRepository):
         self.db.add(users_groups)
         self.db.commit()
         self.db.refresh(users_groups)
+
+    def add_user_to_group_by_invitation_code(self, user_id: int, invitation_code: str) -> None:
+        # 1. Find group by invitation code
+        stmt = select(Group).where(Group.invitation_code == invitation_code)
+
+        group = self.db.scalar(stmt)
+        if not group:
+            raise ValueError("Invalid invitation code")
+
+        # 2. Create relationship (if not already exists)
+        try:
+            users_groups = UsersGroups(user_id=user_id, group_id=group.id)
+            self.db.add(users_groups)
+            self.db.commit()
+            self.db.refresh(users_groups)
+        except IntegrityError:
+            self.db.rollback()
+            raise IntegrityError("User is already in this group", None, None)
 
     def remove_user_from_group(self, user_id: int, group_id: int) -> None:
         """

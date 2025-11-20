@@ -24,6 +24,8 @@ class IUsersGroupsService(ABC):
     # CREATE
     @abstractmethod
     def add_user_to_group(self, user_id: int, group_id: int) -> None: ...
+    @abstractmethod
+    def add_user_to_group_by_invitation_code(self, user_id: int, invitation_code: str) -> None: ...
 
     # READ
     @abstractmethod
@@ -72,6 +74,9 @@ class UsersGroupsService(IUsersGroupsService):
         """
         self.logger.debug(f"Adding user {user_id} to group {group_id}")
         self.repository.add_user_to_group(user_id, group_id)
+
+    def add_user_to_group_by_invitation_code(self, user_id: int, invitation_code: str) -> None:
+       self.repository.add_user_to_group_by_invitation_code(user_id, invitation_code)
 
     def get_users_from_group(self, group_id: int) -> List[User]:
         """
