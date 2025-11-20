@@ -19,6 +19,7 @@ The main repository for the project.
 🟦 **POST /users/auth/register** register an account<br>
 🟦 **POST /users/auth/login** login (sets a cookie for web and also returns JWT token to be used in mobile app)<br>
 🟦 **POST /users/auth/logout** clears the cookie<br>
+🟦 **POST /users/join-group/{invitation_code}** join group with invitation code<br>
 
 ### Group routes
 
