@@ -43,11 +43,6 @@ const Dashboard: React.FC = () => {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [recentTx, setRecentTx] = useState<Tx[]>([]);
   const [totalSpent, setTotalSpent] = useState<number>(0);
-  
-  const [addingExpense, setAddingExpense] = useState(false);
-  const [expenseTitle, setExpenseTitle] = useState('');
-  const [expenseCategory, setExpenseCategory] = useState('');
-  const [expenseAmount, setExpenseAmount] = useState('');
 
   // Fetch last 5 transactions from API (mock safe)
   const fetchRecentTransactions = async () => {
@@ -235,60 +230,17 @@ const Dashboard: React.FC = () => {
                         <div className="bp-tx-title">{tx.title}</div>
                         <div className="bp-tx-cat">{tx.cat}</div>
                       </div>
-                      <div className="bp-amount negative">
-			-€{Math.abs(tx.amount)}
-		      </div>
+                      <div className={`bp-amount ${tx.amount < 0 ? 'negative' : 'positive'}`}>
+                        {tx.amount < 0 ? '-' : '+'}€{Math.abs(tx.amount)}
+                      </div>
                     </div>
                   ))
                 )}
               </div>
 
-		<div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
-  <button className="bp-add-btn" onClick={() => setAddingExpense(true)}>
-    Add Expense
-  </button>
-
-  {addingExpense && (
-    <div className="add-expense-form" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <input
-        type="text"
-        placeholder="Expense title"
-        value={expenseTitle}
-        onChange={(e) => setExpenseTitle(e.target.value)}
-      />
-      <input
-        type="text"
-        placeholder="Category"
-        value={expenseCategory}
-        onChange={(e) => setExpenseCategory(e.target.value)}
-      />
-      <input
-        type="number"
-        placeholder="Amount"
-        value={expenseAmount}
-        onChange={(e) => setExpenseAmount(e.target.value)}
-      />
-
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button className="btn" onClick={() => {
-          // TO DO: call API to save the expense
-          console.log({ expenseTitle, expenseCategory, expenseAmount });
-          setAddingExpense(false);
-          setExpenseTitle('');
-          setExpenseCategory('');
-          setExpenseAmount('');
-        }}>
-          Save
-        </button>
-        <button className="btn" style={{ background: 'transparent', border: '1px solid rgba(0,0,0,0.08)' }} onClick={() => setAddingExpense(false)}>
-          Cancel
-        </button>
-      </div>
-    </div>
-  )}
-</div>
-
-
+              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                <button className="bp-add-btn" onClick={() => setScreen('receipts')}>Add Receipts</button>
+              </div>
 
               {/* NEW: Embedded receipts view on Home (moved from Receipts -> View) */}
               <div className="bp-section-title" style={{ marginTop: 18 }}>All receipts</div>

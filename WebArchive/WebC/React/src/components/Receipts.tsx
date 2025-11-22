@@ -27,8 +27,8 @@ const mockGroups = [
 ];
 
 const Receipts: React.FC<{ navigate?: (to: string) => void }> = ({ navigate }) => {
-  // Modified: default entry is the "chooseAdd" step so Receipts page shows the Add flow directly.
-  const [subpage, setSubpage] = useState<'menu'|'chooseAdd'|'addOptions'|'view'|'manual'|'upload'|'camera'>('chooseAdd');
+  // simple internal pages
+  const [subpage, setSubpage] = useState<'menu'|'chooseAdd'|'addOptions'|'view'|'manual'|'upload'|'camera'>('menu');
 
   // groupId when adding a group-linked receipt
   const [selectedGroup, setSelectedGroup] = useState<number | null>(null);
@@ -47,6 +47,23 @@ const Receipts: React.FC<{ navigate?: (to: string) => void }> = ({ navigate }) =
         <div style={{ fontWeight:800, fontSize:20, color:'var(--text-dark)' }}>Receipts</div>
         <div style={{ color:'var(--muted-dark)' }}>History & uploads</div>
       </div>
+
+      {/* Menu */}
+      {subpage === 'menu' && (
+        <>
+          <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+            <div>
+              <button className="bp-add-btn" style={{ width: '100%' }} onClick={() => { setSelectedGroup(null); setSubpage('chooseAdd'); }}>Add receipt</button>
+              <div style={{ marginTop:8, color:'var(--muted-dark)', fontSize:13 }}>Add a single or group transaction.</div>
+            </div>
+
+            <div>
+              <button className="btn" style={{ width: '100%' }} onClick={() => setSubpage('view')}>View receipts</button>
+              <div style={{ marginTop:8, color:'var(--muted-dark)', fontSize:13 }}>Browse full history with filters and infinite scroll.</div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Choose single or group */}
       {subpage === 'chooseAdd' && (
@@ -68,7 +85,7 @@ const Receipts: React.FC<{ navigate?: (to: string) => void }> = ({ navigate }) =
             </div>
 
             <div style={{ marginLeft: 'auto' }}>
-              <button className="btn" onClick={() => setSubpage('chooseAdd')}>Refresh</button>
+              <button className="btn" onClick={() => setSubpage('menu')}>Cancel</button>
             </div>
           </div>
         </div>
@@ -97,7 +114,26 @@ const Receipts: React.FC<{ navigate?: (to: string) => void }> = ({ navigate }) =
           </div>
 
           <div style={{ marginTop: 8 }}>
-            <button className="btn" onClick={() => setSubpage('chooseAdd')}>Back</button>
+            <button className="btn" onClick={() => setSubpage('menu')}>Back</button>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW */}
+      {subpage === 'view' && (
+        <div style={{ marginTop:12 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+            <div style={{ fontWeight:800, fontSize:18, color:'var(--text-dark)' }}>All receipts</div>
+            <div style={{ display:'flex', gap:8 }}>
+              <button className="btn" onClick={() => setSubpage('menu')}>Back</button>
+              <button className="btn" onClick={() => { setSubpage('chooseAdd'); }}>Add receipt</button>
+            </div>
+          </div>
+
+          <div style={{ marginTop:12 }}>
+            <div className="receipts-grid-container">
+              <ReceiptsView key={refreshKey} />
+            </div>
           </div>
         </div>
       )}
@@ -114,7 +150,7 @@ const Receipts: React.FC<{ navigate?: (to: string) => void }> = ({ navigate }) =
 
           <div style={{ marginTop:12 }}>
             <ReceiptsManual
-              onCreated={(it) => { triggerRefresh(); setSubpage('chooseAdd'); }}
+              onCreated={(it) => { triggerRefresh(); setSubpage('view'); }}
               groupId={selectedGroup}
             />
           </div>
@@ -132,7 +168,7 @@ const Receipts: React.FC<{ navigate?: (to: string) => void }> = ({ navigate }) =
           </div>
 
           <div style={{ marginTop:12 }}>
-            <ReceiptsUpload onUploaded={(it) => { triggerRefresh(); setSubpage('chooseAdd'); }} groupId={selectedGroup} />
+            <ReceiptsUpload onUploaded={(it) => { triggerRefresh(); setSubpage('view'); }} groupId={selectedGroup} />
           </div>
         </div>
       )}
@@ -148,7 +184,7 @@ const Receipts: React.FC<{ navigate?: (to: string) => void }> = ({ navigate }) =
           </div>
 
           <div style={{ marginTop:12 }}>
-            <ReceiptsCamera onUploaded={(it) => { triggerRefresh(); setSubpage('chooseAdd'); }} groupId={selectedGroup} />
+            <ReceiptsCamera onUploaded={(it) => { triggerRefresh(); setSubpage('view'); }} groupId={selectedGroup} />
           </div>
         </div>
       )}
