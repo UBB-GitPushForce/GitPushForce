@@ -1,12 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from sqlalchemy.orm import Session
-
 from database import get_db
-from repositories.user_repository import UserRepository
+from fastapi import APIRouter, Depends, HTTPException, Request
 from repositories.users_groups_repository import UsersGroupsRepository
-from schemas.user import UserCreate, UserLogin, UserPasswordReset, UserUpdate
+from schemas.user import UserUpdate
 from services.user_service import UserService
 from services.users_groups_service import UsersGroupsService
+from sqlalchemy.orm import Session
 from utils.helpers import logger
 
 router = APIRouter(tags=["Users"])

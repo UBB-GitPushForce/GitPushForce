@@ -1,3 +1,4 @@
+from io import BytesIO
 from typing import List
 
 from database import get_db
@@ -13,6 +14,7 @@ from services.user_service import UserService
 from services.users_groups_service import UsersGroupsService
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
+from starlette.responses import StreamingResponse
 
 from routes.expense_routes import get_expense_service
 
@@ -324,5 +326,14 @@ def get_expenses_by_group(
     """
     try:
         return service.get_group_expenses(group_id, offset, limit, sort_by, order)
+    except NoResultFound as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.get("/{group_id}/invite-qr")
+def get_group_invite_qr(group_id: int, service: GroupService = Depends(get_group_service)):
+    try:
+        qr_bytes = service.generate_invite_qr(group_id)
+        return StreamingResponse(content=BytesIO(qr_bytes), media_type="image/png")
     except NoResultFound as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))

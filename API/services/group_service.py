@@ -1,6 +1,8 @@
+import io
 from abc import ABC, abstractmethod
 from typing import List
 
+import qrcode
 from models.group import Group
 from repositories.group_repository import IGroupRepository
 from schemas.group import GroupCreate, GroupUpdate
@@ -180,3 +182,21 @@ class GroupService(IGroupService):
         """
         self.get_group_by_id(group_id)
         self.repository.delete(group_id)
+
+    def generate_invite_qr(self, group_id: int) -> bytes:
+        group = self.repository.get_by_id(group_id)
+        if not group:
+            raise NoResultFound(f"Group with id {group_id} not found.")
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(group.invitation_code)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        buffer = io.BytesIO()
+        img.save(buffer, format="PNG")
+        buffer.seek(0)
+        return buffer.read()

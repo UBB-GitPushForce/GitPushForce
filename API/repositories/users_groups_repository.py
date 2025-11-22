@@ -5,7 +5,7 @@ from typing import List
 from models.group import Group
 from models.user import User
 from models.users_groups import UsersGroups
-from sqlalchemy import delete, select, func
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 
