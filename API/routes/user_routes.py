@@ -76,6 +76,28 @@ def update_user(
         logger.Logger().error(e)
         raise HTTPException(status_code=400, detail=str(e))
 
+@router.put("/password/change")
+def change_password(
+    password_data: UserChangePassword,
+    user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db)
+):
+    """
+    Changes the authenticated user's password. Requires old password verification.
+    """
+    service = UserService(db)
+    try:
+        service.change_password(
+            user_id=user_id, 
+            old_password=password_data.old_password, 
+            new_password=password_data.new_password
+        )
+        return {"message": "Password updated successfully."}
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.Logger().error(e)
+        raise HTTPException(status_code=500, detail="An error occurred while updating the password.")
 
 @router.delete("/{user_id}")
 def delete_user(

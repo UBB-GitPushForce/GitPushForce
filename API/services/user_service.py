@@ -53,6 +53,8 @@ class IUserService(ABC):
     def request_password_reset(self, email: str) -> dict: ...
     @abstractmethod
     def reset_password(self, token: str, new_password: str) -> dict: ...
+    @abstractmethod
+    def change_password(self, user_id: int, old_password: str, new_password: str) -> None: ...
 
 
 class UserService:
@@ -175,6 +177,27 @@ class UserService:
 
     def delete_user(self, user_id: int) -> None:
         self.repository.delete(user_id)
+
+    def change_password(self, user_id: int, old_password: str, new_password: str) -> None:
+        """
+        Verifies the old password and updates to the new password.
+        """
+        self.logger.info(f"Attempting password change for user_id={user_id}")
+        
+        # 1. Get user
+        user = self.get_user_by_id(user_id)
+
+        # 2. Verify old password
+        if not PasswordUtil.verify_password(old_password, user.hashed_password):
+            self.logger.warning(f"Password change failed for user_id={user_id}: Invalid old password")
+            raise HTTPException(status_code=400, detail="Invalid old password.")
+
+        # 3. Hash new password
+        new_hashed_password = PasswordUtil.hash_password(new_password)
+
+        # 4. Update database
+        self.repository.update(user_id, {"hashed_password": new_hashed_password})
+        self.logger.info(f"Password changed successfully for user_id={user_id}")
 
     # -------------------------- Password Reset --------------------------
 

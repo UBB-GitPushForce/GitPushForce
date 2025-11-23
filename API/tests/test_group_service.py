@@ -49,6 +49,10 @@ class MockGroupRepository:
             None
         """
         group.id = self.counter
+        # Ensure invitation_code is present for tests that might mock objects directly
+        if not hasattr(group, "invitation_code") or not group.invitation_code:
+            group.invitation_code = f"CODE{self.counter}"
+            
         self.groups[self.counter] = group
         self.counter += 1
         return group
@@ -83,6 +87,24 @@ class MockGroupRepository:
         """
         for g in self.groups.values():
             if g.name == name:
+                return g
+        return None
+
+    def get_by_invitation_code(self, code: str):
+        """
+        Retrieves a group by invitation code.
+
+        Args:
+            code (str) unique invitation code
+
+        Returns:
+            Group or None matching group
+
+        Exceptions:
+            None
+        """
+        for g in self.groups.values():
+            if hasattr(g, "invitation_code") and g.invitation_code == code:
                 return g
         return None
 
@@ -135,7 +157,8 @@ class MockGroupRepository:
         Exceptions:
             None
         """
-        del self.groups[group_id]
+        if group_id in self.groups:
+            del self.groups[group_id]
 
 
 @pytest.fixture
@@ -209,6 +232,8 @@ def test_create_group(group_service, mock_repo, sample_group_data):
 
     assert group.id == 1
     assert group.name == "Trip Crew"
+    assert hasattr(group, "invitation_code")
+    assert len(group.invitation_code) == 6
     assert len(mock_repo.groups) == 1
 
 
