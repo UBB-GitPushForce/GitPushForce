@@ -1,7 +1,7 @@
 from database import get_db
 from fastapi import APIRouter, Depends, HTTPException, Request
 from repositories.users_groups_repository import UsersGroupsRepository
-from schemas.user import UserUpdate
+from schemas.user import UserChangePassword, UserUpdate  # <--- Added UserChangePassword
 from services.user_service import UserService
 from services.users_groups_service import UsersGroupsService
 from sqlalchemy.orm import Session
@@ -76,6 +76,7 @@ def update_user(
         logger.Logger().error(e)
         raise HTTPException(status_code=400, detail=str(e))
 
+
 @router.put("/password/change")
 def change_password(
     password_data: UserChangePassword,
@@ -99,6 +100,7 @@ def change_password(
         logger.Logger().error(e)
         raise HTTPException(status_code=500, detail="An error occurred while updating the password.")
 
+
 @router.delete("/{user_id}")
 def delete_user(
     user_id: int,
@@ -114,6 +116,7 @@ def delete_user(
         return {"message": "User deleted successfully."}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
 
 @router.post("/join-group/{invitation_code}")
 def join_group_with_invitation_code(

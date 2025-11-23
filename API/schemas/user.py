@@ -92,7 +92,25 @@ class UserUpdate(BaseModel):
     email: Optional[EmailStr] = Field(None, description="User's unique email address.")
     phone_number: Optional[str] = Field(None, min_length=1, max_length=50)
     password: Optional[str] = Field(None, min_length=8, description="User's password.")
-    budget: Optional[int] = Field(None, ge=0, description="User's budget.")  # added here
+    budget: Optional[int] = Field(None, ge=0, description="User's budget.")
+
+
+class UserChangePassword(BaseModel):
+    """
+    Schema for changing a user's password.
+
+    Args:
+        old_password (str) current password for verification
+        new_password (str) new password to set
+
+    Returns:
+        UserChangePassword validated password change data
+
+    Exceptions:
+        None
+    """
+    old_password: str = Field(..., description="Current password for verification.")
+    new_password: str = Field(..., min_length=8, description="New password.")
 
 
 class UserPasswordReset(BaseModel):
@@ -132,4 +150,4 @@ class UserResponse(UserBase):
         None
     """
     id: int
-    budget: int  
+    budget: int
