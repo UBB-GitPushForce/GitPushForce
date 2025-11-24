@@ -5,6 +5,7 @@ import com.example.budgeting.android.data.model.Group
 import com.example.budgeting.android.data.model.UpdateGroupRequest
 import com.example.budgeting.android.data.model.UserData
 import com.example.budgeting.android.data.model.Expense
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -58,5 +59,13 @@ interface GroupApiService {
         @Query("limit") limit: Int = 100,
         @Query("sort_by") sortBy: String = "created_at",
         @Query("order") order: String = "desc"
-    ): Response<okhttp3.ResponseBody>
+    ): Response<ResponseBody>
+
+    @GET("/groups/{group_id}/invite-qr")
+    suspend fun getGroupInviteQr(@Path("group_id") groupId: Int): Response<ResponseBody>
+
+    @POST("/users/join-group/{invitation_code}")
+    suspend fun joinGroupByInvitationCode(
+        @Path("invitation_code") invitationCode: String
+    ): Response<Unit>
 }

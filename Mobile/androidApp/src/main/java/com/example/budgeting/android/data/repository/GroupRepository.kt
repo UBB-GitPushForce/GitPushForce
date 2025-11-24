@@ -82,4 +82,10 @@ class GroupRepository(
     suspend fun addExpenseToGroup(expense: Expense): Response<Expense> {
         return expenseApiService.addExpense(expense)
     }
+
+    suspend fun getGroupInviteQr(groupId: Int): Response<ResponseBody> =
+        apiService.getGroupInviteQr(groupId)
+
+    suspend fun joinGroupByInvitationCode(invitationCode: String): Response<Unit> =
+        apiService.joinGroupByInvitationCode(invitationCode)
 }

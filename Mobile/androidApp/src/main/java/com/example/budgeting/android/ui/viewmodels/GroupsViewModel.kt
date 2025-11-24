@@ -118,6 +118,14 @@ class GroupsViewModel(context: Context) : ViewModel() {
                     return@launch
                 }
                 
+                val existingGroup = _groups.value.firstOrNull { it.id == groupId }
+                if (existingGroup != null) {
+                    val name = existingGroup.name ?: "this group"
+                    _error.value = "You already belong to \"$name\". As the creator you're added automatically."
+                    _isLoading.value = false
+                    return@launch
+                }
+
                 if (groupId <= 0) {
                     _error.value = "Invalid group ID"
                     _isLoading.value = false
@@ -158,6 +166,62 @@ class GroupsViewModel(context: Context) : ViewModel() {
                     }
                     
                     // For 404 errors, ErrorHandler already returns "Group not found"
+                    _error.value = errorMessage
+                    _isLoading.value = false
+                }
+            } catch (e: Exception) {
+                val errorMessage = ErrorHandler.handleException(e)
+                _error.value = errorMessage
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun joinGroupByInvitationCode(invitationCode: String, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _error.value = null
+            try {
+                if (TokenHolder.token.isNullOrBlank()) {
+                    val savedToken = tokenDataStore.tokenFlow.firstOrNull()
+                    if (!savedToken.isNullOrBlank()) {
+                        TokenHolder.token = savedToken
+                    }
+                }
+
+                val userId = tokenDataStore.getUserId()
+                if (userId == null || userId <= 0) {
+                    _error.value = "User not logged in. Please log in again."
+                    _isLoading.value = false
+                    return@launch
+                }
+
+                val sanitizedCode = invitationCode.trim().uppercase()
+                if (sanitizedCode.isBlank()) {
+                    _error.value = "Invalid invitation code"
+                    _isLoading.value = false
+                    return@launch
+                }
+
+                val existingGroup = _groups.value.firstOrNull {
+                    it.invitationCode?.equals(sanitizedCode, ignoreCase = true) == true
+                }
+                if (existingGroup != null) {
+                    val name = existingGroup.name ?: "this group"
+                    _error.value = "You're already part of \"$name\". Share its code instead of joining again."
+                    _isLoading.value = false
+                    return@launch
+                }
+
+                val response = repository.joinGroupByInvitationCode(sanitizedCode)
+                if (response.isSuccessful) {
+                    loadGroups()
+                    onSuccess()
+                } else {
+                    val errorMessage = GroupsErrorHandler.parseErrorResponse(
+                        response.code(),
+                        response.errorBody()?.string()
+                    )
                     _error.value = errorMessage
                     _isLoading.value = false
                 }

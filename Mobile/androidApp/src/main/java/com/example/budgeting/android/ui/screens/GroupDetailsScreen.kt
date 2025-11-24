@@ -1,26 +1,34 @@
 package com.example.budgeting.android.ui.screens
 
+import android.content.Context
+import android.content.Intent
+import android.graphics.BitmapFactory
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.lazy.itemsIndexed
-import com.example.budgeting.android.ui.viewmodels.*
 import com.example.budgeting.android.data.model.Expense
+import com.example.budgeting.android.ui.viewmodels.*
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -47,6 +55,19 @@ fun GroupDetailsScreen(
     val expenses by vm.expenses.collectAsState()
     val isLoading by vm.isLoading.collectAsState()
     val error by vm.error.collectAsState()
+    val members by vm.members.collectAsState()
+    val qrImage by vm.qrImage.collectAsState()
+    val qrIsLoading by vm.qrIsLoading.collectAsState()
+    val qrError by vm.qrError.collectAsState()
+
+    var showShareDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(showShareDialog, group?.id) {
+        val id = group?.id
+        if (showShareDialog && id != null) {
+            vm.loadGroupInviteQr(id)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -87,6 +108,14 @@ fun GroupDetailsScreen(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     )
                 }
+            }
+
+            group?.let { currentGroup ->
+                GroupMetaRow(
+                    memberCount = members.size,
+                    onShareClick = { showShareDialog = true },
+                    invitationCodeAvailable = !currentGroup.invitationCode.isNullOrBlank()
+                )
             }
             
             // Error message
@@ -162,6 +191,234 @@ fun GroupDetailsScreen(
                 }
             }
         }
+    }
+
+    if (showShareDialog && group != null) {
+        GroupShareDialog(
+            groupName = group!!.name ?: "Group",
+            invitationCode = group!!.invitationCode,
+            qrBytes = qrImage,
+            isLoading = qrIsLoading,
+            error = qrError,
+            onDismiss = {
+                showShareDialog = false
+                vm.clearQrError()
+            },
+            onShareCode = { code ->
+                shareGroupInvite(context, group!!.name ?: "Group", code)
+            }
+        )
+    }
+}
+
+@Composable
+private fun GroupMetaRow(
+    memberCount: Int,
+    onShareClick: () -> Unit,
+    invitationCodeAvailable: Boolean
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Filled.Person,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Column {
+                Text(
+                    text = "$memberCount members",
+                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = "Active members",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
+        FilledTonalButton(
+            onClick = onShareClick,
+            enabled = invitationCodeAvailable,
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Share,
+                contentDescription = "Share group"
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text("Share")
+        }
+    }
+}
+
+@Composable
+private fun GroupShareDialog(
+    groupName: String,
+    invitationCode: String?,
+    qrBytes: ByteArray?,
+    isLoading: Boolean,
+    error: String?,
+    onDismiss: () -> Unit,
+    onShareCode: (String) -> Unit
+) {
+    val context = LocalContext.current
+    val qrBitmap = remember(qrBytes) {
+        qrBytes?.let {
+            runCatching { BitmapFactory.decodeByteArray(it, 0, it.size) }.getOrNull()
+        }
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            color = MaterialTheme.colorScheme.background,
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("✕", color = MaterialTheme.colorScheme.onBackground)
+                    }
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Share \"${groupName}\"",
+                            color = MaterialTheme.colorScheme.onBackground,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(32.dp))
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Share this QR code or invitation code to invite others.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Invitation code",
+                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                ) {
+                    Text(
+                        text = invitationCode ?: "Not available",
+                        modifier = Modifier.padding(12.dp),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 200.dp)
+                        .padding(vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    when {
+                        isLoading -> {
+                            CircularProgressIndicator()
+                        }
+                        qrBitmap != null -> {
+                            Image(
+                                bitmap = qrBitmap.asImageBitmap(),
+                                contentDescription = "Group QR",
+                                modifier = Modifier.size(220.dp)
+                            )
+                        }
+                        else -> {
+                            Text(
+                                text = "QR code not available",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+                }
+
+                error?.let { errorText ->
+                    Text(
+                        text = errorText,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
+
+                Button(
+                    onClick = {
+                        invitationCode?.let { code ->
+                            onShareCode(code)
+                        } ?: run {
+                            Toast.makeText(
+                                context,
+                                "Invitation code unavailable",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    },
+                    enabled = invitationCode != null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Share code")
+                }
+            }
+        }
+    }
+}
+
+private fun shareGroupInvite(context: Context, groupName: String, invitationCode: String) {
+    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_SUBJECT, "Join $groupName")
+        putExtra(
+            Intent.EXTRA_TEXT,
+            "Join \"$groupName\" using this invitation code: $invitationCode"
+        )
+    }
+    try {
+        context.startActivity(
+            Intent.createChooser(shareIntent, "Share group invite")
+        )
+    } catch (e: Exception) {
+        Toast.makeText(
+            context,
+            "Unable to open share options",
+            Toast.LENGTH_SHORT
+        ).show()
     }
 }
 
