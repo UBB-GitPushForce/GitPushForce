@@ -61,4 +61,18 @@ object RetrofitClient {
 
         retrofit.create(GroupApiService::class.java)
     }
+
+    val userInstance: UserApiService = run {
+        val client = OkHttpClient.Builder()
+            .addInterceptor(TokenAuthInterceptor())
+            .build()
+
+        val retrofit = Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(client)
+            .addConverterFactory(moshiConverterFactory)
+            .build()
+
+        retrofit.create(UserApiService::class.java)
+    }
 }
