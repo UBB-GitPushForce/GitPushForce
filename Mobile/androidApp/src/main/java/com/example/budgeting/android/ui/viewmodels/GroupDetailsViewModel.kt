@@ -45,6 +45,15 @@ class GroupDetailsViewModel(context: Context) : ViewModel() {
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
+    private val _qrImage = MutableStateFlow<ByteArray?>(null)
+    val qrImage: StateFlow<ByteArray?> = _qrImage.asStateFlow()
+
+    private val _qrIsLoading = MutableStateFlow(false)
+    val qrIsLoading: StateFlow<Boolean> = _qrIsLoading.asStateFlow()
+
+    private val _qrError = MutableStateFlow<String?>(null)
+    val qrError: StateFlow<String?> = _qrError.asStateFlow()
+
     init {
         viewModelScope.launch {
             val savedToken = tokenDataStore.tokenFlow.firstOrNull()
@@ -70,6 +79,8 @@ class GroupDetailsViewModel(context: Context) : ViewModel() {
                     return@launch
                 }
                 _group.value = groupResponse.body()
+                _qrImage.value = null
+                _qrError.value = null
 
                 // Load group members
                 val membersResponse = groupRepository.getUsersByGroup(groupId)
@@ -231,5 +242,38 @@ class GroupDetailsViewModel(context: Context) : ViewModel() {
                 TokenHolder.token = savedToken
             }
         }
+    }
+
+    fun loadGroupInviteQr(groupId: Int, forceRefresh: Boolean = false) {
+        if (_qrImage.value != null && !forceRefresh) return
+
+        viewModelScope.launch {
+            _qrIsLoading.value = true
+            _qrError.value = null
+
+            try {
+                ensureTokenLoaded()
+                val response = groupRepository.getGroupInviteQr(groupId)
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body != null) {
+                        val bytes = body.bytes()
+                        _qrImage.value = bytes
+                    } else {
+                        _qrError.value = "Empty QR response"
+                    }
+                } else {
+                    _qrError.value = "Failed to fetch QR: ${response.code()}"
+                }
+            } catch (e: Exception) {
+                _qrError.value = e.message ?: "Failed to load QR code"
+            } finally {
+                _qrIsLoading.value = false
+            }
+        }
+    }
+
+    fun clearQrError() {
+        _qrError.value = null
     }
 }

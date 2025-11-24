@@ -1,5 +1,9 @@
 package com.example.budgeting.android.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,12 +22,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.platform.LocalContext
 import com.example.budgeting.android.ui.viewmodels.GroupsViewModel
 import com.example.budgeting.android.ui.viewmodels.GroupsViewModelFactory
 import androidx.compose.runtime.LaunchedEffect
 import com.example.budgeting.android.data.model.Group
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -182,8 +189,8 @@ fun GroupsScreen(onOpenGroup: (Int) -> Unit) {
             onDismiss = { showJoinDialog = false },
             isLoading = isLoading,
             error = error,
-            onJoin = { groupId ->
-                vm.joinGroup(groupId) {
+            onJoinByCode = { code ->
+                vm.joinGroupByInvitationCode(code) {
                     showJoinDialog = false
                 }
             }
@@ -362,10 +369,54 @@ private fun JoinGroupDialog(
     onDismiss: () -> Unit,
     isLoading: Boolean,
     error: String?,
-    onJoin: (groupId: Int) -> Unit
+    onJoinByCode: (code: String) -> Unit
 ) {
-    var groupIdText by remember { mutableStateOf("") }
+    var invitationCodeText by remember { mutableStateOf("") }
     var localErrorMessage by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
+
+    val scanLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
+        val scannedCode = result.contents?.trim()
+        if (!scannedCode.isNullOrBlank()) {
+            invitationCodeText = scannedCode
+            localErrorMessage = null
+            onJoinByCode(scannedCode)
+        }
+    }
+
+    val startScanner = remember(scanLauncher) {
+        {
+            val options = ScanOptions().apply {
+                setDesiredBarcodeFormats(ScanOptions.QR_CODE)
+                setPrompt("")
+                setBeepEnabled(false)
+                setBarcodeImageEnabled(false)
+                setOrientationLocked(true)
+                setCaptureActivity(QrCaptureActivity::class.java)
+            }
+            scanLauncher.launch(options)
+        }
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            startScanner()
+        } else {
+            localErrorMessage = "Camera permission is required to scan QR codes."
+        }
+    }
+
+    fun launchScanner() {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
+            == PackageManager.PERMISSION_GRANTED
+        ) {
+            startScanner()
+        } else {
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -391,27 +442,24 @@ private fun JoinGroupDialog(
                     }
                 }
 
-                // Input section
                 Column(
                     modifier = Modifier
                         .padding(horizontal = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-
                     Text(
-                        text = "Enter the group ID to join",
+                        text = "Enter the invitation code or scan the QR shared with you.",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        style = MaterialTheme.typography.bodyMedium
                     )
-                    
+
                     TextField(
-                        value = groupIdText,
-                        onValueChange = { 
-                            groupIdText = it.trim()
+                        value = invitationCodeText,
+                        onValueChange = {
+                            invitationCodeText = it.trim().uppercase()
                             localErrorMessage = null
                         },
-                        placeholder = { Text("Group ID") },
+                        placeholder = { Text("Invitation Code") },
                         singleLine = true,
                         enabled = !isLoading,
                         shape = RoundedCornerShape(10.dp),
@@ -426,8 +474,16 @@ private fun JoinGroupDialog(
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
-                    
-                    // Show local validation error or API error
+
+                    OutlinedButton(
+                        onClick = { launchScanner() },
+                        enabled = !isLoading,
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Scan QR Code")
+                    }
+
                     (localErrorMessage ?: error)?.let { errorMsg ->
                         Text(
                             text = errorMsg,
@@ -438,21 +494,16 @@ private fun JoinGroupDialog(
                     }
                 }
 
-                // Bottom action button
+                val canSubmit = invitationCodeText.isNotBlank()
                 Button(
                     onClick = { 
-                        if (groupIdText.isBlank()) {
-                            localErrorMessage = "Please enter a group ID"
+                        if (invitationCodeText.isBlank()) {
+                            localErrorMessage = "Please enter or scan an invitation code"
                         } else {
-                            val groupId = groupIdText.toIntOrNull()
-                            if (groupId == null) {
-                                localErrorMessage = "Please enter a valid group ID"
-                            } else {
-                                onJoin(groupId)
-                            }
+                            onJoinByCode(invitationCodeText)
                         }
                     },
-                    enabled = !isLoading && groupIdText.isNotBlank(),
+                    enabled = !isLoading && canSubmit,
                     modifier = Modifier
                         .padding(12.dp)
                         .fillMaxWidth()
