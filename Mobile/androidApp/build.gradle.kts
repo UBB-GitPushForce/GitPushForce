@@ -95,4 +95,7 @@ dependencies {
 
     // Coil for image loading in Compose
     implementation("io.coil-kt:coil-compose:2.6.0")
+
+    // QR scanning
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 }
