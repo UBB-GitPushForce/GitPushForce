@@ -30,8 +30,7 @@ class AuthRepository(private val apiService: AuthApiService, private val tokenDa
                         TokenHolder.token = token
                         tokenDataStore.saveToken(token)
                     }
-                    // API returns user ID as integer
-                    tokenDataStore.saveUserId(body.user)
+                    tokenDataStore.saveUserId(body.user.id)
                 }
             }
         }
