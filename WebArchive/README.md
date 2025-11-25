@@ -27,3 +27,6 @@ WebAA 25.11.2025 - Ilovan Cristian
 
 WebAB 25.11.2025 - Ilovan Cristian
 - Made buttons the same (design)
+
+WebAC 25.11.2025 - Ilovan Cristian
+- Fixed text not appearing
