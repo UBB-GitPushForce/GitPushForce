@@ -2,6 +2,7 @@ This is Web Archive.
 Higher Alphabet = Higher Version
 For example
 WebB Version > WebA Version
+WebAA Version > WebZ Version
 
 VERSIONS:
 
@@ -20,3 +21,6 @@ WebG 25.11.2025 - Ilovan Cristian
 
 WebH 25.11.2025 - Ilovan Cristian
 - Made working the Mock profile buttons to modify: First Name, Last Name, Email, Password, Phone Number. (API calls to backend)
+
+WebAA 25.11.2025 - Ilovan Cristian
+- Made working the delete account button
