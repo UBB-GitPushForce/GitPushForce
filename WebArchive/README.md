@@ -24,3 +24,6 @@ WebH 25.11.2025 - Ilovan Cristian
 
 WebAA 25.11.2025 - Ilovan Cristian
 - Made working the delete account button
+
+WebAB 25.11.2025 - Ilovan Cristian
+- Made buttons the same (design)
