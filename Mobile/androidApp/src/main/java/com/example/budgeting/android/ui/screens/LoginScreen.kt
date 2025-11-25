@@ -37,6 +37,7 @@ fun LoginScreen(
     val email = remember { mutableStateOf("") }
     val password = remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    var showForgotPasswordDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.loginSuccess) {
         if (uiState.loginSuccess) {
@@ -133,7 +134,7 @@ fun LoginScreen(
                     fontSize = 14.sp,
                     modifier = Modifier
                         .align(Alignment.End)
-                        .clickable { /* TODO: navigate */ }
+                        .clickable { showForgotPasswordDialog = true }
                 )
 
                 uiState.error?.let {
@@ -169,7 +170,116 @@ fun LoginScreen(
                         modifier = Modifier.clickable { onSignUpClick() }
                     )
                 }
+
+                if (showForgotPasswordDialog) {
+                    ForgotPasswordDialog(
+                        onDismiss = { showForgotPasswordDialog = false },
+                        onSubmit = { email, newPassword ->
+                            loginViewModel.resetPassword(email, newPassword)
+                        }
+                    )
+                }
             }
         }
     }
+}
+
+@Composable
+fun ForgotPasswordDialog(
+    onDismiss: () -> Unit,
+    onSubmit: (email: String, newPassword: String) -> Unit
+) {
+    var email by remember { mutableStateOf("") }
+    var newPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+
+    var newPassVisible by remember { mutableStateOf(false) }
+    var confirmPassVisible by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        modifier = Modifier.padding(8.dp),
+        title = {
+            Text(
+                text = "Reset Password",
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp
+            )
+        },
+        text = {
+            Column {
+
+                // Email
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    singleLine = true,
+                    label = { Text("Email address") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                // New Password
+                OutlinedTextField(
+                    value = newPassword,
+                    onValueChange = { newPassword = it },
+                    singleLine = true,
+                    label = { Text("New password") },
+                    visualTransformation =
+                        if (newPassVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { newPassVisible = !newPassVisible }) {
+                            Icon(
+                                imageVector = if (newPassVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                contentDescription = null
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                // Confirm Password
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = { confirmPassword = it },
+                    singleLine = true,
+                    label = { Text("Confirm password") },
+                    visualTransformation =
+                        if (confirmPassVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { confirmPassVisible = !confirmPassVisible }) {
+                            Icon(
+                                imageVector = if (confirmPassVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                contentDescription = null
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                if (newPassword != confirmPassword && confirmPassword.isNotEmpty()) {
+                    Text(
+                        "Passwords do not match",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSubmit(email, newPassword) }
+            ) {
+                Text("Reset Password")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }

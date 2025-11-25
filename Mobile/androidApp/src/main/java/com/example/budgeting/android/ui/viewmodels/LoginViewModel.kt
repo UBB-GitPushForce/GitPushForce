@@ -70,4 +70,10 @@ class LoginViewModel(context: Context) : ViewModel() {
     fun onLoginHandled() {
         _uiState.update { it.copy(loginSuccess = false, error = null) }
     }
+
+    fun resetPassword(email: String, password: String){
+        // TODO - repo -> api call
+    }
+
+
 }
