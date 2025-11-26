@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List
 
-from sqlalchemy.orm import Session
 from models.group_log import GroupLog
+from sqlalchemy.orm import Session
 
 
 class IGroupLogRepository(ABC):

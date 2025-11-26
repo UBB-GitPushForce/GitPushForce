@@ -1,14 +1,13 @@
 from typing import List
 
 from database import get_db
-from fastapi import APIRouter, Depends, HTTPException, status, Request
-from sqlalchemy.orm import Session
-
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from repositories.group_log_repository import GroupLogRepository
 from repositories.users_groups_repository import UsersGroupsRepository
+from schemas.group_log import GroupLogResponse
 from services.group_log_service import GroupLogService, IGroupLogService
 from services.user_service import UserService
-from schemas.group_log import GroupLogResponse
+from sqlalchemy.orm import Session
 
 router = APIRouter(tags=["Group Logs"])
 

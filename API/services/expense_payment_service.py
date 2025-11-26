@@ -2,11 +2,10 @@ from abc import ABC, abstractmethod
 from typing import List
 
 from fastapi import HTTPException
-from sqlalchemy.orm import Session
-
 from models.expense import Expense
 from models.expense_payment import ExpensePayment
 from repositories.expense_payment_repository import IExpensePaymentRepository
+from sqlalchemy.orm import Session
 
 
 class IExpensePaymentService(ABC):

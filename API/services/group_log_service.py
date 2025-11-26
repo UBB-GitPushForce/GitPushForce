@@ -2,12 +2,11 @@ from abc import ABC, abstractmethod
 from typing import List
 
 from fastapi import HTTPException
-from sqlalchemy.orm import Session
-
 from models.group import Group
-from models.user import User
 from models.group_log import GroupLog
+from models.user import User
 from repositories.group_log_repository import IGroupLogRepository
+from sqlalchemy.orm import Session
 
 
 class IGroupLogService(ABC):

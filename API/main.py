@@ -4,9 +4,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from routes.auth_routes import router as auth_router
 from routes.expense_payment_routes import router as expense_payment_router
 from routes.expense_routes import router as expense_router
+from routes.group_log_routes import router as group_log_router
 from routes.group_routes import router as group_router
 from routes.user_routes import router as user_router
-from routes.group_log_routes import router as group_log_router
 
 # Create FastAPI application instance
 app = FastAPI(title="GitPushForce API")

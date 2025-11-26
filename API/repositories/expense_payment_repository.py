@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
-from sqlalchemy.orm import Session
+from typing import List
 
 from models.expense_payment import ExpensePayment
+from sqlalchemy.orm import Session
 
 
 class IExpensePaymentRepository(ABC):
