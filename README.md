@@ -14,6 +14,11 @@ The main repository for the project.
 🟧 **PUT /expenses/{id}** update an expense<br>
 🟥 **DELETE /expenses/{id}** delete an expense<br>
 
+### Expense payment routes
+🟩 GET /expenses/{expense_id}/payments get list of users who paid
+🟦 POST /expenses/{expense_id}/pay/{user_id} mark payment (only expense creator)
+🟥 DELETE /expenses/{expense_id}/pay/{user_id} unmark payment (only expense creator)
+
 ### Authentication routes
 
 🟦 **POST /users/auth/register** register an account<br>
