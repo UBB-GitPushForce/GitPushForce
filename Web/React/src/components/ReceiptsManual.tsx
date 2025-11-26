@@ -37,6 +37,8 @@ const ReceiptsManual: React.FC<{ onCreated: (it: ReceiptItem) => void; groupId?:
         title: title.trim(),
         category: subtitle.trim() || 'Manual',
         amount: Number(amount),
+        // send the transaction date as created_at so backend filtering uses this date
+        created_at: dateTx,
       };
 
       if (groupId) {
