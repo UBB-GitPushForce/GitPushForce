@@ -1,21 +1,22 @@
 from database import get_db
 from fastapi import APIRouter, Depends, HTTPException, Request
 from repositories.users_groups_repository import UsersGroupsRepository
-from schemas.user import UserChangePassword, UserUpdate  # <--- Added UserChangePassword
+from schemas.user import UserChangePassword, UserUpdate 
+from dependencies.di import get_user_service
 from services.user_service import UserService
 from services.users_groups_service import UsersGroupsService
 from sqlalchemy.orm import Session
 from utils.helpers import logger
+from utils.helpers.jwt_utils import JwtUtils
 
 router = APIRouter(tags=["Users"])
 
 
-def get_current_user_id(request: Request, db: Session = Depends(get_db)) -> int:
+def get_current_user_id(request: Request) -> int:
     """
     Returns the authenticated user id.
     """
-    service = UserService(db)
-    return service.auth_wrapper(request)
+    return JwtUtils.auth_wrapper(request)
 
 
 def get_users_groups_service(db: Session = Depends(get_db)) -> UsersGroupsService:

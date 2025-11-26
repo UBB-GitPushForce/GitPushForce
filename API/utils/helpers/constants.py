@@ -1,0 +1,6 @@
+ACCESS_TOKEN_FIELD = "access_token"
+USER_FIELD = "user"
+PASSWORD_FIELD = "password"
+HASHED_PASSWORD_FIELD = "hashed_password"
+EMAIL_FIELD = "email"
+STATUS_BAD_REQUEST=400

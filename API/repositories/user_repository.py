@@ -7,138 +7,86 @@ from sqlalchemy.orm import Session
 
 
 class IUserRepository(ABC):
-    # CREATE
+    """
+    Interface for the user repository. We defined this in order to achieve loose coupling. (Service will depend on this interface, not on any implementation of this interface)
+    """
     @abstractmethod
     def add(self, user: User) -> None: ...
-
-    # READ
+    
     @abstractmethod
     def get_by_id(self, user_id: int) -> Optional[User]: ...
+    
     @abstractmethod
     def get_by_email(self, email: str) -> Optional[User]: ...
+    
     @abstractmethod
     def get_all(self, offset: int = 0, limit: int = 100) -> List[User]: ...
-
-    # UPDATE
+    
     @abstractmethod
     def update(self, user_id: int, fields: dict) -> None: ...
-
-    # DELETE
+    
     @abstractmethod
     def delete(self, user_id: int) -> None: ...
 
 
 class UserRepository(IUserRepository):
+    """
+    Implementation for the IUserRepository interface.
+    """
     def __init__(self, db: Session):
         self.db = db
 
     def add(self, user: User) -> int:
         """
-        Creates a new user.
-
-        Args:
-            user (User) user to add
-
-        Returns:
-            int id of the saved user
-
-        Exceptions:
-            None
+        Method for creating an user. 
         """
-
         self.db.add(user)
         self.db.commit()
         self.db.refresh(user)
+        
         return user.id
 
     def get_by_id(self, user_id: int) -> Optional[User]:
         """
-        Retrieves one user by id.
-
-        Args:
-            user_id (int) id of the user
-
-        Returns:
-            User or None matching user or no result
-
-        Exceptions:
-            None
+        Method for retrieving an user by id.
         """
-
-        stmt = select(User).where(User.id == user_id)
-        return self.db.scalars(stmt).first()
+        statement = select(User).where(User.id == user_id)
+        
+        return self.db.scalars(statement).first()
 
     def get_by_email(self, email: str) -> Optional[User]:
         """
-        Retrieves one user by email.
-
-        Args:
-            email (str) email of the user
-
-        Returns:
-            User or None matching user or no result
-
-        Exceptions:
-            None
+        Method for retrieving an user by email.
         """
-
-        stmt = select(User).where(User.email == email)
-        return self.db.scalars(stmt).first()
+        statement = select(User).where(User.email == email)
+        
+        return self.db.scalars(statement).first()
 
     def get_all(self, offset: int = 0, limit: int = 100) -> List[User]:
         """
-        Retrieves all users with pagination.
-
-        Args:
-            offset (int) items to skip
-            limit (int) maximum items to return
-
-        Returns:
-            list[User] paginated users
-
-        Exceptions:
-            None
+        Method for retrieving all users. Supports offset and limit attributes.
         """
-
-        stmt = select(User).order_by(User.id).offset(offset).limit(limit)
-        return list(self.db.scalars(stmt))
+        statement = select(User).order_by(User.id).offset(offset).limit(limit)
+        
+        return list(self.db.scalars(statement))
 
     def update(self, user_id: int, fields: dict) -> None:
         """
-        Updates specific fields of a user.
-
-        Args:
-            user_id (int) id of the user
-            fields (dict) key value fields to update
-
-        Returns:
-            None no return value
-
-        Exceptions:
-            KeyError raised when a field does not exist on the model
+        Method for updating a certain user. Only updates the fields provided with their new values.
         """
-
         user = self.get_by_id(user_id)
         for key, value in fields.items():
             if hasattr(user, key):
                 setattr(user, key, value)
+                      
         self.db.commit()
         self.db.refresh(user)
 
     def delete(self, user_id: int) -> None:
         """
-        Removes a user by id.
-
-        Args:
-            user_id (int) id of the user
-
-        Returns:
-            None no return value
-
-        Exceptions:
-            None
+        Method for deleting an user.
         """
-
         user = self.get_by_id(user_id)
+        
         self.db.delete(user)
         self.db.commit()
