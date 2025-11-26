@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, ForeignKey, DateTime, func, PrimaryKeyConstraint
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, PrimaryKeyConstraint, func
+
 from models.base import Base
 
 

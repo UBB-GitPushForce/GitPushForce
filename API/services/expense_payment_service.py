@@ -1,10 +1,7 @@
 from fastapi import HTTPException
-from sqlalchemy.orm import Session
-
 from models.expense import Expense
-from models.user import User
-from models.group import Group
 from repositories.expense_payment_repository import ExpensePaymentRepository
+from sqlalchemy.orm import Session
 
 
 class ExpensePaymentService:

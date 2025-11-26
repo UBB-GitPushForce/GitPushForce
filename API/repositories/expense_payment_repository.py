@@ -1,6 +1,7 @@
-from sqlalchemy.orm import Session
+from typing import List
+
 from models.expense_payment import ExpensePayment
-from typing import List, Optional
+from sqlalchemy.orm import Session
 
 
 class ExpensePaymentRepository:
