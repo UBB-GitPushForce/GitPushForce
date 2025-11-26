@@ -3,12 +3,14 @@ from typing import List
 
 from database import get_db
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from repositories.group_log_repository import GroupLogRepository
 from repositories.group_repository import GroupRepository
 from repositories.users_groups_repository import UsersGroupsRepository
 from schemas.expense import Expense
 from schemas.group import Group, GroupCreate, GroupUpdate
 from schemas.user import UserResponse
 from services.expense_service import ExpenseService
+from services.group_log_service import GroupLogService
 from services.group_service import GroupService
 from services.user_service import UserService
 from services.users_groups_service import UsersGroupsService
@@ -22,72 +24,23 @@ router = APIRouter(tags=["Groups"])
 
 
 def get_current_user_id(request: Request, db: Session = Depends(get_db)) -> int:
-    """
-    Returns the authenticated user id.
-
-    Args:
-        request (Request) incoming request with authentication data
-        db (Session) database session
-
-    Returns:
-        int id of the authenticated user
-
-    Exceptions:
-        HTTPException returned when token is invalid
-    """
-    service = UserService(db)
-    return service.auth_wrapper(request)
+    return UserService(db).auth_wrapper(request)
 
 
 def get_group_service(db: Session = Depends(get_db)) -> GroupService:
-    """
-    Returns a group service instance.
-
-    Args:
-        db (Session) database session
-
-    Returns:
-        GroupService service for group operations
-
-    Exceptions:
-        None
-    """
-    group_repo = GroupRepository(db)
-    return GroupService(group_repo)
+    return GroupService(GroupRepository(db))
 
 
 def get_users_groups_service(db: Session = Depends(get_db)) -> UsersGroupsService:
-    """
-    Returns the users-groups service instance.
+    return UsersGroupsService(UsersGroupsRepository(db))
 
-    Args:
-        db (Session) database session
 
-    Returns:
-        UsersGroupsService service for linking users and groups
-
-    Exceptions:
-        None
-    """
-    group_repo = UsersGroupsRepository(db)
-    return UsersGroupsService(group_repo)
+def get_group_log_service(db: Session = Depends(get_db)) -> GroupLogService:
+    return GroupLogService(GroupLogRepository(db), db)
 
 
 @router.post("/", response_model=Group, status_code=201)
 def create_group(group_in: GroupCreate, service: GroupService = Depends(get_group_service)):
-    """
-    Creates a new group.
-
-    Args:
-        group_in (GroupCreate) group data to create
-        service (GroupService) group service instance
-
-    Returns:
-        Group created group object
-
-    Exceptions:
-        HTTPException returned when input is invalid
-    """
     try:
         return service.create_group(group_in)
     except ValueError as e:
@@ -96,19 +49,6 @@ def create_group(group_in: GroupCreate, service: GroupService = Depends(get_grou
 
 @router.get("/{group_id}", response_model=Group)
 def get_group(group_id: int, service: GroupService = Depends(get_group_service)):
-    """
-    Retrieves a group by id.
-
-    Args:
-        group_id (int) id of the group
-        service (GroupService) group service instance
-
-    Returns:
-        Group matching group object
-
-    Exceptions:
-        HTTPException returned when group is not found
-    """
     try:
         return service.get_group_by_id(group_id)
     except NoResultFound as e:
@@ -121,20 +61,6 @@ def get_all_groups(
         limit: int = 100,
         service: GroupService = Depends(get_group_service)
 ):
-    """
-    Retrieves all groups.
-
-    Args:
-        offset (int) items to skip
-        limit (int) maximum items to return
-        service (GroupService) group service instance
-
-    Returns:
-        list[Group] paginated list of groups
-
-    Exceptions:
-        None
-    """
     return service.get_all_groups(offset=offset, limit=limit)
 
 
@@ -144,20 +70,6 @@ def update_group(
     group_in: GroupUpdate,
     service: GroupService = Depends(get_group_service)
 ):
-    """
-    Updates a group by id.
-
-    Args:
-        group_id (int) id of the group
-        group_in (GroupUpdate) updated fields
-        service (GroupService) group service instance
-
-    Returns:
-        Group updated group object
-
-    Exceptions:
-        HTTPException returned when group is not found or data is invalid
-    """
     try:
         return service.update_group(group_id, group_in)
     except NoResultFound as e:
@@ -171,19 +83,6 @@ def delete_group(
     group_id: int,
     service: GroupService = Depends(get_group_service)
 ):
-    """
-    Deletes a group by id.
-
-    Args:
-        group_id (int) id of the group
-        service (GroupService) group service instance
-
-    Returns:
-        None no content
-
-    Exceptions:
-        HTTPException returned when group is not found
-    """
     try:
         service.delete_group(group_id)
     except NoResultFound as e:
@@ -194,50 +93,45 @@ def delete_group(
 def add_user_to_group(
     group_id: int,
     user_id: int,
-    service: UsersGroupsService = Depends(get_users_groups_service)
+    service: UsersGroupsService = Depends(get_users_groups_service),
+    log_service: GroupLogService = Depends(get_group_log_service)
 ):
-    """
-    Adds a user to a group.
-
-    Args:
-        group_id (int) id of the group
-        user_id (int) id of the user
-        service (UsersGroupsService) linking service
-
-    Returns:
-        None no content
-
-    Exceptions:
-        HTTPException returned when user or group is not found
-    """
     try:
         service.add_user_to_group(user_id, group_id)
+        log_service.log_join(group_id, user_id)
     except NoResultFound as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.delete("/{group_id}/leave", status_code=status.HTTP_204_NO_CONTENT)
+def leave_group(
+    group_id: int,
+    requester_id: int = Depends(get_current_user_id),
+    users_groups_service: UsersGroupsService = Depends(get_users_groups_service),
+    log_service: GroupLogService = Depends(get_group_log_service),
+):
+    if not users_groups_service.repository.is_member(requester_id, group_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="You are not a member of this group."
+        )
+
+    users_groups_service.delete_user_from_group(requester_id, group_id)
+    log_service.log_leave(group_id, requester_id)
+
+    return None
 
 
 @router.delete("/{group_id}/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def remove_user_from_group(
     group_id: int,
     user_id: int,
-    service: UsersGroupsService = Depends(get_users_groups_service)
+    service: UsersGroupsService = Depends(get_users_groups_service),
+    log_service: GroupLogService = Depends(get_group_log_service),
 ):
-    """
-    Removes a user from a group.
-
-    Args:
-        group_id (int) id of the group
-        user_id (int) id of the user
-        service (UsersGroupsService) linking service
-
-    Returns:
-        None no content
-
-    Exceptions:
-        HTTPException returned when relationship is not found
-    """
     try:
         service.delete_user_from_group(user_id, group_id)
+        log_service.log_leave(group_id, user_id)
     except NoResultFound as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
@@ -247,19 +141,6 @@ def get_groups_by_user(
     user_id: int,
     service: UsersGroupsService = Depends(get_users_groups_service)
 ):
-    """
-    Retrieves all groups a user belongs to.
-
-    Args:
-        user_id (int) id of the user
-        service (UsersGroupsService) linking service
-
-    Returns:
-        list[Group] groups the user is part of
-
-    Exceptions:
-        None
-    """
     return service.get_user_groups(user_id)
 
 
@@ -268,19 +149,6 @@ def get_users_by_group(
     group_id: int,
     service: UsersGroupsService = Depends(get_users_groups_service)
 ):
-    """
-    Retrieves all users in a group.
-
-    Args:
-        group_id (int) id of the group
-        service (UsersGroupsService) linking service
-
-    Returns:
-        list[UserBase] list of users in the group
-
-    Exceptions:
-        HTTPException returned when group is not found
-    """
     try:
         return service.get_users_from_group(group_id)
     except NoResultFound as e:
@@ -307,23 +175,6 @@ def get_expenses_by_group(
         order: str = "desc",
         service: ExpenseService = Depends(get_expense_service)
 ):
-    """
-    Retrieves all expenses linked to a group.
-
-    Args:
-        group_id (int) id of the group
-        offset (int) items to skip
-        limit (int) maximum items to return
-        sort_by (str) sorting field
-        order (str) sorting direction
-        service (ExpenseService) expense service instance
-
-    Returns:
-        list[Expense] group expenses list
-
-    Exceptions:
-        HTTPException returned when group is not found
-    """
     try:
         return service.get_group_expenses(group_id, offset, limit, sort_by, order)
     except NoResultFound as e:

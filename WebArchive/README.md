@@ -30,3 +30,6 @@ WebAB 25.11.2025 - Ilovan Cristian
 
 WebAC 25.11.2025 - Ilovan Cristian
 - Fixed text not appearing
+
+WebAD 26.11.2025 - Ilovan Cristian
+- Modifications from 26.11.2025
