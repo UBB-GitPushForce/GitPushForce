@@ -1,6 +1,7 @@
 // src/components/GroupDetail.tsx
 import React, { useEffect, useState } from 'react';
 import '../App.css';
+import { useCurrency } from '../contexts/CurrencyContext';
 
 interface Expense {
     id: number;
@@ -47,6 +48,8 @@ const GroupDetail: React.FC<Props> = ({ groupId, onBack }) => {
         return () => clearTimeout(t);
     }, [groupId]);
 
+    const cur = useCurrency();
+
     return (
         <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
@@ -61,48 +64,26 @@ const GroupDetail: React.FC<Props> = ({ groupId, onBack }) => {
                     Back
                 </div>
 
-                <div style={{ fontWeight: 800, fontSize: 20, color: 'var(--text-dark)' }}>
-                    {groupName ?? 'Group'}
-                </div>
+                <div className="bp-title">{groupName ?? 'Group'}</div>
             </div>
 
-            <div style={{ marginTop: 12, color: 'var(--muted-dark)', fontSize: 14 }}>
-                Expenses for this group (chat-style)
-            </div>
+            <div className="bp-section-title" style={{ marginTop: 12, fontSize: 14 }}>Expenses for this group</div>
 
             <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {expenses.map(e => (
-                    <div key={e.id} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                        {/* avatar square */}
-                        <div style={{
-                            width: 48, height: 48, borderRadius: 10, display: 'flex',
-                            alignItems: 'center', justifyContent: 'center',
-                            background: 'linear-gradient(135deg, rgba(124,58,237,0.14), rgba(108,52,235,0.06))',
-                            color: '#fff', fontWeight: 800, fontSize: 16, flexShrink: 0
-                        }}>{e.userInitial}</div>
+                    <article key={e.id} className="bp-tx">
+                        <div className="bp-thumb" style={{ width:48, height:48, borderRadius:10, fontSize:16 }}>{e.userInitial}</div>
 
-                        {/* main bubble */}
-                        <div style={{
-                            flex: 1,
-                            background: 'var(--bp-bubble-bg, rgba(255,255,255,0.02))',
-                            borderRadius: 12,
-                            padding: 10,
-                            border: '1px solid rgba(0,0,0,0.04)',
-                            boxShadow: '0 6px 18px rgba(0,0,0,0.04)'
-                        }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div>
-                                    <div style={{ fontWeight: 800, color: 'var(--text-dark)' }}>{e.title}</div>
-                                    <div style={{ color: 'var(--muted-dark)', fontSize: 13, marginTop: 4 }}>{e.category} • {e.userName}</div>
-                                </div>
-                                <div style={{ marginLeft: 12, fontWeight: 800, color: e.amount < 0 ? '#ff6b6b' : '#34d399' }}>
-                                    {e.amount < 0 ? '-' : '+'}${Math.abs(e.amount)}
-                                </div>
-                            </div>
-
+                        <div className="bp-meta">
+                            <div className="bp-tx-title">{e.title}</div>
+                            <div className="bp-tx-cat">{e.category} • {e.userName}</div>
                             <div style={{ marginTop: 8, fontSize: 12, color: 'var(--muted-dark)' }}>{e.date}</div>
                         </div>
-                    </div>
+
+                        <div style={{ marginLeft: 12, fontWeight: 800 }} className={`bp-amount ${e.amount < 0 ? 'negative' : 'positive'}`}>
+                            {e.amount < 0 ? '-' : '+'}{cur.formatAmount(Math.abs(e.amount))}
+                        </div>
+                    </article>
                 ))}
             </div>
 
