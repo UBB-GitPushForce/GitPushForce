@@ -1,10 +1,22 @@
-from typing import List
-
-from models.expense_payment import ExpensePayment
+from abc import ABC, abstractmethod
+from typing import List, Optional
 from sqlalchemy.orm import Session
 
+from models.expense_payment import ExpensePayment
 
-class ExpensePaymentRepository:
+
+class IExpensePaymentRepository(ABC):
+    @abstractmethod
+    def add(self, expense_id: int, user_id: int) -> ExpensePayment: ...
+    
+    @abstractmethod
+    def remove(self, expense_id: int, user_id: int) -> None: ...
+    
+    @abstractmethod
+    def get_all_by_expense(self, expense_id: int) -> List[ExpensePayment]: ...
+
+
+class ExpensePaymentRepository(IExpensePaymentRepository):
     def __init__(self, db: Session):
         self.db = db
 
@@ -25,4 +37,8 @@ class ExpensePaymentRepository:
             self.db.commit()
 
     def get_all_by_expense(self, expense_id: int) -> List[ExpensePayment]:
-        return list(self.db.query(ExpensePayment).filter_by(expense_id=expense_id))
+        return (
+            self.db.query(ExpensePayment)
+            .filter_by(expense_id=expense_id)
+            .all()
+        )

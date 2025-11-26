@@ -1,0 +1,33 @@
+from abc import ABC, abstractmethod
+from typing import List, Optional
+
+from sqlalchemy.orm import Session
+from models.group_log import GroupLog
+
+
+class IGroupLogRepository(ABC):
+    @abstractmethod
+    def add(self, group_id: int, user_id: int, action: str) -> GroupLog: ...
+    
+    @abstractmethod
+    def get_by_group(self, group_id: int) -> List[GroupLog]: ...
+
+
+class GroupLogRepository(IGroupLogRepository):
+    def __init__(self, db: Session):
+        self.db = db
+
+    def add(self, group_id: int, user_id: int, action: str) -> GroupLog:
+        log = GroupLog(group_id=group_id, user_id=user_id, action=action)
+        self.db.add(log)
+        self.db.commit()
+        self.db.refresh(log)
+        return log
+
+    def get_by_group(self, group_id: int) -> List[GroupLog]:
+        return (
+            self.db.query(GroupLog)
+            .filter_by(group_id=group_id)
+            .order_by(GroupLog.created_at.desc())
+            .all()
+        )

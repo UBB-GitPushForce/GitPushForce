@@ -23,6 +23,8 @@ class IUsersGroupsRepository(ABC):
     def get_users_by_group(self, group_id: int) -> List[User]: ...
     @abstractmethod
     def get_nr_of_users_from_group(self, group_id: int) -> int: ...
+    @abstractmethod
+    def is_member(self, user_id: int, group_id: int) -> bool: ...
 
     # UPDATE (No, wtf do you want to update??)
 
@@ -144,3 +146,11 @@ class UsersGroupsRepository(IUsersGroupsRepository):
         )
 
         return self.db.scalar(stmt)
+    
+    def is_member(self, user_id: int, group_id: int) -> bool:
+        return (
+            self.db.query(UsersGroups)
+            .filter_by(user_id=user_id, group_id=group_id)
+            .first()
+            is not None
+        )

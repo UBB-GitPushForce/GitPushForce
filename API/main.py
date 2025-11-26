@@ -6,6 +6,7 @@ from routes.expense_payment_routes import router as expense_payment_router
 from routes.expense_routes import router as expense_router
 from routes.group_routes import router as group_router
 from routes.user_routes import router as user_router
+from routes.group_log_routes import router as group_log_router
 
 # Create FastAPI application instance
 app = FastAPI(title="GitPushForce API")
@@ -28,7 +29,7 @@ app.include_router(auth_router, prefix="/users", tags=["Auth"])
 app.include_router(group_router, prefix="/groups", tags=["Groups"])
 app.include_router(user_router, prefix="/users", tags=["Users"])
 app.include_router(expense_payment_router, prefix="/expenses_payments")
-
+app.include_router(group_log_router, prefix="/group_logs")
 
 # Basic API root endpoint
 @app.get("/")
