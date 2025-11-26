@@ -14,6 +14,9 @@ The main repository for the project.
 🟧 **PUT /expenses/{id}** update an expense<br>
 🟥 **DELETE /expenses/{id}** delete an expense<br>
 
+### Group logs
+🟩 **GET /group_logs/{group_id} ** get all the logs for a group you are part of<br>
+
 ### Expense payment routes
 🟩 GET /expenses_payments/{expense_id}/payments get list of users who paid<br>
 🟦 POST /expenses_payments/{expense_id}/pay/{user_id} mark payment (only expense creator)<br>
