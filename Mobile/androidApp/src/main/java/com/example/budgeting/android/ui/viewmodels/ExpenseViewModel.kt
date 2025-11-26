@@ -51,13 +51,23 @@ class ExpenseViewModel(context: Context) : ViewModel() {
     private val _categories = MutableStateFlow<List<String>>(emptyList())
     val categories: StateFlow<List<String>> = _categories
 
+    private val _currentUserId = MutableStateFlow<Int?>(null)
+    val currentUserId: StateFlow<Int?> = _currentUserId.asStateFlow()
+
     init {
+        loadCurrentUserId()
         loadUserGroups()
     }
 
     /** ----------------------------------------------------------
      *  MAIN: Load expenses using backend filtering
      * ---------------------------------------------------------- */
+    fun loadCurrentUserId() {
+        viewModelScope.launch {
+            _currentUserId.value = tokenStore.getUserId()
+        }
+    }
+
     fun loadExpenses() {
         viewModelScope.launch {
             _isLoading.value = true
