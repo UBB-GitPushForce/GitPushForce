@@ -29,16 +29,7 @@ type Expense = {
   user_id?: number;
 };
 
-const MOCK_EXPENSES: Expense[] = [
-  { id: 1, title: 'Grocery', category: 'Food', amount: -45.5, created_at: '2025-10-01' },
-  { id: 2, title: 'Salary', category: 'Income', amount: 2500, created_at: '2025-10-01' },
-  { id: 3, title: 'Train', category: 'Travel', amount: -30, created_at: '2025-10-03' },
-  { id: 4, title: 'Dinner', category: 'Food', amount: -60, created_at: '2025-10-05' },
-  { id: 5, title: 'Coffee', category: 'Food', amount: -5, created_at: '2025-10-06' },
-  { id: 6, title: 'Electricity', category: 'Utilities', amount: -120, created_at: '2025-09-28' },
-  { id: 7, title: 'Movie', category: 'Entertainment', amount: -12, created_at: '2025-10-07' },
-  { id: 8, title: 'Freelance', category: 'Income', amount: 420, created_at: '2025-10-08' },
-];
+// Data will be loaded from the backend `/expenses` endpoints.
 
 const COLORS = ['#7c3aed', '#6b29d9', '#059669', '#dc2626', '#f59e0b', '#0ea5e9', '#ef4444'];
 
@@ -61,28 +52,62 @@ const Data: React.FC = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>('any');
+  const [categoriesList, setCategoriesList] = useState<string[]>([]);
   const [dateFrom, setDateFrom] = useState<string>('');
   const [dateTo, setDateTo] = useState<string>('');
 
+  // Load available categories once (from user's expenses). We limit to a reasonable number.
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
+    let cancelled = false;
+    const loadCategories = async () => {
       try {
-        // TODO: replace mock with real API call
-        // Example: const res = await apiClient.get('/expenses', { params: { user_id: user?.id, offset:0, limit:1000 } });
-        // setExpenses(res.data);
-        await new Promise((r) => setTimeout(r, 300)); // simulate latency
-        setExpenses(MOCK_EXPENSES);
+        const res = await apiClient.get('/expenses', { params: { offset: 0, limit: 1000 } });
+        const items: Expense[] = Array.isArray(res.data) ? res.data : [];
+        if (cancelled) return;
+        const setCats = new Set<string>();
+        items.forEach((it) => setCats.add(it.category || 'Uncategorized'));
+        setCategoriesList(Array.from(setCats));
       } catch (err) {
-        console.error('Failed to fetch expenses for Data page', err);
-        setExpenses(MOCK_EXPENSES);
-      } finally {
-        setLoading(false);
+        console.error('Failed to load categories for Data page', err);
+        setCategoriesList([]);
       }
     };
 
-    load();
+    if (user) loadCategories();
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
+
+  // Load expenses whenever filters change — server-side filtering keeps data consistent and scales.
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const params: any = { offset: 0, limit: 1000 };
+        if (categoryFilter && categoryFilter !== 'any') params.category = categoryFilter;
+        if (dateFrom) params.date_from = dateFrom;
+        if (dateTo) params.date_to = dateTo;
+        const res = await apiClient.get('/expenses', { params });
+        const items: Expense[] = Array.isArray(res.data) ? res.data : [];
+        if (cancelled) return;
+        setExpenses(items);
+      } catch (err) {
+        console.error('Failed to fetch expenses for Data page', err);
+        setExpenses([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    if (user) load();
+    else setExpenses([]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, categoryFilter, dateFrom, dateTo]);
 
   // Filtering
   const filtered = useMemo(() => {
@@ -119,10 +144,7 @@ const Data: React.FC = () => {
     return grouped.map((g, i) => ({ name: g.key, value: Math.round((g.value + Number.EPSILON) * 100) / 100, color: COLORS[i % COLORS.length] }));
   }, [filtered]);
 
-  const categories = useMemo(() => {
-    const set = new Set<string>(expenses.map((e) => e.category || 'Uncategorized'));
-    return ['any', ...Array.from(set)];
-  }, [expenses]);
+  const categories = useMemo(() => ['any', ...categoriesList], [categoriesList]);
 
   return (
     <div style={{ marginTop: 12 }}>

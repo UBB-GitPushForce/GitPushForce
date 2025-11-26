@@ -10,7 +10,6 @@ const ReceiptsManual: React.FC<{ onCreated: (it: ReceiptItem) => void; groupId?:
   const { user } = useAuth();
   const [subtitle, setSubtitle] = useState('');
   const [amount, setAmount] = useState<string>('');
-  const [dateTx, setDateTx] = useState<string>(new Date().toISOString().slice(0,10));
 
   const mockGroups = [
     { id: 1, name: 'Vacation' },
@@ -37,8 +36,6 @@ const ReceiptsManual: React.FC<{ onCreated: (it: ReceiptItem) => void; groupId?:
         title: title.trim(),
         category: subtitle.trim() || 'Manual',
         amount: Number(amount),
-        // send the transaction date as created_at so backend filtering uses this date
-        created_at: dateTx,
       };
 
       if (groupId) {
@@ -55,7 +52,6 @@ const ReceiptsManual: React.FC<{ onCreated: (it: ReceiptItem) => void; groupId?:
       title: created.title,
       subtitle: created.category,
       amount: created.amount,
-      dateTransaction: dateTx,
       dateAdded: created.created_at ? created.created_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
       isGroup: !!groupId,
       groupId: groupId || undefined,
@@ -67,7 +63,7 @@ const ReceiptsManual: React.FC<{ onCreated: (it: ReceiptItem) => void; groupId?:
     onCreated(item);
 
     // reset
-    setTitle(''); setSubtitle(''); setAmount(''); setDateTx(new Date().toISOString().slice(0,10));
+    setTitle(''); setSubtitle(''); setAmount('');
   } catch (err: any) {
     console.error('Failed to create receipt/expense', err);
     alert(err?.response?.data?.detail || 'Failed to create receipt');
@@ -86,16 +82,13 @@ const ReceiptsManual: React.FC<{ onCreated: (it: ReceiptItem) => void; groupId?:
       <label>Amount</label>
       <input type="number" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="50" required step="any" />
 
-      <label>Transaction date</label>
-      <input type="date" value={dateTx} onChange={e=>setDateTx(e.target.value)} />
-
       {groupId && (
         <div style={{ color:'var(--muted-dark)', fontSize:13 }}>Linked to group: {mockGroups.find(g=>g.id===groupId)?.name}</div>
       )}
 
       <div style={{ display:'flex', gap:8 }}>
         <button className="bp-add-btn" type="submit">Create</button>
-        <button type="button" className="bp-add-btn" onClick={() => { setTitle(''); setSubtitle(''); setAmount(''); setDateTx(new Date().toISOString().slice(0,10)); }}>Reset</button>
+        <button type="button" className="bp-add-btn" onClick={() => { setTitle(''); setSubtitle(''); setAmount(''); }}>Reset</button>
       </div>
     </form>
   );
