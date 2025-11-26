@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import '../App.css';
 import ReceiptsView from './ReceiptsView';
-import ReceiptsManual from './ReceiptsManual';
 import ReceiptsUpload from './ReceiptsUpload';
 import ReceiptsCamera from './ReceiptsCamera';
 
@@ -28,7 +27,7 @@ const mockGroups = [
 
 const Receipts: React.FC<{ navigate?: (to: string) => void }> = ({ navigate }) => {
   // Modified: default entry is the "chooseAdd" step so Receipts page shows the Add flow directly.
-  const [subpage, setSubpage] = useState<'menu'|'chooseAdd'|'addOptions'|'view'|'manual'|'upload'|'camera'>('chooseAdd');
+  const [subpage, setSubpage] = useState<'menu'|'chooseAdd'|'addOptions'|'view'|'upload'|'camera'>('chooseAdd');
 
   // groupId when adding a group-linked receipt
   const [selectedGroup, setSelectedGroup] = useState<number | null>(null);
@@ -80,10 +79,7 @@ const Receipts: React.FC<{ navigate?: (to: string) => void }> = ({ navigate }) =
           <div style={{ fontWeight:700 }}>How do you want to add the receipt?</div>
 
           <div style={{ display:'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px,1fr))', gap:12 }}>
-            <div>
-              <button className="bp-add-btn" style={{ width:'100%' }} onClick={() => setSubpage('manual')}>Add manually</button>
-              <div style={{ marginTop:8, color:'var(--muted-dark)', fontSize:13 }}>Type values yourself.</div>
-            </div>
+            {/* Manual add removed: use Home 'Add Expense' instead */}
 
             <div>
               <button className="bp-add-btn" style={{ width:'100%' }} onClick={() => setSubpage('upload')}>Upload file</button>
@@ -102,24 +98,7 @@ const Receipts: React.FC<{ navigate?: (to: string) => void }> = ({ navigate }) =
         </div>
       )}
 
-      {/* MANUAL */}
-      {subpage === 'manual' && (
-        <div style={{ marginTop:12 }}>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-            <div className="bp-section-title">Add receipt — Manual</div>
-            <div style={{ display:'flex', gap:8 }}>
-              <button className="bp-add-btn" onClick={() => setSubpage('addOptions')}>Back</button>
-            </div>
-          </div>
 
-          <div style={{ marginTop:12 }}>
-            <ReceiptsManual
-              onCreated={(it) => { triggerRefresh(); setSubpage('chooseAdd'); }}
-              groupId={selectedGroup}
-            />
-          </div>
-        </div>
-      )}
 
       {/* UPLOAD */}
       {subpage === 'upload' && (

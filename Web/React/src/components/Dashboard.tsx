@@ -11,6 +11,7 @@ import Support from './Support';
 import GroupDetail from './GroupDetail';
 import Receipts from './Receipts';
 import ReceiptsView from './ReceiptsView'; // <-- adăugat
+import ReceiptsManual from './ReceiptsManual';
 import ChatBot from './ChatBot';
 import Data from './Data';
 import Alerts from './Alerts';
@@ -46,9 +47,6 @@ const Dashboard: React.FC = () => {
   const [totalSpent, setTotalSpent] = useState<number>(0);
   
   const [addingExpense, setAddingExpense] = useState(false);
-  const [expenseTitle, setExpenseTitle] = useState('');
-  const [expenseCategory, setExpenseCategory] = useState('');
-  const [expenseAmount, setExpenseAmount] = useState('');
 
   // Fetch last 5 transactions from API (mock safe)
   const fetchRecentTransactions = async () => {
@@ -244,47 +242,22 @@ const Dashboard: React.FC = () => {
                 )}
               </div>
 
-		<div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
   <button className="bp-add-btn" onClick={() => setAddingExpense(true)}>
     Add Expense
   </button>
 
   {addingExpense && (
-    <div className="add-expense-form" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <input
-        type="text"
-        placeholder="Expense title"
-        value={expenseTitle}
-        onChange={(e) => setExpenseTitle(e.target.value)}
-      />
-      <input
-        type="text"
-        placeholder="Category"
-        value={expenseCategory}
-        onChange={(e) => setExpenseCategory(e.target.value)}
-      />
-      <input
-        type="number"
-        placeholder="Amount"
-        value={expenseAmount}
-        onChange={(e) => setExpenseAmount(e.target.value)}
-      />
-
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button className="btn" onClick={() => {
-          // TO DO: call API to save the expense
-          console.log({ expenseTitle, expenseCategory, expenseAmount });
+    <div style={{ marginTop: 8 }}>
+      <ReceiptsManual
+        onCreated={(it) => {
+          // Refresh recent transactions and totals after creating
+          fetchRecentTransactions();
+          fetchTotalSpent();
           setAddingExpense(false);
-          setExpenseTitle('');
-          setExpenseCategory('');
-          setExpenseAmount('');
-        }}>
-          Save
-        </button>
-        <button className="bp-add-btn" onClick={() => setAddingExpense(false)}>
-          Cancel
-        </button>
-      </div>
+        }}
+        groupId={null}
+      />
     </div>
   )}
 </div>
