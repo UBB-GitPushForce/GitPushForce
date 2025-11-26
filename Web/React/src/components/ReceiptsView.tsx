@@ -105,7 +105,7 @@ async function updateExpense(id: number, body: any) {
   }
 }
 
-const ReceiptsView: React.FC<{ onNeedRefresh?: () => void }> = ({ onNeedRefresh }) => {
+const ReceiptsView: React.FC<{ onNeedRefresh?: () => void; refreshKey?: number }> = ({ onNeedRefresh, refreshKey }) => {
   const { user } = useAuth();
   const [items, setItems] = useState<ReceiptItem[]>([]);
   const [pageIndex, setPageIndex] = useState(0);
@@ -153,7 +153,7 @@ const ReceiptsView: React.FC<{ onNeedRefresh?: () => void }> = ({ onNeedRefresh 
     }
   }, [filters]);
 
-  useEffect(() => { loadFirst(); }, [loadFirst]);
+  useEffect(() => { loadFirst(); }, [loadFirst, refreshKey]);
 
   const startEdit = (item: ReceiptItem) => {
   setEditingId(item.id);
@@ -281,6 +281,8 @@ const saveEdit = async () => {
       // DONE: call API to delete the expense permanently
       await deleteExpense(id);
       setItems(prev => prev.filter(x => x.id !== id));
+      // notify parent (Dashboard) so it can refresh totals and recent transactions
+      onNeedRefresh && onNeedRefresh();
       alert('Deleted expense succesfully');
     } catch (err: any) {
       console.error(err);

@@ -47,6 +47,7 @@ const Dashboard: React.FC = () => {
   const [totalSpent, setTotalSpent] = useState<number>(0);
   
   const [addingExpense, setAddingExpense] = useState(false);
+  const [receiptsRefreshKey, setReceiptsRefreshKey] = useState<number>(0);
 
   // Fetch last 5 transactions from API (mock safe)
   const fetchRecentTransactions = async () => {
@@ -254,6 +255,8 @@ const Dashboard: React.FC = () => {
           // Refresh recent transactions and totals after creating
           fetchRecentTransactions();
           fetchTotalSpent();
+          // notify embedded receipts list to reload
+          setReceiptsRefreshKey(k => k + 1);
           setAddingExpense(false);
         }}
         groupId={null}
@@ -265,10 +268,10 @@ const Dashboard: React.FC = () => {
 
 
               {/* NEW: Embedded receipts view on Home (moved from Receipts -> View) */}
-              <div className="bp-section-title" style={{ marginTop: 18 }}>All receipts</div>
+                      <div className="bp-section-title" style={{ marginTop: 18 }}>All Expenses</div>
               <div style={{ marginTop: 8 }}>
                 <div className="receipts-grid-container">
-                  <ReceiptsView />
+                          <ReceiptsView refreshKey={receiptsRefreshKey} onNeedRefresh={() => { fetchRecentTransactions(); fetchTotalSpent(); }} />
                 </div>
               </div>
 
