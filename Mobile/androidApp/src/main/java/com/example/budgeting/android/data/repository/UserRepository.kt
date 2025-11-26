@@ -1,6 +1,7 @@
 package com.example.budgeting.android.data.repository
 
 import com.example.budgeting.android.data.local.TokenDataStore
+import com.example.budgeting.android.data.model.ChangePasswordRequest
 import com.example.budgeting.android.data.model.UserResponse
 import com.example.budgeting.android.data.model.UserUpdateRequest
 import com.example.budgeting.android.data.network.UserApiService
@@ -33,4 +34,14 @@ class UserRepository(
         }
 
     }
+
+    // CHANGE PASSWORD
+    suspend fun changePassword(id: Int, oldPassword: String, newPassword: String){
+        val response = api.changePassword(ChangePasswordRequest(id, oldPassword, newPassword))
+
+        if (!response.isSuccessful) {
+            throw Exception("Failed to change password")
+        }
+    }
+
 }

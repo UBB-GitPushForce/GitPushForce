@@ -1,5 +1,6 @@
 package com.example.budgeting.android.data.network
 
+import com.example.budgeting.android.data.model.ChangePasswordRequest
 import com.example.budgeting.android.data.model.UserResponse
 import com.example.budgeting.android.data.model.UserUpdateRequest
 import retrofit2.Response
@@ -14,5 +15,8 @@ interface UserApiService {
 
     @DELETE("/users/{id}")
     suspend fun deleteUser(@Path("id") id: Int): Response<Unit>
+
+    @PUT("/users/password/change")
+    suspend fun changePassword(@Body request: ChangePasswordRequest): Response<Unit>
 
 }
