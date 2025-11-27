@@ -28,7 +28,7 @@ class User(Base):
 
     expenses = relationship(
         "Expense",
-        back_populates="users",
+        back_populates="user",
         cascade="all, delete-orphan"
     )
 

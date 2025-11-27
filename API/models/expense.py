@@ -15,27 +15,8 @@ from models.base import Base
 
 
 class Expense(Base):
-
     """
-    Provides the Expense model used to store a single expense record.
-
-    Args:
-        id (int) unique identifier for the expense
-        user_id (int) links the expense to a user
-        group_id (int) links the expense to a group
-        title (str) short text for the expense name
-        category (str) text label that groups similar expenses
-        amount (float) numeric value of the expense
-        description (str) long optional text describing the expense
-        created_at (datetime) creation timestamp
-        user (User) related user object
-        group (Group) related group object
-
-    Returns:
-        Expense object representing one stored expense
-
-    Exceptions:
-        CheckConstraintError raised when user_id is null or rules are not respected
+    Database model for the expense
     """
 
     __tablename__ = "expenses"

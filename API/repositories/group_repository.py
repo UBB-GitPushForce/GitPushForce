@@ -7,151 +7,87 @@ from sqlalchemy.orm import Session
 
 
 class IGroupRepository(ABC):
-    # CREATE
+    """
+    Interface for the group repository. Achieves loose coupling
+    """
     @abstractmethod
-    def add(self, group: Group) -> Group: ...
+    def add(self, group: Group) -> int: ...
 
-    # READ
     @abstractmethod
     def get_by_id(self, group_id: int) -> Optional[Group]: ...
+
     @abstractmethod
-    def get_by_name(self, name: str) -> Optional[Group]: ...
-    @abstractmethod
-    def get_by_invitation_code(self, code: str) -> Optional[Group]: ...  # <-- ADDED
+    def get_by_invitation_code(self, code: str) -> Optional[Group]: ...  
+
     @abstractmethod
     def get_all(self, offset: int = 0, limit: int = 100) -> List[Group]: ...
 
-    # UPDATE
     @abstractmethod
-    def update(self, group_id: int, fields: dict) -> Group: ...
+    def update(self, group_id: int, fields: dict) -> int: ...
 
-    # DELETE
     @abstractmethod
-    def delete(self, group_id: int) -> None: ...
+    def delete(self, group_id: int) -> int: ...
 
 
 class GroupRepository(IGroupRepository):
     def __init__(self, db: Session):
         self.db = db
 
-    def add(self, group: Group) -> Group:
+    def add(self, group: Group) -> int:
         """
-        Creates a new group.
-
-        Args:
-            group (Group) group to add
-
-        Returns:
-            Group saved group object
-
-        Exceptions:
-            None
+        Method for creating a new group.
         """
         self.db.add(group)
         self.db.commit()
         self.db.refresh(group)
-        return group
+        
+        return group.id
 
     def get_by_id(self, group_id: int) -> Optional[Group]:
         """
-        Retrieves one group by id.
-
-        Args:
-            group_id (int) id of the group
-
-        Returns:
-            Group or None matching group or no result
-
-        Exceptions:
-            None
+        Method for retrieving group by id
         """
-        stmt = select(Group).where(Group.id == group_id)
-        return self.db.scalars(stmt).first()
-
-    def get_by_name(self, name: str) -> Optional[Group]:
-        """
-        Retrieves one group by name.
-
-        Args:
-            name (str) name of the group
-
-        Returns:
-            Group or None matching group or no result
-
-        Exceptions:
-            None
-        """
-        stmt = select(Group).where(Group.name == name)
-        return self.db.scalars(stmt).first()
+        statement = select(Group).where(Group.id == group_id)
+        
+        return self.db.scalars(statement).first()
 
     def get_by_invitation_code(self, code: str) -> Optional[Group]:
         """
         Retrieves one group by invitation code.
-
-        Args:
-            code (str) unique invitation code
-
-        Returns:
-            Group or None matching group
-
-        Exceptions:
-            None
         """
-        stmt = select(Group).where(Group.invitation_code == code)
-        return self.db.scalars(stmt).first()
+        statement = select(Group).where(Group.invitation_code == code)
+        
+        return self.db.scalars(statement).first()
 
     def get_all(self, offset: int = 0, limit: int = 100) -> List[Group]:
         """
-        Retrieves all groups with pagination.
-
-        Args:
-            offset (int) items to skip
-            limit (int) maximum items to return
-
-        Returns:
-            list[Group] paginated groups
-
-        Exceptions:
-            None
+        Method for retrieving all groups with pagination.
         """
-        stmt = select(Group).order_by(Group.id).offset(offset).limit(limit)
-        return list(self.db.scalars(stmt))
+        statement = select(Group).order_by(Group.id).offset(offset).limit(limit)
+        
+        return list(self.db.scalars(statement))
 
-    def update(self, group_id: int, fields: dict) -> Group:
+    def update(self, group_id: int, fields: dict) -> int:
         """
-        Updates specific fields of a group.
-
-        Args:
-            group_id (int) id of the group
-            fields (dict) key value fields to update
-
-        Returns:
-            Group updated group object
-
-        Exceptions:
-            KeyError raised when a field does not exist on the model
+        Method for updating a group.
         """
         group = self.get_by_id(group_id)
         for key, value in fields.items():
             if hasattr(group, key):
                 setattr(group, key, value)
+                
         self.db.commit()
         self.db.refresh(group)
+        
         return group
 
-    def delete(self, group_id: int) -> None:
+    def delete(self, group_id: int) -> int:
         """
-        Removes a group by id.
-
-        Args:
-            group_id (int) id of the group
-
-        Returns:
-            None no return value
-
-        Exceptions:
-            None
+        Method for deleting group by id.
         """
         group = self.get_by_id(group_id)
+        
         self.db.delete(group)
         self.db.commit()
+        
+        return group_id

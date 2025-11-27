@@ -1,13 +1,24 @@
 from abc import ABC, abstractmethod
-from dependencies import di
+
 from fastapi import HTTPException
 from models.user import User
-from schemas.user import UserCreate, UserLogin, UserUpdate, UserResponse
+from repositories.user_repository import IUserRepository
 from schemas.api_response import APIResponse
-from utils.helpers.logger import Logger
+from schemas.user import UserCreate, UserLogin, UserResponse, UserUpdate
+from utils.helpers.constants import (
+    ACCESS_TOKEN_FIELD,
+    EMAIL_FIELD,
+    HASHED_PASSWORD_FIELD,
+    ID_FIELD,
+    PASSWORD_FIELD,
+    STATUS_BAD_REQUEST,
+    STATUS_INTERNAL_SERVER_ERROR,
+    USER_FIELD,
+)
 from utils.helpers.jwt_utils import JwtUtils
-from utils.helpers.constants import ACCESS_TOKEN_FIELD, USER_FIELD, HASHED_PASSWORD_FIELD, PASSWORD_FIELD, EMAIL_FIELD, STATUS_BAD_REQUEST
+from utils.helpers.logger import Logger
 from utils.helpers.password_util import PasswordUtil
+
 
 class IUserService(ABC):
     """
@@ -15,14 +26,28 @@ class IUserService(ABC):
     """
     @abstractmethod
     def register_user(self, user_in: UserCreate) -> APIResponse: ...
+    
+    @abstractmethod
+    def get_by_id(self, id: int) -> APIResponse: ...
+    
     @abstractmethod
     def get_all_users(self) -> APIResponse: ...
+    
+    @abstractmethod
+    def update_user(self, user_id: int, user_in: UserUpdate) -> APIResponse: ...
+    
     @abstractmethod
     def login_user(self, user_in: UserLogin) -> APIResponse: ...
+    
+    @abstractmethod
+    def delete_user(self, user_id: int) -> APIResponse: ...
+    
     @abstractmethod
     def request_password_reset(self, email: str) -> APIResponse: ...
+    
     @abstractmethod
     def reset_password(self, token: str, new_password: str) -> APIResponse: ...
+    
     @abstractmethod
     def change_password(self, user_id: int, old_password: str, new_password: str) -> APIResponse: ...
 
@@ -32,12 +57,25 @@ class UserService:
     Manages user authentication and CRUDs.
     """
     
-    def __init__(self):
+    def __init__(self, repository: IUserRepository):
         """
         Constructor method.
         """
-        self.repository = di.get_user_repository()
         self.logger = Logger()
+        self.repository = repository
+
+    def _validate_user(self, user_id: int = None, user_email: str = None) -> User:
+        if user_id is not None:
+            user = self.repository.get_by_id(user_id)
+        elif user_email is not None:
+            user = self.repository.get_by_email(user_email)
+        else:
+            raise HTTPException(status_code=STATUS_INTERNAL_SERVER_ERROR, detail="Could not validate user")
+        
+        if user is None:
+            raise HTTPException(status_code=404, detail="User not found.")
+        
+        return user
 
     def get_all_users(self) -> APIResponse:
         """
@@ -83,6 +121,7 @@ class UserService:
             success=True,
             data={
                 ACCESS_TOKEN_FIELD: access_token,
+                ID_FIELD: user_response.id,
                 USER_FIELD: user_response,
             }
         )
@@ -93,8 +132,9 @@ class UserService:
         """
         self.logger.info(f"User with email {user_in.email} is attempting to log in.")
         
-        user = self.repository.get_by_email(user_in.email)
-        if not user or not PasswordUtil.verify_password(user_in.password, user.hashed_password):
+        user = self._validate_user(user_email=user_in.email)
+        
+        if not PasswordUtil.verify_password(user_in.password, user.hashed_password):
             self.logger.info(f"User with email {user_in.email} could not log in because he provided an invalid email or password.")
             raise HTTPException(status_code=401, detail="Invalid email or password.")
 
@@ -109,24 +149,19 @@ class UserService:
             }
         )
 
-    def get_user_by_id(self, user_id: int) -> APIResponse:
+    def get_by_id(self, user_id: int) -> APIResponse:
         """
         Method for retrieving an user by id.
         """
         self.logger.info(f"Retrieving the user with id {user_id}")
         
-        user = self.repository.get_by_id(user_id)
-        if not user:
-            self.logger.info(f"User with id {user_id} was not found.")
-            raise HTTPException(status_code=404, detail="User not found.")
+        user = self._validate_user(user_id=user_id)
         
         user_response = UserResponse.model_validate(user)
         
         return APIResponse(
             success=True,
-            data={
-                USER_FIELD: user_response,
-            }
+            data=user_response,
         )
 
     def update_user(self, user_id: int, user_in: UserUpdate) -> APIResponse:
@@ -134,6 +169,8 @@ class UserService:
         Method for updating a user's information.
         """
         self.logger.info(f"Updating user with id {user_id}, with values from {user_in}")
+        
+        self._validate_user(user_id)
         
         fields = user_in.model_dump(exclude_unset=True)
         if PASSWORD_FIELD in fields:
@@ -150,9 +187,7 @@ class UserService:
         
         return APIResponse(
             success=True,
-            data={
-                USER_FIELD: user_response
-            }
+            data=user_response
         )
 
     def delete_user(self, user_id: int) -> APIResponse:
@@ -160,6 +195,8 @@ class UserService:
         Method for deleting a user by id.
         """
         self.logger.info(f"Deleting user with id {user_id}")
+        
+        self._validate_user(user_id=user_id)
         
         self.repository.delete(user_id)
         
@@ -173,10 +210,7 @@ class UserService:
         """
         self.logger.info(f"Changing password for user_id={user_id}")
         
-        user = self.repository.get_by_id(user_id)
-        if not user:
-            self.logger.warning(f"Password change attempted for inexistent user with id {user_id}")
-            raise HTTPException(status_code=STATUS_BAD_REQUEST, detail="Invalid user.")
+        user = self._validate_user(user_id=user_id)
         if not PasswordUtil.verify_password(old_password, user.hashed_password):
             self.logger.warning(f"Password change failed for user_id={user_id}: Invalid old password")
             raise HTTPException(status_code=STATUS_BAD_REQUEST, detail="Invalid old password.")
@@ -195,10 +229,11 @@ class UserService:
         """
         self.logger.info(f"Password reset request initiated for user with email {email}")
         
-        user = self.repository.get_by_email(email)
+        user = self._validate_user(user_email=email)
         if user:
-            reset_token = JwtUtils.create_reset_token(user.id)
+            # reset_token = JwtUtils.create_reset_token(user.id)
             # TODO: Send token via email
+            pass
 
         return APIResponse(
             success=True,
@@ -212,13 +247,10 @@ class UserService:
         try:
             user_id = JwtUtils.decode_reset_token(token)
         except Exception:
-            self.logger.warning(f"Invalid or expired reset token used")
+            self.logger.warning("Invalid or expired reset token used")
             raise HTTPException(status_code=STATUS_BAD_REQUEST, detail="Invalid or expired token")
         
-        user = self.repository.get_by_id(user_id)
-        if not user:
-            self.logger.warning(f"Attempted password reset for user {user_id}, but it doesn't exist")
-            raise HTTPException(status_code=404, detail="User not found.")
+        user = self._validate_user(user_id=user_id)
         
         self.logger.info(f"Resetting password for user {user.email}")
 

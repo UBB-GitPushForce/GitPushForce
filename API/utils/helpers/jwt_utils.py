@@ -1,9 +1,9 @@
 import os
-import jwt
-
-from fastapi import HTTPException, Request
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+
+import jwt
+from fastapi import HTTPException, Request
 
 ROMANIA_TZ = ZoneInfo("Europe/Bucharest")
 SECRET_KEY = os.getenv("JWT_SECRET", "supersecretkey")
@@ -13,6 +13,9 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 72
 class JwtUtils:
     @staticmethod
     def encode_token(user_id: int) -> str:
+        """
+        Encodes the jwt token with the secret key.
+        """
         payload = {
             "sub": str(user_id),
             "exp": datetime.now(ROMANIA_TZ) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
@@ -22,6 +25,9 @@ class JwtUtils:
 
     @staticmethod
     def decode_token(token: str) -> int:
+        """
+        Decodes the jwt token with the secret key.
+        """
         try:
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
             return int(payload["sub"])
@@ -32,6 +38,9 @@ class JwtUtils:
 
     @staticmethod
     def auth_wrapper(request: Request):
+        """
+        Returns the id of the logged in user.
+        """
         auth_header = request.headers.get("Authorization")
         token = None
         if auth_header and auth_header.startswith("Bearer "):

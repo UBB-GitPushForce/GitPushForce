@@ -11,7 +11,7 @@ class IUserRepository(ABC):
     Interface for the user repository. We defined this in order to achieve loose coupling. (Service will depend on this interface, not on any implementation of this interface)
     """
     @abstractmethod
-    def add(self, user: User) -> None: ...
+    def add(self, user: User) -> int: ...
     
     @abstractmethod
     def get_by_id(self, user_id: int) -> Optional[User]: ...
@@ -51,7 +51,7 @@ class UserRepository(IUserRepository):
         Method for retrieving an user by id.
         """
         statement = select(User).where(User.id == user_id)
-        
+
         return self.db.scalars(statement).first()
 
     def get_by_email(self, email: str) -> Optional[User]:

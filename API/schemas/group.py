@@ -61,7 +61,7 @@ class GroupUpdate(BaseModel):
     description: Optional[str] = Field(None, max_length=255)
 
 
-class Group(GroupBase):
+class GroupResponse(GroupBase):
     """
     Schema returned to clients representing a complete group record.
 

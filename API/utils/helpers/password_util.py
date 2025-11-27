@@ -1,5 +1,6 @@
 import bcrypt
 
+
 class PasswordUtil:
     """
     Provides password hashing and verification utilities.
