@@ -10,4 +10,3 @@ CREATE TABLE IF NOT EXISTS users (
 
     CONSTRAINT ck_phone_number CHECK (phone_number ~'^[0-9]+$')
 );
-
