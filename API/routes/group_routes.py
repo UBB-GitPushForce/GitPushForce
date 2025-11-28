@@ -65,8 +65,12 @@ def add_user_to_group(
     """
     Adds user to group.
     """
-    user_group_service.add_user_to_group(user_id, group_id)
-    log_service.log_join(group_id, user_id)
+    response = user_group_service.add_user_to_group(user_id, group_id)
+    
+    if response.success is True:
+        log_service.log_join(group_id, user_id)
+        
+    return response
 
 
 @router.delete("/{group_id}/leave")
@@ -80,10 +84,11 @@ def leave_group(
     Takes user out of group (this would be the route you theoretically call as an user)
     """
 
-    user_group_service.delete_user_from_group(requester_id, group_id)
-    log_service.log_leave(group_id, requester_id)
+    response = user_group_service.delete_user_from_group(requester_id, group_id)
+    if response.success == True:
+        log_service.log_leave(group_id, requester_id)
 
-    return None
+    return response
 
 
 @router.delete("/{group_id}/users/{user_id}")
@@ -96,8 +101,11 @@ def remove_user_from_group(
     """
     Takes user out of group (this is more of an admin route, use the one above for leaving a group)
     """
-    user_group_service.delete_user_from_group(user_id, group_id)
-    log_service.log_leave(group_id, user_id)
+    response = user_group_service.delete_user_from_group(user_id, group_id)
+    if response.success == True:
+        log_service.log_leave(group_id, user_id)
+    
+    return response
 
 
 @router.get("/user/{user_id}")
