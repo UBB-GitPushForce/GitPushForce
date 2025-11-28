@@ -85,7 +85,7 @@ def leave_group(
     """
 
     response = user_group_service.delete_user_from_group(requester_id, group_id)
-    if response.success == True:
+    if response.success:
         log_service.log_leave(group_id, requester_id)
 
     return response
@@ -102,7 +102,7 @@ def remove_user_from_group(
     Takes user out of group (this is more of an admin route, use the one above for leaving a group)
     """
     response = user_group_service.delete_user_from_group(user_id, group_id)
-    if response.success == True:
+    if response.success:
         log_service.log_leave(group_id, user_id)
     
     return response

@@ -1,6 +1,5 @@
 from dependencies.di import get_expense_payment_service
 from fastapi import APIRouter, Depends
-from schemas.expense_payment import ExpensePaymentResponse
 from services.expense_payment_service import IExpensePaymentService
 from utils.helpers.jwt_utils import JwtUtils
 
