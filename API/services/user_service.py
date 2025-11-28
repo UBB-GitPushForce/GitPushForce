@@ -1,121 +1,105 @@
-import os
 from abc import ABC, abstractmethod
-from datetime import datetime, timedelta
 
-import bcrypt
-import jwt
-from dotenv import load_dotenv
-from fastapi import HTTPException, Request
-from fastapi.security import HTTPBearer
+from fastapi import HTTPException
 from models.user import User
-from repositories.user_repository import UserRepository
-from schemas.user import UserCreate, UserLogin, UserUpdate
-from sqlalchemy.orm import Session
+from repositories.user_repository import IUserRepository
+from schemas.api_response import APIResponse
+from schemas.user import UserCreate, UserLogin, UserResponse, UserUpdate
+from utils.helpers.constants import (
+    ACCESS_TOKEN_FIELD,
+    EMAIL_FIELD,
+    HASHED_PASSWORD_FIELD,
+    ID_FIELD,
+    PASSWORD_FIELD,
+    STATUS_BAD_REQUEST,
+    STATUS_INTERNAL_SERVER_ERROR,
+    USER_FIELD,
+)
+from utils.helpers.jwt_utils import JwtUtils
 from utils.helpers.logger import Logger
-
-# Load environment variables
-load_dotenv()
-
-# JWT config
-SECRET_KEY = os.getenv("JWT_SECRET", "supersecretkey")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 72  # 3 days
-
-
-class PasswordUtil:
-    """
-    Provides password hashing and verification utilities.
-    """
-
-    @staticmethod
-    def hash_password(password: str) -> str:
-        Logger().debug("Hashing password")
-        salt = bcrypt.gensalt()
-        hashed = bcrypt.hashpw(password.encode("utf-8"), salt)
-        return hashed.decode("utf-8")
-
-    @staticmethod
-    def verify_password(plain_password: str, hashed_password: str) -> bool:
-        Logger().debug("Verifying password")
-        return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
+from utils.helpers.password_util import PasswordUtil
 
 
 class IUserService(ABC):
     """
     Defines the interface for user authentication and account actions.
     """
-
     @abstractmethod
-    def register_user(self, user_in: UserCreate) -> dict: ...
+    def register_user(self, user_in: UserCreate) -> APIResponse: ...
+    
     @abstractmethod
-    def login_user(self, user_in: UserLogin) -> dict: ...
+    def get_by_id(self, id: int) -> APIResponse: ...
+    
     @abstractmethod
-    def request_password_reset(self, email: str) -> dict: ...
+    def get_all_users(self) -> APIResponse: ...
+    
     @abstractmethod
-    def reset_password(self, token: str, new_password: str) -> dict: ...
+    def update_user(self, user_id: int, user_in: UserUpdate) -> APIResponse: ...
+    
     @abstractmethod
-    def change_password(self, user_id: int, old_password: str, new_password: str) -> None: ...
+    def login_user(self, user_in: UserLogin) -> APIResponse: ...
+    
+    @abstractmethod
+    def delete_user(self, user_id: int) -> APIResponse: ...
+    
+    @abstractmethod
+    def request_password_reset(self, email: str) -> APIResponse: ...
+    
+    @abstractmethod
+    def reset_password(self, token: str, new_password: str) -> APIResponse: ...
+    
+    @abstractmethod
+    def change_password(self, user_id: int, old_password: str, new_password: str) -> APIResponse: ...
 
 
 class UserService:
     """
-    Manages user authentication, JWT handling, password resets, and user updates.
+    Manages user authentication and CRUDs.
     """
-
-    security = HTTPBearer()
-    logger = Logger()
-
-    def __init__(self, db: Session):
-        self.repository = UserRepository(db)
-        self.logger.debug("UserService initialized with DB session")
-
-    # -------------------------- JWT Methods --------------------------
-
-    def _encode_token(self, user_id: int) -> str:
-        self.logger.debug(f"Encoding JWT for user_id={user_id}")
-        payload = {
-            "sub": str(user_id),
-            "exp": datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
-            "iat": datetime.utcnow()
-        }
-        return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
-
-    def _decode_token(self, token: str) -> int:
-        self.logger.debug("Decoding JWT token")
-        try:
-            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-            return int(payload["sub"])
-        except jwt.ExpiredSignatureError:
-            raise HTTPException(status_code=401, detail="Token expired.")
-        except jwt.InvalidTokenError:
-            raise HTTPException(status_code=401, detail="Invalid token.")
-
-    def auth_wrapper(self, request: Request):
-        auth_header = request.headers.get("Authorization")
-        token = None
-        if auth_header and auth_header.startswith("Bearer "):
-            token = auth_header.split(" ")[1]
-        elif "access_token" in request.cookies:
-            token = request.cookies["access_token"]
-
-        if not token:
-            raise HTTPException(status_code=401, detail="Missing authentication token.")
-        return self._decode_token(token)
-
-    # -------------------------- User Methods --------------------------
-
-    def get_all_users(self):
-        self.logger.info("Fetching all users")
-        return self.repository.get_all()
-
-    def register_user(self, user_in: UserCreate) -> dict:
+    
+    def __init__(self, repository: IUserRepository):
         """
-        Registers a new user and issues a JWT token.
+        Constructor method.
+        """
+        self.logger = Logger()
+        self.repository = repository
+
+    def _validate_user(self, user_id: int = None, user_email: str = None) -> User:
+        if user_id is not None:
+            user = self.repository.get_by_id(user_id)
+        elif user_email is not None:
+            user = self.repository.get_by_email(user_email)
+        else:
+            raise HTTPException(status_code=STATUS_INTERNAL_SERVER_ERROR, detail="Could not validate user")
+        
+        if user is None:
+            raise HTTPException(status_code=404, detail="User not found.")
+        
+        return user
+
+    def get_all_users(self) -> APIResponse:
+        """
+        Method for retrieving all users.
+        """
+        self.logger.info("Fetching all users")
+        
+        users = self.repository.get_all()
+        users_response = [UserResponse.model_validate(user) for user in users]
+        
+        return APIResponse(
+            success=True,
+            data=users_response
+        )
+
+    def register_user(self, user_in: UserCreate) -> APIResponse:
+        """
+        Method for registering a new user. Also returns a JWT token.
         """
         self.logger.info(f"Registering user with email={user_in.email}")
 
         if self.repository.get_by_email(user_in.email):
-            raise HTTPException(status_code=400, detail="A user with this email already exists.")
+            self.logger.info(f"Could not register user with email={user_in.email}, reason: email already exists")
+            raise HTTPException(status_code=STATUS_BAD_REQUEST, detail="A user with this email already exists.")
 
         hashed_password = PasswordUtil.hash_password(user_in.password)
         user = User(
@@ -124,120 +108,156 @@ class UserService:
             last_name=user_in.last_name,
             phone_number=user_in.phone_number,
             hashed_password=hashed_password,
-            # budget defaults to DB default (100)
+            budget=user_in.budget
         )
 
         user_id = self.repository.add(user)
-        token = self._encode_token(user_id)
-
-        # return full user object
         created_user = self.repository.get_by_id(user_id)
+        user_response = UserResponse.model_validate(created_user)
+        
+        access_token = JwtUtils.encode_token(user_id)
 
-        return {
-            "access_token": token,
-            "user": created_user
-        }
+        return APIResponse(
+            success=True,
+            data={
+                ACCESS_TOKEN_FIELD: access_token,
+                ID_FIELD: user_response.id,
+                USER_FIELD: user_response,
+            }
+        )
 
-    def login_user(self, user_in: UserLogin) -> dict:
+    def login_user(self, user_in: UserLogin) -> APIResponse:
         """
-        Authenticates a user and returns a JWT token.
+        Method for logging a user in. Also returns a JWT token.
         """
-        user = self.repository.get_by_email(user_in.email)
-        if not user or not PasswordUtil.verify_password(user_in.password, user.hashed_password):
+        self.logger.info(f"User with email {user_in.email} is attempting to log in.")
+        
+        user = self._validate_user(user_email=user_in.email)
+        
+        if not PasswordUtil.verify_password(user_in.password, user.hashed_password):
+            self.logger.info(f"User with email {user_in.email} could not log in because he provided an invalid email or password.")
             raise HTTPException(status_code=401, detail="Invalid email or password.")
 
-        token = self._encode_token(user.id)
-        return {"access_token": token, "user": user}
+        access_token = JwtUtils.encode_token(user.id)
+        user_response = UserResponse.model_validate(user)
+        
+        return APIResponse(
+            success=True,
+            data={
+                ACCESS_TOKEN_FIELD: access_token,
+                USER_FIELD: user_response,
+            }
+        )
 
-    def get_user_by_id(self, user_id: int) -> User:
-        user = self.repository.get_by_id(user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found.")
-        return user
+    def get_by_id(self, user_id: int) -> APIResponse:
+        """
+        Method for retrieving an user by id.
+        """
+        self.logger.info(f"Retrieving the user with id {user_id}")
+        
+        user = self._validate_user(user_id=user_id)
+        
+        user_response = UserResponse.model_validate(user)
+        
+        return APIResponse(
+            success=True,
+            data=user_response,
+        )
 
-    def update_user(self, user_id: int, user_in: UserUpdate) -> User:
+    def update_user(self, user_id: int, user_in: UserUpdate) -> APIResponse:
         """
-        Updates a user's information.
+        Method for updating a user's information.
         """
+        self.logger.info(f"Updating user with id {user_id}, with values from {user_in}")
+        
+        self._validate_user(user_id)
+        
         fields = user_in.model_dump(exclude_unset=True)
-
-        # Handle password update
-        if "password" in fields:
-            fields["hashed_password"] = PasswordUtil.hash_password(fields.pop("password"))
-
-        # Handle email uniqueness
-        if "email" in fields:
-            existing_user = self.repository.get_by_email(fields["email"])
+        if PASSWORD_FIELD in fields:
+            fields[HASHED_PASSWORD_FIELD] = PasswordUtil.hash_password(fields.pop(PASSWORD_FIELD))
+        if EMAIL_FIELD in fields:
+            existing_user = self.repository.get_by_email(fields[EMAIL_FIELD])
             if existing_user and existing_user.id != user_id:
-                raise HTTPException(status_code=400, detail="A user with this email already exists.")
+                self.logger.info(f"User with id {user_id} tried to change his email to {fields[EMAIL_FIELD]} but it is already used.")
+                raise HTTPException(status_code=STATUS_BAD_REQUEST, detail="A user with this email already exists.")
 
-        # Budget handled naturally (if present in fields)
         user = self.repository.update(user_id, fields)
-        return user
+        
+        user_response = UserResponse.model_validate(user)
+        
+        return APIResponse(
+            success=True,
+            data=user_response
+        )
 
-    def delete_user(self, user_id: int) -> None:
+    def delete_user(self, user_id: int) -> APIResponse:
+        """
+        Method for deleting a user by id.
+        """
+        self.logger.info(f"Deleting user with id {user_id}")
+        
+        self._validate_user(user_id=user_id)
+        
         self.repository.delete(user_id)
+        
+        return APIResponse(
+            success=True
+        )
 
-    def change_password(self, user_id: int, old_password: str, new_password: str) -> None:
+    def change_password(self, user_id: int, old_password: str, new_password: str) -> APIResponse:
         """
         Verifies the old password and updates to the new password.
         """
-        self.logger.info(f"Attempting password change for user_id={user_id}")
+        self.logger.info(f"Changing password for user_id={user_id}")
         
-        # 1. Get user
-        user = self.get_user_by_id(user_id)
-
-        # 2. Verify old password
+        user = self._validate_user(user_id=user_id)
         if not PasswordUtil.verify_password(old_password, user.hashed_password):
             self.logger.warning(f"Password change failed for user_id={user_id}: Invalid old password")
-            raise HTTPException(status_code=400, detail="Invalid old password.")
+            raise HTTPException(status_code=STATUS_BAD_REQUEST, detail="Invalid old password.")
 
-        # 3. Hash new password
         new_hashed_password = PasswordUtil.hash_password(new_password)
 
-        # 4. Update database
-        self.repository.update(user_id, {"hashed_password": new_hashed_password})
-        self.logger.info(f"Password changed successfully for user_id={user_id}")
+        self.repository.update(user_id, {HASHED_PASSWORD_FIELD: new_hashed_password})
+        
+        return APIResponse(
+            success=True,
+        )
 
-    # -------------------------- Password Reset --------------------------
+    def request_password_reset(self, email: str) -> APIResponse:
+        """
+        Method for requesting a password reset.
+        """
+        self.logger.info(f"Password reset request initiated for user with email {email}")
+        
+        user = self._validate_user(user_email=email)
+        if user:
+            # reset_token = JwtUtils.create_reset_token(user.id)
+            # TODO: Send token via email
+            pass
 
-    def request_password_reset(self, email: str) -> dict:
-        user = self.repository.get_by_email(email)
-        if not user:
-            return {"message": "Check the API console for the token."}
+        return APIResponse(
+            success=True,
+            message="If the user exists, a password reset token has been sent to their email."
+        )
 
-        reset_token = self._create_reset_token(user.id)
-        print(f"The reset token = {reset_token}")
-        return {"message": "Check the API console for the token."}
-
-    def _create_reset_token(self, user_id: int) -> str:
-        payload = {
-            "sub": str(user_id),
-            "exp": datetime.utcnow() + timedelta(minutes=60),
-            "iat": datetime.utcnow(),
-            "type": "password_reset"
-        }
-        return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
-
-    def _decode_reset_token(self, token: str) -> int:
+    def reset_password(self, token: str, new_password: str) -> APIResponse:
+        """
+        Method for resetting password.
+        """
         try:
-            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-            if payload.get("type") != "password_reset":
-                raise HTTPException(status_code=400, detail="Invalid reset token.")
-            return int(payload["sub"])
-        except jwt.ExpiredSignatureError:
-            raise HTTPException(status_code=400, detail="Reset token has expired.")
-        except jwt.InvalidTokenError:
-            raise HTTPException(status_code=400, detail="Invalid reset token.")
-
-    def reset_password(self, token: str, new_password: str) -> dict:
-        user_id = self._decode_reset_token(token)
-        user = self.repository.get_by_id(user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found.")
+            user_id = JwtUtils.decode_reset_token(token)
+        except Exception:
+            self.logger.warning("Invalid or expired reset token used")
+            raise HTTPException(status_code=STATUS_BAD_REQUEST, detail="Invalid or expired token")
+        
+        user = self._validate_user(user_id=user_id)
+        
+        self.logger.info(f"Resetting password for user {user.email}")
 
         self.repository.update(user_id, {
-            "hashed_password": PasswordUtil.hash_password(new_password)
+            HASHED_PASSWORD_FIELD: PasswordUtil.hash_password(new_password)
         })
-
-        return {"message": "Password has been reset successfully."}
+        
+        return APIResponse(
+            success=True
+        )

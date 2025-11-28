@@ -48,7 +48,7 @@ class UserCreate(UserBase):
         None
     """
     password: str = Field(..., min_length=8, description="User's password.")
-    # budget is NOT included here — DB default is used
+    budget: Optional[int] = Field(None, ge=0, description="Initial user budget (optional, defaults to db default if not provided).")
 
 
 class UserLogin(BaseModel):

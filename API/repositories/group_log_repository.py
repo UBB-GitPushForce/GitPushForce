@@ -2,18 +2,21 @@ from abc import ABC, abstractmethod
 from typing import List
 
 from models.group_log import GroupLog
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 
 class IGroupLogRepository(ABC):
+
     @abstractmethod
     def add(self, group_id: int, user_id: int, action: str) -> GroupLog: ...
-    
+
     @abstractmethod
     def get_by_group(self, group_id: int) -> List[GroupLog]: ...
 
 
 class GroupLogRepository(IGroupLogRepository):
+
     def __init__(self, db: Session):
         self.db = db
 
@@ -25,9 +28,9 @@ class GroupLogRepository(IGroupLogRepository):
         return log
 
     def get_by_group(self, group_id: int) -> List[GroupLog]:
-        return (
-            self.db.query(GroupLog)
-            .filter_by(group_id=group_id)
+        statement = (
+            select(GroupLog)
+            .where(GroupLog.group_id == group_id)
             .order_by(GroupLog.created_at.desc())
-            .all()
         )
+        return list(self.db.scalars(statement))

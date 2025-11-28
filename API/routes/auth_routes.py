@@ -1,36 +1,14 @@
-from database import get_db
+from dependencies.di import get_user_service
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from schemas.user import UserCreate, UserLogin, UserPasswordReset
-from services.user_service import UserService
-from sqlalchemy.orm import Session
+from services.user_service import IUserService
 from utils.helpers import logger
+from utils.helpers.constants import ACCESS_TOKEN_FIELD
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
-@router.get("/")
-def get_all_users(db: Session = Depends(get_db)):
-    """
-    Retrieves all users.
-
-    Args:
-        db (Session) database session
-
-    Returns:
-        list users returned from the service
-
-    Exceptions:
-        HTTPException returned on service error
-    """
-    service = UserService(db)
-    try:
-        return service.get_all_users()
-    except HTTPException as e:
-        raise e
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
 
 @router.post("/register")
-def register(user_in: UserCreate, db: Session = Depends(get_db)):
+def register(user_in: UserCreate, user_service: IUserService = Depends(get_user_service)):
     """
     Registers a new user.
 
@@ -44,15 +22,9 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
     Exceptions:
         HTTPException returned when registration fails
     """
-    
-    service = UserService(db)
     try:
-        result = service.register_user(user_in)
-        return {
-        "message": "User registered successfully.",
-        "access_token": result["access_token"],
-        "user": result["user"]
-        }
+        result = user_service.register_user(user_in)
+        return result
     except HTTPException as e:
         logger.Logger().error(e)
         raise e
@@ -61,7 +33,7 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=str(e))
     
 @router.post("/login")
-def login(user_in: UserLogin, response: Response, db: Session = Depends(get_db)):
+def login(user_in: UserLogin, response: Response, user_service: IUserService = Depends(get_user_service)):
     """
     Logs in a user.
 
@@ -77,19 +49,18 @@ def login(user_in: UserLogin, response: Response, db: Session = Depends(get_db))
         HTTPException returned when authentication fails
     """
     
-    service = UserService(db)
     try:
-        result = service.login_user(user_in)
+        result = user_service.login_user(user_in)
         response.set_cookie(
-            key="access_token",
-            value=result["access_token"],
+            key=ACCESS_TOKEN_FIELD,
+            value=result.data[ACCESS_TOKEN_FIELD],
             httponly=True,
             secure=True,
             samesite="Lax",
             max_age=60 * 60 * 72 # 3 days
         )
 
-        return {"message": "Login successful", "user": result["user"], "access_token": result["access_token"]}
+        return result
     except HTTPException as e:
         raise e
     except ValueError as e:
@@ -115,7 +86,7 @@ def logout(response: Response):
 
 
 @router.post("/password-reset/request")
-def request_password_reset(request: Request, db: Session = Depends(get_db)):
+def request_password_reset(request: Request, user_service = Depends(get_user_service)):
     """
     Requests a password reset link.
 
@@ -130,13 +101,12 @@ def request_password_reset(request: Request, db: Session = Depends(get_db)):
         HTTPException returned when user lookup fails
     """
     
-    service = UserService(db)
-    user_id = service.auth_wrapper(request)
-    user = service.get_user_by_id(user_id)
-    return service.request_password_reset(user.email)
+    #user_id = user_service.auth_wrapper(request)
+    #user = user_service.get_user_by_id(user_id)
+    #return user_service.request_password_reset(user.email)
 
 @router.post("/password-reset/confirm")
-def confirm_password_reset(request: UserPasswordReset, db: Session = Depends(get_db)):
+def confirm_password_reset(request: UserPasswordReset, user_service = Depends(get_user_service)):
     """
     Confirms a password reset.
 
@@ -151,10 +121,8 @@ def confirm_password_reset(request: UserPasswordReset, db: Session = Depends(get
         HTTPException returned when token or data is invalid
     """
 
-    service = UserService(db)
-
     try:
-        service.reset_password(request.token, request.new_password)
+        user_service.reset_password(request.token, request.new_password)
         return {"message": "Password has been reset successfully."}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

@@ -5,6 +5,9 @@ from pydantic import BaseModel, Field
 
 
 class ExpenseBase(BaseModel):
+    """
+    Base model for the expense
+    """
     title: str = Field(..., max_length=255)
     category: str = Field(..., max_length=100)
     amount: float = Field(..., gt=0)
@@ -14,21 +17,30 @@ class ExpenseBase(BaseModel):
 
 
 class ExpenseCreate(ExpenseBase):
-    group_id: int = Field(..., description="Group this expense belongs to")
+    """
+    DTO for creating
+    """
+    group_id: Optional[int] = Field(None, description="Group this expense belongs to")
     description: Optional[str] = None  
 
 
 class ExpenseUpdate(BaseModel):
+    """
+    DTO for updating
+    """
     title: Optional[str] = Field(None, max_length=255)
     category: Optional[str] = Field(None, max_length=100)
     amount: Optional[float] = Field(None, gt=0)
     description: Optional[str] = None 
 
 
-class Expense(ExpenseBase):
+class ExpenseResponse(ExpenseBase):
+    """
+    DTO for responses
+    """
     id: int
     user_id: int
-    group_id: int
+    group_id: Optional[int] = None
     created_at: datetime
     description: Optional[str] = None
 

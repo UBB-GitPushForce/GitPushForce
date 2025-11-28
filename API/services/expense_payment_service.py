@@ -1,56 +1,111 @@
 from abc import ABC, abstractmethod
-from typing import List
 
 from fastapi import HTTPException
 from models.expense import Expense
-from models.expense_payment import ExpensePayment
 from repositories.expense_payment_repository import IExpensePaymentRepository
-from sqlalchemy.orm import Session
+from repositories.expense_repository import IExpenseRepository
+from repositories.group_repository import IGroupRepository
+from repositories.user_repository import IUserRepository
+from schemas.api_response import APIResponse
+from schemas.expense_payment import ExpensePaymentResponse
+from utils.helpers.constants import (
+    STATUS_BAD_REQUEST,
+    STATUS_FORBIDDEN,
+    STATUS_NOT_FOUND,
+)
 
 
 class IExpensePaymentService(ABC):
+    """
+    Interface for expense payment operations.
+    """
+
     @abstractmethod
-    def mark_paid(self, expense_id: int, payer_id: int, requester_id: int) -> ExpensePayment: ...
-    
+    def mark_paid(self, expense_id: int, payer_id: int, requester_id: int) -> APIResponse: ...
+
     @abstractmethod
-    def unmark_paid(self, expense_id: int, payer_id: int, requester_id: int) -> None: ...
-    
+    def unmark_paid(self, expense_id: int, payer_id: int, requester_id: int) -> APIResponse: ...
+
     @abstractmethod
-    def get_payments(self, expense_id: int) -> List[ExpensePayment]: ...
+    def get_payments(self, expense_id: int, requester_id: int) -> APIResponse: ...
 
 
 class ExpensePaymentService(IExpensePaymentService):
+    """
+    Manages payment statuses for expenses.
+    """
 
-    def __init__(self, repo: IExpensePaymentRepository, db: Session):
+    def __init__(
+        self,
+        repo: IExpensePaymentRepository,
+        expense_repo: IExpenseRepository,
+        group_repo: IGroupRepository,
+        user_repo: IUserRepository,
+    ):
         self.repo = repo
-        self.db = db
+        self.expense_repo = expense_repo
+        self.group_repo = group_repo
+        self.user_repo = user_repo
 
     def _validate_permissions(self, expense_id: int, requester_id: int) -> Expense:
-        expense = (
-            self.db.query(Expense)
-            .filter_by(id=expense_id)
-            .first()
-        )
+        """
+        Verifies requester is the owner of the expense.
+        """
+        expense = self.expense_repo.get_by_id(expense_id)
         if not expense:
-            raise HTTPException(status_code=404, detail="Expense not found.")
+            raise HTTPException(status_code=STATUS_NOT_FOUND, detail="Expense not found.")
         if expense.user_id != requester_id:
-            raise HTTPException(status_code=403, detail="Not allowed.")
+            raise HTTPException(status_code=STATUS_FORBIDDEN, detail="Not allowed.")
         return expense
 
-    def mark_paid(self, expense_id: int, payer_id: int, requester_id: int) -> ExpensePayment:
+    def mark_paid(self, expense_id: int, payer_id: int, requester_id: int) -> APIResponse:
+        """
+        Marks the expense as paid by a specific user.
+        """
         expense = self._validate_permissions(expense_id, requester_id)
 
-        # Ensure payer is in the same group
+        payer = self.user_repo.get_by_id(payer_id)
+        if not payer:
+            raise HTTPException(status_code=STATUS_NOT_FOUND, detail="User not found.")
+
         if expense.group_id:
-            group_user_ids = {u.id for u in expense.group.users}
-            if payer_id not in group_user_ids:
-                raise HTTPException(status_code=400, detail="User not in group.")
+            group = self.group_repo.get_by_id(expense.group_id)
+            if payer_id not in {u.id for u in group.users}:
+                raise HTTPException(status_code=STATUS_BAD_REQUEST, detail="User not in group.")
 
-        return self.repo.add(expense_id, payer_id)
+        payment = self.repo.add(expense_id, payer_id)
+        response = ExpensePaymentResponse.model_validate(payment)
 
-    def unmark_paid(self, expense_id: int, payer_id: int, requester_id: int):
+        return APIResponse(
+            success=True,
+            data=response
+        )
+
+    def unmark_paid(self, expense_id: int, payer_id: int, requester_id: int) -> APIResponse:
+        """
+        Removes the payment mark for a specific user on an expense.
+        """
         self._validate_permissions(expense_id, requester_id)
         self.repo.remove(expense_id, payer_id)
 
-    def get_payments(self, expense_id: int) -> List[ExpensePayment]:
-        return self.repo.get_all_by_expense(expense_id)
+        return APIResponse(
+            success=True,
+            message="Payment removed."
+        )
+
+    def get_payments(self, expense_id: int, requester_id: int) -> APIResponse:
+        """
+        Retrieves all users who marked the expense as paid.
+        """
+        self._validate_permissions(expense_id, requester_id)
+
+        payments = self.repo.get_all_by_expense(expense_id)
+        response = [
+            ExpensePaymentResponse.model_validate(p)
+            for p in payments
+        ]
+
+        return APIResponse(
+            success=True,
+            data=response
+        )

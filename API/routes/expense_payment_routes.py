@@ -1,45 +1,36 @@
-from database import get_db
-from fastapi import APIRouter, Depends, Request
+from dependencies.di import get_expense_payment_service
+from fastapi import APIRouter, Depends
 from schemas.expense_payment import ExpensePaymentResponse
-from services.expense_payment_service import ExpensePaymentService
-from services.user_service import UserService
-from sqlalchemy.orm import Session
+from services.expense_payment_service import IExpensePaymentService
+from utils.helpers.jwt_utils import JwtUtils
 
 router = APIRouter(tags=["Expense Payments"])
 
 
-def get_current_user_id(request: Request, db: Session = Depends(get_db)) -> int:
-    return UserService(db).auth_wrapper(request)
-
-
-@router.post("/{expense_id}/pay/{payer_id}", response_model=ExpensePaymentResponse)
+@router.post("/{expense_id}/pay/{payer_id}")
 def mark_paid(
     expense_id: int,
     payer_id: int,
-    requester_id: int = Depends(get_current_user_id),
-    db: Session = Depends(get_db)
+    requester_id: int = Depends(JwtUtils.auth_wrapper),
+    expense_payment_service: IExpensePaymentService = Depends(get_expense_payment_service)
 ):
-    service = ExpensePaymentService(db)
-    return service.mark_paid(expense_id, payer_id, requester_id)
+    return expense_payment_service.mark_paid(expense_id, payer_id, requester_id)
 
 
 @router.delete("/{expense_id}/pay/{payer_id}")
 def unmark_paid(
     expense_id: int,
     payer_id: int,
-    requester_id: int = Depends(get_current_user_id),
-    db: Session = Depends(get_db)
+    requester_id: int = Depends(JwtUtils.auth_wrapper),
+    expense_payment_service: IExpensePaymentService = Depends(get_expense_payment_service)
 ):
-    service = ExpensePaymentService(db)
-    service.unmark_paid(expense_id, payer_id, requester_id)
-    return {"message": "Payment unmarked."}
+    return expense_payment_service.unmark_paid(expense_id, payer_id, requester_id)
 
 
-@router.get("/{expense_id}/payments", response_model=list[ExpensePaymentResponse])
+@router.get("/{expense_id}/payments")
 def get_payments(
     expense_id: int,
-    requester_id: int = Depends(get_current_user_id),
-    db: Session = Depends(get_db)
+    requester_id: int = Depends(JwtUtils.auth_wrapper),
+    expense_payment_service: IExpensePaymentService = Depends(get_expense_payment_service)
 ):
-    service = ExpensePaymentService(db)
-    return service.get_payments(expense_id)
+    return expense_payment_service.get_payments(expense_id, requester_id)
