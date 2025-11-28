@@ -290,6 +290,7 @@ class UserService:
 
     def get_spent_this_month(self, user_id: int) -> APIResponse:
         self.logger.info(f"Retrieving the amount spent this month by user with id {user_id}")
+        self._validate_user(user_id=user_id)
         now = datetime.now(ROMANIA_TZ)
         month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         spent = self.repository.get_user_monthly_spent(user_id, month_start)
