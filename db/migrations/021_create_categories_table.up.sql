@@ -1,8 +1,6 @@
 CREATE TABLE IF NOT EXISTS categories(
     id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL,
-    title VARCHAR(30),
+    title VARCHAR(30) NOT NULL
+);
 
-    CONSTRAINT fk_group_logs_user FOREIGN KEY (user_id)
-        REFERENCES users(id) ON DELETE CASCADE
-)
+INSERT INTO categories(title) VALUES('Demo category');
