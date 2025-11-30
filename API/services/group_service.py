@@ -7,7 +7,7 @@ from models.group import Group
 from repositories.group_repository import IGroupRepository
 from schemas.api_response import APIResponse
 from schemas.group import GroupCreate, GroupResponse, GroupUpdate
-from utils.helpers.constants import STATUS_BAD_REQUEST, STATUS_NOT_FOUND, ID_FIELD
+from utils.helpers.constants import ID_FIELD, STATUS_BAD_REQUEST, STATUS_NOT_FOUND
 from utils.helpers.generate_invitation_code import generate_invitation_code
 
 

@@ -1,5 +1,6 @@
 from database import get_db
 from fastapi import Depends
+from repositories.category_repository import CategoryRepository, ICategoryRepository
 from repositories.expense_payment_repository import (
     ExpensePaymentRepository,
     IExpensePaymentRepository,
@@ -9,17 +10,16 @@ from repositories.group_log_repository import GroupLogRepository, IGroupLogRepos
 from repositories.group_repository import GroupRepository, IGroupRepository
 from repositories.user_group_repository import IUserGroupRepository, UserGroupRepository
 from repositories.user_repository import IUserRepository, UserRepository
+from services.category_service import CategoryService, ICategoryService
 from services.expense_payment_service import (
     ExpensePaymentService,
     IExpensePaymentService,
 )
-from repositories.category_repository import ICategoryRepository, CategoryRepository
 from services.expense_service import ExpenseService, IExpenseService
 from services.group_log_service import GroupLogService, IGroupLogService
 from services.group_service import GroupService, IGroupService
 from services.user_group_service import IUserGroupService, UserGroupService
 from services.user_service import IUserService, UserService
-from services.category_service import ICategoryService, CategoryService
 from sqlalchemy.orm import Session
 
 

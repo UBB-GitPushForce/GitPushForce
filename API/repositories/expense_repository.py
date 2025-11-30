@@ -2,12 +2,11 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import List, Optional
 
+from models.category import Category
 from models.expense import Expense
 from models.user_group import UserGroup
 from sqlalchemy import and_, asc, desc, or_, select
 from sqlalchemy.orm import Session
-
-from models.category import Category
 
 
 class IExpenseRepository(ABC):
