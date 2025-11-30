@@ -6,5 +6,3 @@ CREATE TABLE IF NOT EXISTS categories(
 
     CONSTRAINT fk_users_categories FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 );
-
-INSERT INTO categories(title, keywords) VALUES('Dog food', '{Bailey, Dog, Dogfood, Pet}');

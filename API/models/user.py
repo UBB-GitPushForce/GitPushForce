@@ -37,3 +37,9 @@ class User(Base):
         secondary="users_groups",
         back_populates="users"
     )
+
+    categories = relationship(
+        "Category",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )

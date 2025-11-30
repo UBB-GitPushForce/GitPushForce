@@ -1,5 +1,6 @@
 from database import get_db
 from fastapi import Depends
+from repositories.category_repository import CategoryRepository, ICategoryRepository
 from repositories.expense_payment_repository import (
     ExpensePaymentRepository,
     IExpensePaymentRepository,
@@ -9,6 +10,7 @@ from repositories.group_log_repository import GroupLogRepository, IGroupLogRepos
 from repositories.group_repository import GroupRepository, IGroupRepository
 from repositories.user_group_repository import IUserGroupRepository, UserGroupRepository
 from repositories.user_repository import IUserRepository, UserRepository
+from services.category_service import CategoryService, ICategoryService
 from services.expense_payment_service import (
     ExpensePaymentService,
     IExpensePaymentService,
@@ -73,3 +75,9 @@ def get_expense_payment_service(
     user_repository: IUserRepository = Depends(get_user_repository)
 ) -> IExpensePaymentService:
     return ExpensePaymentService(repo, expense_repository, group_repository, user_repository)
+
+def get_category_repository(db: Session = Depends(get_db)) -> ICategoryRepository:
+    return CategoryRepository(db)
+
+def get_category_service(repo: ICategoryRepository = Depends(get_category_repository)) -> ICategoryService:
+    return CategoryService(repo)

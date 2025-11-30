@@ -9,8 +9,8 @@ class ExpenseBase(BaseModel):
     Base model for the expense
     """
     title: str = Field(..., max_length=255)
-    category: str = Field(..., max_length=100)
     amount: float = Field(..., gt=0)
+    category_id: int
 
     class Config:
         from_attributes = True
@@ -29,7 +29,6 @@ class ExpenseUpdate(BaseModel):
     DTO for updating
     """
     title: Optional[str] = Field(None, max_length=255)
-    category: Optional[str] = Field(None, max_length=100)
     amount: Optional[float] = Field(None, gt=0)
     description: Optional[str] = None 
 

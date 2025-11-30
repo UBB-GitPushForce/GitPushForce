@@ -1,0 +1,2 @@
+ALTER TABLE expenses
+CREATE COLUMN category TEXT
