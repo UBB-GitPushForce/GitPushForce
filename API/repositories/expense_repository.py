@@ -7,6 +7,8 @@ from models.user_group import UserGroup
 from sqlalchemy import and_, asc, desc, or_, select
 from sqlalchemy.orm import Session
 
+from models.category import Category
+
 
 class IExpenseRepository(ABC):
     @abstractmethod
@@ -71,6 +73,10 @@ class ExpenseRepository(IExpenseRepository):
     def __init__(self, db: Session):
         self.db = db
 
+    def _resolve_category_ids(self, category_name: str) -> list[int]:
+        stmt = select(Category.id).where(Category.title.ilike(category_name))
+        return list(self.db.scalars(stmt))
+
     def add(self, expense: Expense) -> int:
         """
         Method for adding a new expense.
@@ -118,7 +124,9 @@ class ExpenseRepository(IExpenseRepository):
         if date_to is not None:
             conditions.append(Expense.created_at <= date_to)
         if category is not None:
-            conditions.append(Expense.category == category)
+            category_ids = self._resolve_category_ids(category)
+            if category_ids:
+                conditions.append(Expense.category_id.in_(category_ids))
         
         statement = select(Expense)
         if conditions:
@@ -174,7 +182,9 @@ class ExpenseRepository(IExpenseRepository):
         if date_to is not None:
             conditions.append(Expense.created_at <= date_to)
         if category is not None:
-            conditions.append(Expense.category == category)
+            category_ids = self._resolve_category_ids(category)
+            if category_ids:
+                conditions.append(Expense.category_id.in_(category_ids))
         
         statement = (
             select(Expense)
@@ -216,7 +226,9 @@ class ExpenseRepository(IExpenseRepository):
         if date_to is not None:
             conditions.append(Expense.created_at <= date_to)
         if category is not None:
-            conditions.append(Expense.category == category)
+            category_ids = self._resolve_category_ids(category)
+            if category_ids:
+                conditions.append(Expense.category_id.in_(category_ids))
             
         statement = (
             select(Expense)

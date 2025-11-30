@@ -7,7 +7,7 @@ from models.group import Group
 from repositories.group_repository import IGroupRepository
 from schemas.api_response import APIResponse
 from schemas.group import GroupCreate, GroupResponse, GroupUpdate
-from utils.helpers.constants import STATUS_BAD_REQUEST, STATUS_NOT_FOUND
+from utils.helpers.constants import STATUS_BAD_REQUEST, STATUS_NOT_FOUND, ID_FIELD
 from utils.helpers.generate_invitation_code import generate_invitation_code
 
 
@@ -67,7 +67,9 @@ class GroupService(IGroupService):
         
         return APIResponse(
             success=True,
-            data=id,
+            data={
+                ID_FIELD: id
+            }
         )
 
     def get_group_by_id(self, group_id: int) -> APIResponse:
@@ -112,7 +114,9 @@ class GroupService(IGroupService):
         
         return APIResponse(
             success=True,
-            data=id,
+            data={
+                ID_FIELD: id
+            }
         )
 
     def delete_group(self, group_id: int) -> APIResponse:
@@ -125,7 +129,9 @@ class GroupService(IGroupService):
         
         return APIResponse(
             success=True,
-            data=id,
+            data={
+                ID_FIELD: id
+            }
         )
 
     def generate_invite_qr(self, group_id: int) -> APIResponse:

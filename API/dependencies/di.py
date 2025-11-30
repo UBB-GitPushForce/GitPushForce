@@ -13,11 +13,13 @@ from services.expense_payment_service import (
     ExpensePaymentService,
     IExpensePaymentService,
 )
+from repositories.category_repository import ICategoryRepository, CategoryRepository
 from services.expense_service import ExpenseService, IExpenseService
 from services.group_log_service import GroupLogService, IGroupLogService
 from services.group_service import GroupService, IGroupService
 from services.user_group_service import IUserGroupService, UserGroupService
 from services.user_service import IUserService, UserService
+from services.category_service import ICategoryService, CategoryService
 from sqlalchemy.orm import Session
 
 
@@ -73,3 +75,9 @@ def get_expense_payment_service(
     user_repository: IUserRepository = Depends(get_user_repository)
 ) -> IExpensePaymentService:
     return ExpensePaymentService(repo, expense_repository, group_repository, user_repository)
+
+def get_category_repository(db: Session = Depends(get_db)) -> ICategoryRepository:
+    return CategoryRepository(db)
+
+def get_category_service(repo: ICategoryRepository = Depends(get_category_repository)) -> ICategoryService:
+    return CategoryService(repo)
