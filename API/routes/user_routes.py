@@ -64,3 +64,22 @@ def join_group_with_invitation_code(invitation_code: str, user_id: int = Depends
     Allows the authenticated user to join a group using an invitation code.
     """
     return user_group_service.add_user_to_group_by_invitation_code(user_id, invitation_code)
+
+@router.get("/{user_id}/budget")
+def get_budget(user_id: int, _ = Depends(get_current_user_id), user_service: IUserService = Depends(get_user_service)):
+    return user_service.get_budget(user_id)
+
+
+@router.put("/{user_id}/budget")
+def update_budget(user_id: int, new_budget: int, _ = Depends(get_current_user_id), user_service: IUserService = Depends(get_user_service)):
+    return user_service.update_budget(user_id, new_budget)
+
+
+@router.get("/{user_id}/spent-this-month")
+def get_spent_this_month(user_id: int, _ = Depends(get_current_user_id), user_service: IUserService = Depends(get_user_service)):
+    return user_service.get_spent_this_month(user_id)
+
+
+@router.get("/{user_id}/remaining-budget")
+def get_remaining_budget(user_id: int, _ = Depends(get_current_user_id), user_service: IUserService = Depends(get_user_service)):
+    return user_service.get_remaining_budget(user_id)

@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
+from datetime import datetime
 from typing import List, Optional
 
+from models.expense import Expense
 from models.user import User
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 
@@ -81,6 +83,7 @@ class UserRepository(IUserRepository):
                       
         self.db.commit()
         self.db.refresh(user)
+        return user
 
     def delete(self, user_id: int) -> None:
         """
@@ -90,3 +93,12 @@ class UserRepository(IUserRepository):
         
         self.db.delete(user)
         self.db.commit()
+
+    def get_user_monthly_spent(self, user_id: int, month_start: datetime) -> float:
+        statement = (
+            select(func.coalesce(func.sum(Expense.amount), 0.0))
+            .where(Expense.user_id == user_id)
+            .where(Expense.created_at >= month_start)
+        )
+
+        return self.db.scalar(statement)

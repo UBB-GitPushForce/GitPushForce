@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from datetime import datetime
 
 from fastapi import HTTPException
 from models.user import User
@@ -7,15 +8,18 @@ from schemas.api_response import APIResponse
 from schemas.user import UserCreate, UserLogin, UserResponse, UserUpdate
 from utils.helpers.constants import (
     ACCESS_TOKEN_FIELD,
+    BUDGET_FIELD,
     EMAIL_FIELD,
     HASHED_PASSWORD_FIELD,
     ID_FIELD,
     PASSWORD_FIELD,
+    REMAINING_BUDGET,
+    SPENT_THIS_MONTH,
     STATUS_BAD_REQUEST,
     STATUS_INTERNAL_SERVER_ERROR,
     USER_FIELD,
 )
-from utils.helpers.jwt_utils import JwtUtils
+from utils.helpers.jwt_utils import ROMANIA_TZ, JwtUtils
 from utils.helpers.logger import Logger
 from utils.helpers.password_util import PasswordUtil
 
@@ -260,4 +264,55 @@ class UserService:
         
         return APIResponse(
             success=True
+        )
+
+    def get_budget(self, user_id: int) -> APIResponse:
+        self.logger.info(f"Retrieving budget for user with id {user_id}")
+        user = self._validate_user(user_id=user_id)
+        return APIResponse(
+            success=True,
+            data={
+                BUDGET_FIELD: user.budget,
+            }
+        )
+
+    def update_budget(self, user_id: int, new_budget: int) -> APIResponse:
+        if new_budget < 0:
+            raise HTTPException(status_code=400, detail="Budget cannot be negative.")
+        self.logger.info(f"Updating budget for user with id {user_id}, with new budget of {new_budget}")
+        self._validate_user(user_id=user_id)
+        user = self.repository.update(user_id, {"budget": new_budget})
+        user_response = UserResponse.model_validate(user)
+        return APIResponse(
+            success=True,
+            data=user_response
+        )
+
+    def get_spent_this_month(self, user_id: int) -> APIResponse:
+        self.logger.info(f"Retrieving the amount spent this month by user with id {user_id}")
+        self._validate_user(user_id=user_id)
+        now = datetime.now(ROMANIA_TZ)
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        spent = self.repository.get_user_monthly_spent(user_id, month_start)
+        return APIResponse(
+            success=True,
+            data={
+                SPENT_THIS_MONTH: spent,
+            }
+        )
+
+    def get_remaining_budget(self, user_id: int) -> APIResponse:
+        self.logger.info(f"Retrieving the remaining budget for user with id {user_id}")
+        user = self._validate_user(user_id=user_id)
+        now = datetime.now(ROMANIA_TZ)
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        spent = self.repository.get_user_monthly_spent(user_id, month_start)
+        remaining = max(float(user.budget) - spent, 0)
+        return APIResponse(
+            success=True,
+            data={
+                BUDGET_FIELD: user.budget,
+                SPENT_THIS_MONTH: spent,
+                REMAINING_BUDGET: remaining,
+            }
         )

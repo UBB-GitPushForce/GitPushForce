@@ -1,12 +1,18 @@
 from database import get_db
 from fastapi import Depends
-from repositories.expense_payment_repository import ExpensePaymentRepository, IExpensePaymentRepository
+from repositories.expense_payment_repository import (
+    ExpensePaymentRepository,
+    IExpensePaymentRepository,
+)
 from repositories.expense_repository import ExpenseRepository, IExpenseRepository
 from repositories.group_log_repository import GroupLogRepository, IGroupLogRepository
 from repositories.group_repository import GroupRepository, IGroupRepository
 from repositories.user_group_repository import IUserGroupRepository, UserGroupRepository
 from repositories.user_repository import IUserRepository, UserRepository
-from services.expense_payment_service import ExpensePaymentService, IExpensePaymentService
+from services.expense_payment_service import (
+    ExpensePaymentService,
+    IExpensePaymentService,
+)
 from services.expense_service import ExpenseService, IExpenseService
 from services.group_log_service import GroupLogService, IGroupLogService
 from services.group_service import GroupService, IGroupService
