@@ -5,7 +5,7 @@ from models.category import Category
 from repositories.category_repository import ICategoryRepository
 from schemas.api_response import APIResponse
 from schemas.category import CategoryCreate, CategoryResponse, CategoryUpdate
-from utils.helpers.constants import ID_FIELD, STATUS_BAD_REQUEST, STATUS_NOT_FOUND
+from utils.helpers.constants import ID_FIELD, STATUS_BAD_REQUEST, STATUS_NOT_FOUND, STATUS_FORBIDDEN
 from utils.helpers.logger import Logger
 
 
@@ -17,20 +17,26 @@ class ICategoryService(ABC):
     def get_all_categories(self, sort_by: str, order: int) -> APIResponse: ...
 
     @abstractmethod
-    def update_category(self, category_id: int, data: CategoryUpdate) -> APIResponse: ...
+    def update_category(self, category_id: int, data: CategoryUpdate, requester_id: int) -> APIResponse: ...
 
     @abstractmethod
-    def delete_category(self, category_id: int) -> APIResponse: ...
+    def delete_category(self, category_id: int, requester_id: int) -> APIResponse: ...
 
 class CategoryService(ICategoryService):
     def __init__(self, repository: ICategoryRepository):
         self.logger = Logger()
         self.repository = repository
 
-    def _validate_category(self, category_id: int):
+    def _validate_category(self, category_id: int) -> Category:
         category = self.repository.get_by_id(category_id)
         if not category:
             raise HTTPException(status_code=STATUS_NOT_FOUND, detail=f"Category with id {category_id} not found")
+        return category
+
+    def _validate_owner(self, category_id: int, requester_id: int) -> Category:
+        category = self._validate_category(category_id)
+        if category.user_id != requester_id:
+            raise HTTPException(status_code=STATUS_FORBIDDEN, detail="Not allowed to modify this category.")
         return category
 
     def create_category(self, data: CategoryCreate, user_id: int) -> APIResponse:
@@ -63,10 +69,10 @@ class CategoryService(ICategoryService):
             data=categories_response
         )
 
-    def update_category(self, category_id: int, data: CategoryUpdate) -> APIResponse:
+    def update_category(self, category_id: int, data: CategoryUpdate, requester_id: int) -> APIResponse:
         self.logger.info(f"Updating category with id {category_id}")
 
-        self._validate_category(category_id)
+        self._validate_owner(category_id, requester_id)
         fields = data.model_dump(exclude_unset=True)
         if not fields:
             raise HTTPException(status_code=STATUS_BAD_REQUEST, detail="No fields provided for update")
@@ -78,10 +84,10 @@ class CategoryService(ICategoryService):
             }
         )
 
-    def delete_category(self, category_id: int) -> APIResponse:
+    def delete_category(self, category_id: int, requester_id: int) -> APIResponse:
         self.logger.info(f"Deleting category with id {category_id}")
 
-        self._validate_category(category_id)
+        self._validate_owner(category_id, requester_id)
         self.repository.delete(category_id)
         return APIResponse(
             success=True

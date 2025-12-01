@@ -29,12 +29,12 @@ def get_all_categories(
     return category_service.get_all_categories(sort_by, order)
 
 @router.put("/{category_id}")
-def update_category(category_id: int, category_in: CategoryUpdate, category_service: ICategoryService = Depends(get_category_service)):
-    return category_service.update_category(category_id, category_in)
+def update_category(category_id: int, category_in: CategoryUpdate, requester_id: int = Depends(get_current_user_id), category_service: ICategoryService = Depends(get_category_service)):
+    return category_service.update_category(category_id, category_in, requester_id)
 
 @router.delete("/{category_id")
-def delete_category(category_id: int, category_service: ICategoryService = Depends(get_category_service)):
-    return category_service.delete_category(category_id)
+def delete_category(category_id: int, requester_id: int = Depends(get_current_user_id), category_service: ICategoryService = Depends(get_category_service)):
+    return category_service.delete_category(category_id, requester_id)
 
 
 
