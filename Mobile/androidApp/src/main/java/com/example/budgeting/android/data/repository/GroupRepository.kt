@@ -49,9 +49,9 @@ class GroupRepository(
         }
         
         val responseBody = rawResponse.body() ?: return Response.success(emptyList())
-        val jsonString = responseBody.string().trim()
+        val jsonString = responseBody.data?.string()?.trim()
         
-        if (jsonString.isEmpty() || jsonString == "[]") {
+        if (jsonString!!.isEmpty() || jsonString == "[]") {
             return Response.success(emptyList())
         }
         
@@ -79,13 +79,16 @@ class GroupRepository(
         }
     }
 
-    suspend fun addExpenseToGroup(expense: Expense): Response<Expense> {
-        return expenseApiService.addExpense(expense)
+    suspend fun getExpenseById(id: Int) = expenseApiService.getExpenseById(id).body()?.data ?: throw Exception("Failed to fetch expense")
+
+    suspend fun addExpenseToGroup(expense: Expense): Int {
+        return expenseApiService.addExpense(expense).body()?.data?.id ?: throw Exception("Failed to add expense")
     }
 
     suspend fun getGroupInviteQr(groupId: Int): Response<ResponseBody> =
         apiService.getGroupInviteQr(groupId)
 
-    suspend fun joinGroupByInvitationCode(invitationCode: String): Response<Unit> =
-        apiService.joinGroupByInvitationCode(invitationCode)
+
+    suspend fun joinGroupByInvitationCode(invitationCode: String): Unit =
+        apiService.joinGroupByInvitationCode(invitationCode).body()?.data ?: throw Exception("Failed to join group")
 }

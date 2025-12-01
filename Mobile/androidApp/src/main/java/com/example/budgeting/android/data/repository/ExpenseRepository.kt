@@ -23,7 +23,7 @@ class ExpenseRepository(
             category = category,
             sortBy = sortBy,
             order = order
-        )
+        ).body()?.data ?: throw Exception("Failed to fetch expenses")
     }
 
     // ---------------------------
@@ -38,7 +38,7 @@ class ExpenseRepository(
             category = category,
             sortBy = sortBy,
             order = order
-        )
+        ).body()?.data ?: throw Exception("Failed to fetch expenses")
     }
 
     // ---------------------------
@@ -55,21 +55,25 @@ class ExpenseRepository(
             category = category,
             sortBy = sortBy,
             order = order
-        )
+        ).body()?.data ?: throw Exception("Failed to fetch expenses")
     }
 
     // ---------------------------
     // CRUD
     // ---------------------------
-    suspend fun addExpense(expense: Expense): Expense {
-        return api.addExpense(expense).body() ?: throw Exception("Failed to add expense")
+    suspend fun getExpense(id: Int): Expense {
+        return api.getExpenseById(id).body()?.data ?: throw Exception("Failed to fetch expense")
     }
 
-    suspend fun updateExpense(id: Int, expense: Expense): String {
-        return api.updateExpense(id, expense)
+    suspend fun addExpense(expense: Expense): Int {
+        return api.addExpense(expense).body()?.data?.id ?: throw Exception("Failed to add expense")
     }
 
-    suspend fun deleteExpense(id: Int): String {
-        return api.deleteExpense(id)
+    suspend fun updateExpense(id: Int, expense: Expense): Int {
+        return api.updateExpense(id, expense).body()?.data?.id ?: throw Exception("Failed to update expense")
+    }
+
+    suspend fun deleteExpense(id: Int): Int {
+        return api.deleteExpense(id).body()?.data?.id ?: throw Exception("Failed to delete expense")
     }
 }

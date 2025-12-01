@@ -49,7 +49,7 @@ class LoginViewModel(context: Context) : ViewModel() {
                     val body = response.body()!!
                     // Token and user ID are already saved by AuthRepository
                     _uiState.update { it.copy(isLoading = false, loginSuccess = true) }
-                    println("SUCCESS: Logged in as ${body.user.firstName} ${body.user.lastName} (ID: ${body.user.id})")
+                    println("SUCCESS: Logged in as ${body.data!!.user.firstName} ${body.data.user.lastName} (ID: ${body.data.user.id})")
                 } else {
                     // Step 3b: On server error (e.g. wrong password), update state with error
                     val errorMessage = try {

@@ -13,7 +13,7 @@ class UserRepository(
 
     // GET USER BY ID
     suspend fun getUserById(id: Int): UserResponse{
-        return api.getUserById(id).body() ?: throw Exception("Failed to get user")
+        return api.getUserById(id).body()?.data ?: throw Exception("Failed to get user")
     }
 
     // UPDATE USER
