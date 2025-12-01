@@ -83,7 +83,9 @@ class ExpenseViewModel(context: Context) : ViewModel() {
                             search = f.search,
                             category = if (f.category == "All" || f.category.isBlank()) null else f.category,
                             sortBy = f.sortOption.sortBy,
-                            order = f.sortOption.order
+                            order = f.sortOption.order,
+                            dateFrom = null,
+                            dateTo = null
                         )
                         val filtered = response.filter { it.title.contains(f.search, ignoreCase = true) }
                         filtered
@@ -93,7 +95,9 @@ class ExpenseViewModel(context: Context) : ViewModel() {
                         val response = repository.getAllExpenses(
                             category = if (f.category == "All" || f.category.isBlank()) null else f.category,
                             sortBy = f.sortOption.sortBy,
-                            order = f.sortOption.order
+                            order = f.sortOption.order,
+                            dateFrom = null,
+                            dateTo = null
                         )
                         val filtered = response.filter { it.title.contains(f.search, ignoreCase = true) }
                         filtered
@@ -107,7 +111,9 @@ class ExpenseViewModel(context: Context) : ViewModel() {
                                 groupId = groupId,
                                 category = if (f.category == "All" || f.category.isBlank()) null else f.category,
                                 sortBy = f.sortOption.sortBy,
-                                order = f.sortOption.order
+                                order = f.sortOption.order,
+                                dateFrom = null,
+                                dateTo = null
                             )
                             val filtered = response.filter { it.title.contains(f.search, ignoreCase = true) }
                             allExpenses.addAll(filtered)

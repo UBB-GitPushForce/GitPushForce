@@ -16,7 +16,9 @@ interface ExpenseApiService {
         @Query("search") search: String? = null,
         @Query("category") category: String? = null,
         @Query("sort_by") sortBy: String? = "created_at",
-        @Query("order") order: String? = "desc"
+        @Query("order") order: String? = "desc",
+        @Query("date_from") dateFrom: String? = null,
+        @Query("date_to") dateTo: String? = null
     ): Response<ApiResponse<List<Expense>>>
 
     // ---------------------------
@@ -26,7 +28,9 @@ interface ExpenseApiService {
     suspend fun getAllExpenses(
         @Query("category") category: String? = null,
         @Query("sort_by") sortBy: String? = "created_at",
-        @Query("order") order: String? = "desc"
+        @Query("order") order: String? = "desc",
+        @Query("date_from") dateFrom: String? = null,
+        @Query("date_to") dateTo: String? = null
     ): Response<ApiResponse<List<Expense>>>
 
     // ---------------------------
@@ -37,7 +41,9 @@ interface ExpenseApiService {
         @Path("groupId") groupId: Int,
         @Query("category") category: String? = null,
         @Query("sort_by") sortBy: String? = "created_at",
-        @Query("order") order: String? = "desc"
+        @Query("order") order: String? = "desc",
+        @Query("date_from") dateFrom: String? = null,
+        @Query("date_to") dateTo: String? = null
     ): Response<ApiResponse<List<Expense>>>
 
     // ---------------------------

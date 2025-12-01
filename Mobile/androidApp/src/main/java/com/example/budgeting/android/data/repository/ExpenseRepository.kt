@@ -16,13 +16,17 @@ class ExpenseRepository(
         search: String?,
         category: String?,
         sortBy: String?,
-        order: String?
+        order: String?,
+        dateFrom: String?,
+        dateTo: String?
     ): List<Expense> {
         return api.getPersonalExpenses(
             search = search,
             category = category,
             sortBy = sortBy,
-            order = order
+            order = order,
+            dateFrom = dateFrom,
+            dateTo = dateTo
         ).body()?.data ?: throw Exception("Failed to fetch expenses")
     }
 
@@ -32,12 +36,16 @@ class ExpenseRepository(
     suspend fun getAllExpenses(
         category: String?,
         sortBy: String?,
-        order: String?
+        order: String?,
+        dateFrom: String?,
+        dateTo: String?
     ): List<Expense> {
         return api.getAllExpenses(
             category = category,
             sortBy = sortBy,
-            order = order
+            order = order,
+            dateFrom = dateFrom,
+            dateTo = dateTo
         ).body()?.data ?: throw Exception("Failed to fetch expenses")
     }
 
@@ -48,13 +56,17 @@ class ExpenseRepository(
         groupId: Int,
         category: String?,
         sortBy: String?,
-        order: String?
+        order: String?,
+        dateFrom: String?,
+        dateTo: String?
     ): List<Expense> {
         return api.getGroupExpenses(
             groupId = groupId,
             category = category,
             sortBy = sortBy,
-            order = order
+            order = order,
+            dateFrom = dateFrom,
+            dateTo = dateTo
         ).body()?.data ?: throw Exception("Failed to fetch expenses")
     }
 

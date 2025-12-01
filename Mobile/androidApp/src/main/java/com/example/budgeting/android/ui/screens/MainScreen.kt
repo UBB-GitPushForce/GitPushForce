@@ -31,6 +31,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.activity.compose.BackHandler
 import android.app.Activity
 import android.widget.Toast
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -39,6 +40,7 @@ val bottomNavItems = listOf(
     BottomNavItem("Expenses", Icons.Default.Home),
     BottomNavItem("Groups", Icons.Default.Group),
     BottomNavItem("Receipts", Icons.Default.Receipt),
+    BottomNavItem("Analytics", Icons.Default.BarChart),
     BottomNavItem("Profile", Icons.Default.Person)
 )
 
@@ -50,7 +52,7 @@ fun MainScreen(
     val context = LocalContext.current
     val activity = context as? Activity
     val navController = rememberNavController()
-    val pagerState = rememberPagerState(pageCount = { 4 })
+    val pagerState = rememberPagerState(pageCount = { 5 })
     val coroutineScope = rememberCoroutineScope()
     val lastBackPress = remember { mutableStateOf(0L) }
     val focusManager = LocalFocusManager.current
@@ -104,7 +106,8 @@ fun MainScreen(
                         0 -> ExpensesScreen()
                         1 -> GroupsScreen(onOpenGroup = { id -> navController.navigate("groupDetails/$id") })
                         2 -> ReceiptScreen()
-                        3 -> ProfileScreen(onLogout = onLogout)
+                        3 -> AnalyticsScreen()
+                        4 -> ProfileScreen(onLogout = onLogout)
                     }
                 }
             }
