@@ -78,6 +78,17 @@ class ProfileViewModel(context: Context) : ViewModel() {
         }
     }
 
+    fun changePassword(oldPassword: String, newPassword: String) {
+        viewModelScope.launch {
+            val current = _uiState.value.user ?: return@launch
+            try {
+                userRepository.changePassword(current.id, oldPassword, newPassword)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(error = e.message)
+            }
+        }
+    }
+
     fun logout() {
         viewModelScope.launch {
             TokenHolder.token = null

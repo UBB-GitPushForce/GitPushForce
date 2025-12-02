@@ -1,6 +1,7 @@
 package com.example.budgeting.android.data.repository
 
 import com.example.budgeting.android.data.local.TokenDataStore
+import com.example.budgeting.android.data.model.ChangePasswordRequest
 import com.example.budgeting.android.data.model.UserResponse
 import com.example.budgeting.android.data.model.UserUpdateRequest
 import com.example.budgeting.android.data.network.UserApiService
@@ -12,7 +13,7 @@ class UserRepository(
 
     // GET USER BY ID
     suspend fun getUserById(id: Int): UserResponse{
-        return api.getUserById(id).body() ?: throw Exception("Failed to get user")
+        return api.getUserById(id).body()?.data ?: throw Exception("Failed to get user")
     }
 
     // UPDATE USER
@@ -33,4 +34,14 @@ class UserRepository(
         }
 
     }
+
+    // CHANGE PASSWORD
+    suspend fun changePassword(id: Int, oldPassword: String, newPassword: String){
+        val response = api.changePassword(ChangePasswordRequest(id, oldPassword, newPassword))
+
+        if (!response.isSuccessful) {
+            throw Exception("Failed to change password")
+        }
+    }
+
 }

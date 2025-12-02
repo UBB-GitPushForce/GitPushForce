@@ -13,11 +13,11 @@ class AuthRepository(private val apiService: AuthApiService, private val tokenDa
         apiService.login(LoginRequest(email, password)).also { response ->
             if (response.isSuccessful) {
                 response.body()?.let { body ->
-                    body.accessToken?.let { token ->
+                    body.data?.accessToken?.let { token ->
                         TokenHolder.token = token
                         tokenDataStore.saveToken(token)
                     }
-                    tokenDataStore.saveUserId(body.user.id)
+                    tokenDataStore.saveUserId(body.data?.user?.id)
                 }
             }
         }
@@ -26,11 +26,11 @@ class AuthRepository(private val apiService: AuthApiService, private val tokenDa
         apiService.register(RegisterRequest(email, password, firstName, lastName, phoneNumber)).also { response ->
             if (response.isSuccessful) {
                 response.body()?.let { body ->
-                    body.accessToken?.let { token ->
+                    body.data?.accessToken?.let { token ->
                         TokenHolder.token = token
                         tokenDataStore.saveToken(token)
                     }
-                    tokenDataStore.saveUserId(body.user.id)
+                    tokenDataStore.saveUserId(body.data?.user?.id)
                 }
             }
         }

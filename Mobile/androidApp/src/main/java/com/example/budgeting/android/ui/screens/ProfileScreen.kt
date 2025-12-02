@@ -206,19 +206,10 @@ fun ProfileScreen(
                 if (showPasswordDialog) {
                     ChangePasswordDialog(
                         onDismiss = { showPasswordDialog = false },
-                        onConfirm = { newPassword ->
+                        onConfirm = { oldPassword, newPassword ->
                             showPasswordDialog = false
 
-                            profileViewModel.updateUser(
-                                UserUpdateRequest(
-                                    first_name = user.first_name,
-                                    last_name = user.last_name,
-                                    email = user.email,
-                                    phone_number = user.phone_number,
-                                    password = newPassword,
-                                    budget = user.budget
-                                )
-                            )
+                            profileViewModel.changePassword(oldPassword = oldPassword, newPassword = newPassword)
 
                             // Show confirmation snackbar
                             coroutineScope.launch {
@@ -235,7 +226,7 @@ fun ProfileScreen(
             // =============== VIEW MODE ======================
             if (!uiState.isEditing) {
                 InfoCard(title = "Phone Number", value = user.phone_number)
-                InfoCard(title = "Monthly Budget", value = "$${user.budget}")
+                InfoCard(title = "Budget", value = "$${user.budget}")
             }
 
             // =============== EDIT MODE ======================
@@ -316,16 +307,27 @@ fun EditField(
 @Composable
 fun ChangePasswordDialog(
     onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit
+    onConfirm: (String, String) -> Unit
 ) {
+    var oldPassword by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+
+    val isValid = oldPassword.isNotBlank() && newPassword == confirmPassword && newPassword.isNotBlank()
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Change Password") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = oldPassword,
+                    onValueChange = { oldPassword = it },
+                    label = { Text("Old Password") },
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
                 OutlinedTextField(
                     value = newPassword,
                     onValueChange = { newPassword = it },
@@ -355,7 +357,7 @@ fun ChangePasswordDialog(
             TextButton(
                 onClick = {
                     if (newPassword == confirmPassword && newPassword.isNotBlank()) {
-                        onConfirm(newPassword)
+                        onConfirm(oldPassword, newPassword)
                     }
                 },
                 enabled = newPassword == confirmPassword && newPassword.isNotBlank()

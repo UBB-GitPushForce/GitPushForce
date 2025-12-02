@@ -44,6 +44,7 @@ fun ExpensesScreen(
     val isLoading by expenseViewModel.isLoading.collectAsState()
     val error by expenseViewModel.error.collectAsState()
     val mode by expenseViewModel.mode.collectAsState()
+    val currentUserId by expenseViewModel.currentUserId.collectAsState()
 
     val filters by expenseViewModel.filters.collectAsState()
     val focusManager = LocalFocusManager.current
@@ -125,13 +126,18 @@ fun ExpensesScreen(
 
                     else -> ExpensesList(
                         expenses = expenses,
+                        currentUserId = currentUserId!!,
                         onClick = { expense ->
-                            selectedExpense = expense
-                            showDialog = true
+                            if(expense.user_id == currentUserId){
+                                selectedExpense = expense
+                                showDialog = true
+                            }
                         },
                         onLongClick = { expense ->
-                            selectedExpense = expense
-                            showDeleteDialog = true
+                            if(expense.user_id == currentUserId){
+                                selectedExpense = expense
+                                showDeleteDialog = true
+                            }
                         }
                     )
                 }
@@ -390,6 +396,7 @@ fun EmptyState() {
 @Composable
 fun ExpensesList(
     expenses: List<Expense>,
+    currentUserId: Int,
     onClick: (Expense) -> Unit,
     onLongClick: (Expense) -> Unit
 ) {
@@ -399,6 +406,7 @@ fun ExpensesList(
         items(expenses) { expense ->
             ExpenseItem(
                 expense = expense,
+                currentUserId = currentUserId,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 4.dp)

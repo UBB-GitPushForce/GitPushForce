@@ -16,5 +16,8 @@ data class UserData(
     val email: String,
 
     @Json(name = "phone_number")
-    val phoneNumber: String
+    val phoneNumber: String,
+
+    @Json(name = "budget")
+    val budget: Double
 )

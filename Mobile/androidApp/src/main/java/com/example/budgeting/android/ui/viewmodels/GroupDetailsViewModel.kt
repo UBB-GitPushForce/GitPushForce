@@ -9,6 +9,7 @@ import com.example.budgeting.android.data.model.Group
 import com.example.budgeting.android.data.model.UserData
 import com.example.budgeting.android.data.model.Expense
 import com.example.budgeting.android.data.network.RetrofitClient
+import com.example.budgeting.android.data.repository.ExpenseRepository
 import com.example.budgeting.android.data.repository.GroupRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -78,14 +79,14 @@ class GroupDetailsViewModel(context: Context) : ViewModel() {
                     _isLoading.value = false
                     return@launch
                 }
-                _group.value = groupResponse.body()
+                _group.value = groupResponse.body()?.data
                 _qrImage.value = null
                 _qrError.value = null
 
                 // Load group members
-                val membersResponse = groupRepository.getUsersByGroup(groupId)
-                val membersList = if (membersResponse.isSuccessful && membersResponse.body() != null) {
-                    membersResponse.body()!!
+                val membersResponse = groupRepository.getUsersByGroup(groupId).body()
+                val membersList = if (membersResponse?.success == true && membersResponse.data != null) {
+                    membersResponse.data
                 } else {
                     emptyList()
                 }
@@ -189,12 +190,12 @@ class GroupDetailsViewModel(context: Context) : ViewModel() {
                         group_id = groupId,
                         created_at = null
                     )
-                    
-                    val response = groupRepository.addExpenseToGroup(expenseToCreate)
-                    if (response.isSuccessful && response.body() != null) {
-                        createdExpenses.add(response.body()!!)
-                    } else {
-                        _error.value = "Failed to add expense: ${response.code()}"
+
+                    try{
+                        val expenseId = groupRepository.addExpenseToGroup(expenseToCreate)
+                        createdExpenses.add(groupRepository.getExpenseById(expenseId))
+                    } catch (e: Exception){
+                        _error.value = "Failed to add expense: ${e.message}"
                         _isLoading.value = false
                         return@launch
                     }

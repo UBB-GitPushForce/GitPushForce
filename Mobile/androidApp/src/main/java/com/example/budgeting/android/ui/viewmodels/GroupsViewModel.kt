@@ -67,7 +67,7 @@ class GroupsViewModel(context: Context) : ViewModel() {
                 val response = repository.getGroupsByUser(userId)
                 if (response.isSuccessful) {
                     try {
-                        val groups = response.body()?.filterNotNull() ?: emptyList()
+                        val groups = response.body()?.data?.filterNotNull() ?: emptyList()
                         // Filter out any groups that might be missing required fields
                         val validGroups = groups.filter { it.isValid }
                         _groups.value = validGroups
@@ -154,7 +154,7 @@ class GroupsViewModel(context: Context) : ViewModel() {
                         // Check if we're now in the group by reloading
                         val checkResponse = repository.getGroupsByUser(userId)
                         if (checkResponse.isSuccessful) {
-                            val userGroups = checkResponse.body()?.filterNotNull() ?: emptyList()
+                            val userGroups = checkResponse.body()?.data?.filterNotNull() ?: emptyList()
                             val wasAdded = userGroups.any { it.id == groupId }
                             if (wasAdded) {
                                 // Success! The user was added despite the error
@@ -213,16 +213,12 @@ class GroupsViewModel(context: Context) : ViewModel() {
                     return@launch
                 }
 
-                val response = repository.joinGroupByInvitationCode(sanitizedCode)
-                if (response.isSuccessful) {
+                try{
+                    repository.joinGroupByInvitationCode(sanitizedCode)
                     loadGroups()
                     onSuccess()
-                } else {
-                    val errorMessage = GroupsErrorHandler.parseErrorResponse(
-                        response.code(),
-                        response.errorBody()?.string()
-                    )
-                    _error.value = errorMessage
+                }catch (e: Exception){
+                    _error.value = e.toString()
                     _isLoading.value = false
                 }
             } catch (e: Exception) {
@@ -255,25 +251,25 @@ class GroupsViewModel(context: Context) : ViewModel() {
                 
                 val response = repository.createGroup(name, description)
                 if (response.isSuccessful) {
-                    val group = response.body()
-                    if (group != null && group.id != null) {
+                    val groupId = response.body()?.data
+                    if (groupId != null) {
                         // Automatically add the creator to the group
-                        val addUserResponse = repository.addUserToGroup(group.id!!, userId)
+                        val addUserResponse = repository.addUserToGroup(groupId, userId)
                         if (addUserResponse.isSuccessful) {
                             // Reload groups to get the updated list from the server
                             loadGroups()
-                            onSuccess(group)
+                            onSuccess(repository.getGroup(groupId).body()?.data!!)
                         } else {
                             // Group was created but failed to add user - check if user was actually added
                             // Sometimes the backend succeeds but returns an error due to refresh issues
                             val checkResponse = repository.getGroupsByUser(userId)
                             if (checkResponse.isSuccessful) {
-                                val userGroups = checkResponse.body()?.filterNotNull() ?: emptyList()
-                                val wasAdded = userGroups.any { it.id == group.id }
+                                val userGroups = checkResponse.body()?.data?.filterNotNull() ?: emptyList()
+                                val wasAdded = userGroups.any { it.id == groupId }
                                 if (wasAdded) {
                                     // Success! The user was added despite the error
                                     loadGroups()
-                                    onSuccess(group)
+                                    onSuccess(repository.getGroup(groupId).body()?.data!!)
                                 } else {
                                     // Group was created but user wasn't added - still reload groups
                                     loadGroups()
@@ -326,7 +322,7 @@ class GroupsViewModel(context: Context) : ViewModel() {
                     if (group != null) {
                         // Reload groups to get the updated list from the server
                         loadGroups()
-                        onSuccess(group)
+                        onSuccess(repository.getGroup(groupId).body()?.data!!)
                     } else {
                         _error.value = "Update failed: No group data received"
                         _isLoading.value = false

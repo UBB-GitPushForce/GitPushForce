@@ -33,3 +33,8 @@ data class Expense(
     @Json(name = "created_at")
     val created_at: String? = null
 )
+
+data class ExpenseIdResponse(
+    @Json(name = "id")
+    val id: Int
+)

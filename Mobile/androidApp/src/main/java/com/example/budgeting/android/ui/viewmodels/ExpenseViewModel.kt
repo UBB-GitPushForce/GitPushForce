@@ -51,13 +51,23 @@ class ExpenseViewModel(context: Context) : ViewModel() {
     private val _categories = MutableStateFlow<List<String>>(emptyList())
     val categories: StateFlow<List<String>> = _categories
 
+    private val _currentUserId = MutableStateFlow<Int?>(null)
+    val currentUserId: StateFlow<Int?> = _currentUserId.asStateFlow()
+
     init {
+        loadCurrentUserId()
         loadUserGroups()
     }
 
     /** ----------------------------------------------------------
      *  MAIN: Load expenses using backend filtering
      * ---------------------------------------------------------- */
+    fun loadCurrentUserId() {
+        viewModelScope.launch {
+            _currentUserId.value = tokenStore.getUserId()
+        }
+    }
+
     fun loadExpenses() {
         viewModelScope.launch {
             _isLoading.value = true
@@ -73,7 +83,9 @@ class ExpenseViewModel(context: Context) : ViewModel() {
                             search = f.search,
                             category = if (f.category == "All" || f.category.isBlank()) null else f.category,
                             sortBy = f.sortOption.sortBy,
-                            order = f.sortOption.order
+                            order = f.sortOption.order,
+                            dateFrom = null,
+                            dateTo = null
                         )
                         val filtered = response.filter { it.title.contains(f.search, ignoreCase = true) }
                         filtered
@@ -83,7 +95,9 @@ class ExpenseViewModel(context: Context) : ViewModel() {
                         val response = repository.getAllExpenses(
                             category = if (f.category == "All" || f.category.isBlank()) null else f.category,
                             sortBy = f.sortOption.sortBy,
-                            order = f.sortOption.order
+                            order = f.sortOption.order,
+                            dateFrom = null,
+                            dateTo = null
                         )
                         val filtered = response.filter { it.title.contains(f.search, ignoreCase = true) }
                         filtered
@@ -97,7 +111,9 @@ class ExpenseViewModel(context: Context) : ViewModel() {
                                 groupId = groupId,
                                 category = if (f.category == "All" || f.category.isBlank()) null else f.category,
                                 sortBy = f.sortOption.sortBy,
-                                order = f.sortOption.order
+                                order = f.sortOption.order,
+                                dateFrom = null,
+                                dateTo = null
                             )
                             val filtered = response.filter { it.title.contains(f.search, ignoreCase = true) }
                             allExpenses.addAll(filtered)
@@ -145,7 +161,7 @@ class ExpenseViewModel(context: Context) : ViewModel() {
                 val userId = tokenStore.getUserId()
                 val response = groupRepository.getGroupsByUser(userId!!)
                 if (response.isSuccessful && response.body() != null) {
-                    _groupIds.value = response.body()!!.map { it.id!! } // store all group IDs
+                    _groupIds.value = response.body()!!.data!!.map { it.id!! } // store all group IDs
                 } else {
                     _error.value = "Error loading user groups"
                 }

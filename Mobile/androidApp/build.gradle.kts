@@ -98,4 +98,9 @@ dependencies {
 
     // QR scanning
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+
+    // Analytics
+    implementation("com.patrykandpatrick.vico:compose:1.13.0")
+    implementation("com.patrykandpatrick.vico:compose-m3:1.13.0")
+
 }
