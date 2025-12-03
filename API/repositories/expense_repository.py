@@ -5,8 +5,9 @@ from typing import List, Optional
 from models.category import Category
 from models.expense import Expense
 from models.user_group import UserGroup
+from models.group import Group
 from sqlalchemy import and_, asc, desc, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 
 class IExpenseRepository(ABC):
@@ -92,7 +93,7 @@ class ExpenseRepository(IExpenseRepository):
         """
         statement = select(Expense).where(Expense.id == expense_id)
         
-        return self.db.scalars(statement).first()
+        return self.db.scalars(statement).unique().first()
 
     def get_all(
         self, 
@@ -127,12 +128,14 @@ class ExpenseRepository(IExpenseRepository):
             if category_ids:
                 conditions.append(Expense.category_id.in_(category_ids))
         
-        statement = select(Expense)
+        statement = select(Expense).options(
+            joinedload(Expense.group).joinedload(Group.users)
+        )
         if conditions:
             statement = statement.where(and_(*conditions))
+
         statement = statement.order_by(sort_order).offset(offset).limit(limit)
-        
-        return list(self.db.scalars(statement))
+        return list(self.db.scalars(statement).unique())
 
     def get_by_user(
         self, 
@@ -187,13 +190,14 @@ class ExpenseRepository(IExpenseRepository):
         
         statement = (
             select(Expense)
+            .options(joinedload(Expense.group).joinedload(Group.users))
             .where(and_(*conditions))
             .order_by(sort_order)
             .offset(offset)
             .limit(limit)
         )
         
-        return list(self.db.scalars(statement))
+        return list(self.db.scalars(statement).unique())
 
     def get_by_group(
         self, 
@@ -231,13 +235,14 @@ class ExpenseRepository(IExpenseRepository):
             
         statement = (
             select(Expense)
+            .options(joinedload(Expense.group).joinedload(Group.users))
             .where(and_(*conditions)) 
             .order_by(sort_order)
             .offset(offset)
             .limit(limit)
         )
         
-        return list(self.db.scalars(statement))
+        return list(self.db.scalars(statement).unique())
 
     def update(self, expense_id: int, fields: dict) -> int:
         """
