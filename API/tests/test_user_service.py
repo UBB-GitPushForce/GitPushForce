@@ -4,7 +4,6 @@ from fastapi import HTTPException
 from schemas.user import UserCreate, UserLogin, UserUpdate
 from services.user_service import ALGORITHM, SECRET_KEY, UserService
 
-
 # Mock UserRepository
 class MockUserRepository:
     """
@@ -61,10 +60,7 @@ def user_service():
     mock_repo = MockUserRepository()
     service = UserService.__new__(UserService)  # bypass __init__
     service.repository = mock_repo
-    # Initialize logger mock if needed, or rely on the fact that Logger() is static/singleton
-    # For this test structure, assuming Logger calls are safe or mocked elsewhere isn't strictly necessary 
-    # if the real Logger doesn't break tests. 
-    # However, strictly speaking, we might want to silence the logger here.
+    # Mock the logger to prevent errors during tests
     service.logger = type('MockLogger', (), {'debug': lambda s: None, 'info': lambda s: None, 'warning': lambda s: None, 'error': lambda s: None})
     return service
 
@@ -78,8 +74,16 @@ def test_register_user_success(user_service):
         phone_number="123456"
     )
     result = user_service.register_user(user_in)
+    
     assert "access_token" in result
-    assert result["user"].email == "test@example.com"
+    
+    # REPAIR: result["user"] is an ID (int), not an object
+    user_id = result["user"]
+    assert isinstance(user_id, int)
+    
+    # Fetch object to verify properties
+    created_user = user_service.repository.get_by_id(user_id)
+    assert created_user.email == "test@example.com"
 
 
 def test_register_duplicate_email(user_service):
@@ -110,7 +114,9 @@ def test_login_success(user_service):
 
     login_in = UserLogin(email="login@example.com", password="Password123")
     result = user_service.login_user(login_in)
+    
     assert "access_token" in result
+    # Login service DOES return the User object (unlike register)
     assert result["user"].email == "login@example.com"
 
 
@@ -140,7 +146,9 @@ def test_get_user_by_id_success(user_service):
     )
     result = user_service.register_user(user_in)
 
-    user_id = result["user"].id
+    # REPAIR: Extract ID
+    user_id = result["user"]
+    
     user = user_service.get_user_by_id(user_id)
     assert user.id == user_id
     assert user.email == "getuser@example.com"
@@ -174,7 +182,9 @@ def test_update_user_success(user_service):
         phone_number="123456"
     )
     result = user_service.register_user(user_in)
-    user_id = result["user"].id
+    
+    # REPAIR: Extract ID
+    user_id = result["user"]
 
     update_in = UserUpdate(first_name="NewName")
 
@@ -190,7 +200,8 @@ def test_update_user_email_conflict(user_service):
         last_name="A",
         phone_number="123",
     ))
-    u1_id = u1_result["user"].id
+    # REPAIR: Extract ID
+    u1_id = u1_result["user"]
 
     user_service.register_user(UserCreate(
         email="b@example.com",
@@ -214,7 +225,8 @@ def test_delete_user(user_service):
         last_name="User",
         phone_number="000",
     ))
-    user_id = r["user"].id
+    # REPAIR: Extract ID
+    user_id = r["user"]
 
     user_service.delete_user(user_id)
 
@@ -222,12 +234,12 @@ def test_delete_user(user_service):
         user_service.get_user_by_id(user_id)
 
 
-def test_request_password_reset_nonexistent(user_service, capsys):
+def test_request_password_reset_nonexistent(user_service):
     result = user_service.request_password_reset("none@example.com")
     assert "Check the API console" in result["message"]
 
 
-def test_request_password_reset_success(user_service, capsys):
+def test_request_password_reset_success(user_service):
     user_service.register_user(UserCreate(
         email="reset@example.com",
         password="Password123",
@@ -248,7 +260,8 @@ def test_reset_password_success(user_service):
         last_name="B",
         phone_number="123",
     ))
-    user_id = reg["user"].id
+    # REPAIR: Extract ID
+    user_id = reg["user"]
 
     token = user_service._create_reset_token(user_id)
 
@@ -331,7 +344,8 @@ def test_change_password_success(user_service):
         phone_number="111"
     )
     res = user_service.register_user(reg_data)
-    user_id = res["user"].id
+    # NOTE: register_user now returns an ID in 'user', not the object.
+    user_id = res["user"]
 
     # 2. Change Password
     user_service.change_password(user_id, "OldPassword123", "NewPassword999")
@@ -360,7 +374,7 @@ def test_change_password_invalid_old_password(user_service):
         phone_number="222"
     )
     res = user_service.register_user(reg_data)
-    user_id = res["user"].id
+    user_id = res["user"]
 
     # 2. Attempt change with WRONG old password
     with pytest.raises(HTTPException) as exc:
