@@ -4,8 +4,8 @@ from typing import List, Optional
 
 from models.category import Category
 from models.expense import Expense
-from models.user_group import UserGroup
 from models.group import Group
+from models.user_group import UserGroup
 from sqlalchemy import and_, asc, desc, or_, select
 from sqlalchemy.orm import Session, joinedload
 

@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from schemas.user import UserCreate, UserLogin, UserUpdate
 from services.user_service import ALGORITHM, SECRET_KEY, UserService
 
+
 # Mock UserRepository
 class MockUserRepository:
     """

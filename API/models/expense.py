@@ -41,6 +41,7 @@ class Expense(Base):
             name="chk_expenses_one_fk"
         ),
     )
+
     @property
     def split_amount(self) -> float:
         """
