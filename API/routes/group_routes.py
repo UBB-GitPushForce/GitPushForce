@@ -5,7 +5,7 @@ from dependencies.di import (
     get_group_service,
     get_user_group_service,
 )
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from schemas.group import GroupCreate, GroupUpdate
 from services.expense_service import IExpenseService
 from services.group_log_service import GroupLogService, IGroupLogService
