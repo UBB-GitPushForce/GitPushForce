@@ -48,7 +48,7 @@ fun ExpenseItem(
                 )
 
                 Text(
-                    text = "Category: ${expense.category}",
+                    text = "Category: ${expense.categoryTitle}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

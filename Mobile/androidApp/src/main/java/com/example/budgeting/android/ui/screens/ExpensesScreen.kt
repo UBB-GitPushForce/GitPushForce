@@ -316,7 +316,7 @@ fun AddEditExpenseDialog(
     onSave: (Expense) -> Unit
 ) {
     var title by remember { mutableStateOf(expense?.title ?: "") }
-    var category by remember { mutableStateOf(expense?.category ?: "") }
+    var categoryId by remember { mutableStateOf(expense?.category_id?.toString() ?: "1") }
     var amount by remember { mutableStateOf(expense?.amount?.toString() ?: "") }
 
     AlertDialog(
@@ -331,12 +331,15 @@ fun AddEditExpenseDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
-                    value = category,
-                    onValueChange = { category = it },
-                    label = { Text("Category") },
+                    value = categoryId,
+                    onValueChange = { categoryId = it },
+                    label = { Text("Category ID") },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp)
+                        .padding(top = 8.dp),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    supportingText = { Text("Enter category ID (default: 1)", style = MaterialTheme.typography.bodySmall) }
                 )
                 OutlinedTextField(
                     value = amount,
@@ -353,8 +356,13 @@ fun AddEditExpenseDialog(
         confirmButton = {
             TextButton(onClick = {
                 val parsedAmount = amount.toDoubleOrNull() ?: 0.0
-                if (title.isNotBlank() && category.isNotBlank()) {
-                    onSave(Expense(title = title, category = category, amount = parsedAmount))
+                val parsedCategoryId = categoryId.toIntOrNull() ?: 1
+                if (title.isNotBlank()) {
+                    onSave(Expense(
+                        title = title,
+                        category_id = parsedCategoryId,
+                        amount = parsedAmount
+                    ))
                 }
             }) {
                 Text("Save")

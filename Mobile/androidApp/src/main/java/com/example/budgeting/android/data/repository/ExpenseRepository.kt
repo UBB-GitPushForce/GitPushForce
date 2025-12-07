@@ -78,7 +78,16 @@ class ExpenseRepository(
     }
 
     suspend fun addExpense(expense: Expense): Int {
-        return api.addExpense(expense).body()?.data?.id ?: throw Exception("Failed to add expense")
+        // Convert Expense to ExpenseCreateRequest
+        // Backend requires category_id, not category string
+        val createRequest = com.example.budgeting.android.data.model.ExpenseCreateRequest(
+            title = expense.title,
+            amount = expense.amount,
+            category_id = expense.category_id ?: 1, // Default to 1 if not provided
+            group_id = expense.group_id,
+            description = expense.description
+        )
+        return api.addExpense(createRequest).body()?.data?.id ?: throw Exception("Failed to add expense")
     }
 
     suspend fun updateExpense(id: Int, expense: Expense): Int {

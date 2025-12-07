@@ -134,7 +134,7 @@ class ExpenseViewModel(context: Context) : ViewModel() {
 
     private fun updateCategories(expenses: List<Expense>) {
         val newCategories = expenses
-            .map { it.category }
+            .mapNotNull { it.category?.title }
             .filter { it.isNotBlank() }
             .distinct()
             .sorted()
@@ -161,7 +161,7 @@ class ExpenseViewModel(context: Context) : ViewModel() {
                 val userId = tokenStore.getUserId()
                 val response = groupRepository.getGroupsByUser(userId!!)
                 if (response.isSuccessful && response.body() != null) {
-                    _groupIds.value = response.body()!!.data!!.map { it.id!! } // store all group IDs
+                    _groupIds.value = response.body()!!.map { it.id!! } // store all group IDs
                 } else {
                     _error.value = "Error loading user groups"
                 }

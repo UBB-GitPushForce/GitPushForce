@@ -6,9 +6,12 @@ import androidx.lifecycle.viewModelScope
 import com.example.budgeting.android.data.auth.TokenHolder
 import com.example.budgeting.android.data.local.TokenDataStore
 import com.example.budgeting.android.data.model.Group
+import com.example.budgeting.android.data.model.GroupLog
 import com.example.budgeting.android.data.model.UserData
 import com.example.budgeting.android.data.model.Expense
+import com.example.budgeting.android.data.model.ExpensePayment
 import com.example.budgeting.android.data.network.RetrofitClient
+import com.example.budgeting.android.data.repository.ExpensePaymentRepository
 import com.example.budgeting.android.data.repository.ExpenseRepository
 import com.example.budgeting.android.data.repository.GroupRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,6 +31,10 @@ class GroupDetailsViewModel(context: Context) : ViewModel() {
     private val groupRepository = GroupRepository(
         RetrofitClient.groupInstance,
         RetrofitClient.expenseInstance,
+        tokenDataStore
+    )
+    private val expensePaymentRepository = ExpensePaymentRepository(
+        RetrofitClient.expensePaymentInstance,
         tokenDataStore
     )
 
@@ -55,12 +62,19 @@ class GroupDetailsViewModel(context: Context) : ViewModel() {
     private val _qrError = MutableStateFlow<String?>(null)
     val qrError: StateFlow<String?> = _qrError.asStateFlow()
 
+    private val _logs = MutableStateFlow<List<GroupLog>>(emptyList())
+    val logs: StateFlow<List<GroupLog>> = _logs.asStateFlow()
+
+    private val _currentUserId = MutableStateFlow<Int?>(null)
+    val currentUserId: StateFlow<Int?> = _currentUserId.asStateFlow()
+
     init {
         viewModelScope.launch {
             val savedToken = tokenDataStore.tokenFlow.firstOrNull()
             if (!savedToken.isNullOrBlank()) {
                 TokenHolder.token = savedToken
             }
+            _currentUserId.value = tokenDataStore.getUserId()
         }
     }
 
@@ -79,14 +93,14 @@ class GroupDetailsViewModel(context: Context) : ViewModel() {
                     _isLoading.value = false
                     return@launch
                 }
-                _group.value = groupResponse.body()?.data
+                _group.value = groupResponse.body()
                 _qrImage.value = null
                 _qrError.value = null
 
                 // Load group members
-                val membersResponse = groupRepository.getUsersByGroup(groupId).body()
-                val membersList = if (membersResponse?.success == true && membersResponse.data != null) {
-                    membersResponse.data
+                val membersResponse = groupRepository.getUsersByGroup(groupId)
+                val membersList = if (membersResponse.isSuccessful && membersResponse.body() != null) {
+                    membersResponse.body()!!
                 } else {
                     emptyList()
                 }
@@ -107,6 +121,22 @@ class GroupDetailsViewModel(context: Context) : ViewModel() {
                 } else {
                     _error.value = "Error: ${expensesResponse.code()} - ${expensesResponse.message()}"
                     _expenses.value = emptyList()
+                }
+
+                // Load group logs (join/leave events)
+                try {
+                    val logsResponse = groupRepository.getGroupLogs(groupId)
+                    if (logsResponse.isSuccessful && logsResponse.body() != null) {
+                        _logs.value = logsResponse.body()!!
+                    } else {
+                        val errorMsg = "Failed to load group logs: ${logsResponse.code()}"
+                        if (_error.value == null) {
+                            _error.value = errorMsg
+                        }
+                        _logs.value = emptyList()
+                    }
+                } catch (e: Exception) {
+                    _logs.value = emptyList()
                 }
 
             } catch (e: Exception) {
@@ -167,15 +197,15 @@ class GroupDetailsViewModel(context: Context) : ViewModel() {
                 }
                 
                 val existingExpenses = _expenses.value
-                val createdExpenses = mutableListOf<Expense>()
                 val skippedExpenses = mutableListOf<String>()
+                val addedExpenseIds = mutableListOf<Int>()
                 
                 for (expense in expenses) {
                     // Check if expense is already in the group
                     val isDuplicate = existingExpenses.any { groupExpense ->
                         groupExpense.expense.title == expense.title &&
                         groupExpense.expense.amount == expense.amount &&
-                        groupExpense.expense.category == expense.category &&
+                        groupExpense.expense.categoryTitle == expense.categoryTitle &&
                         groupExpense.expense.user_id == userId
                     }
                     
@@ -191,11 +221,17 @@ class GroupDetailsViewModel(context: Context) : ViewModel() {
                         created_at = null
                     )
 
-                    try{
-                        val expenseId = groupRepository.addExpenseToGroup(expenseToCreate)
-                        createdExpenses.add(groupRepository.getExpenseById(expenseId))
-                    } catch (e: Exception){
-                        _error.value = "Failed to add expense: ${e.message}"
+                    try {
+                        val expenseId = groupRepository.addExpenseToGroup(expenseToCreate, description?.takeIf { it.isNotBlank() })
+                        addedExpenseIds.add(expenseId)
+                        
+                        // Automatically mark the expense creator as having paid
+                        try {
+                            expensePaymentRepository.markPaid(expenseId, userId)
+                        } catch (e: Exception) {
+                        }
+                    } catch (e: Exception) {
+                        _error.value = "Failed to add expense '${expense.title}': ${e.message}"
                         _isLoading.value = false
                         return@launch
                     }
@@ -210,23 +246,47 @@ class GroupDetailsViewModel(context: Context) : ViewModel() {
                     _error.value = skippedMessage
                 }
                 
-                val membersList = _members.value
-                val descriptionText = description?.takeIf { it.isNotBlank() }
-                val newGroupExpenses = createdExpenses.map { expense ->
-                    val userName = expense.user_id?.let { userId ->
-                        membersList.find { it.id == userId }?.let { user ->
-                            "${user.firstName} ${user.lastName}"
-                        } ?: "Unknown User"
-                    } ?: "Group Member"
-                    
-                    GroupExpense(
-                        expense = expense,
-                        userName = userName,
-                        description = descriptionText
-                    )
+                if (addedExpenseIds.isNotEmpty()) {
+                    try {
+                        val expensesResponse = groupRepository.getExpensesByGroup(
+                            groupId = groupId,
+                            offset = 0,
+                            limit = 100,
+                            sortBy = "created_at",
+                            order = "asc"
+                        )
+                        
+                        if (expensesResponse.isSuccessful) {
+                            val updatedExpenses = expensesResponse.body() ?: emptyList()
+                            val membersList = _members.value
+                            val groupExpenses = mapExpensesToGroupExpenses(updatedExpenses, membersList)
+                            
+                            val descriptionText = description?.takeIf { it.isNotBlank() }
+                            val finalExpenses = if (descriptionText != null && addedExpenseIds.isNotEmpty()) {
+                                groupExpenses.map { groupExpense ->
+                                    if (addedExpenseIds.contains(groupExpense.expense.id)) {
+                                        groupExpense.copy(description = descriptionText)
+                                    } else {
+                                        groupExpense
+                                    }
+                                }
+                            } else {
+                                groupExpenses
+                            }
+                            
+                            _expenses.value = finalExpenses
+                        } else {
+                            _error.value = "Expenses added but failed to refresh list"
+                        }
+                        
+                        val logsResponse = groupRepository.getGroupLogs(groupId)
+                        if (logsResponse.isSuccessful && logsResponse.body() != null) {
+                            _logs.value = logsResponse.body()!!
+                        }
+                    } catch (e: Exception) {
+                        _error.value = "Expenses added but failed to refresh: ${e.message}"
+                    }
                 }
-                
-                _expenses.value = _expenses.value + newGroupExpenses
                 
             } catch (e: Exception) {
                 _error.value = "Error adding expenses: ${e.message}"
@@ -255,19 +315,29 @@ class GroupDetailsViewModel(context: Context) : ViewModel() {
             try {
                 ensureTokenLoaded()
                 val response = groupRepository.getGroupInviteQr(groupId)
-                if (response.isSuccessful) {
-                    val body = response.body()
-                    if (body != null) {
+                if (response.isSuccessful && response.body() != null) {
+                    try {
+                        val body = response.body()!!
                         val bytes = body.bytes()
-                        _qrImage.value = bytes
-                    } else {
-                        _qrError.value = "Empty QR response"
+                        if (bytes.isNotEmpty()) {
+                            _qrImage.value = bytes
+                            _qrError.value = null
+                        } else {
+                            _qrError.value = "QR code data is empty"
+                        }
+                    } catch (e: Exception) {
+                        _qrError.value = "Failed to read QR code: ${e.message ?: "Unknown error"}"
                     }
                 } else {
-                    _qrError.value = "Failed to fetch QR: ${response.code()}"
+                    val errorMessage = try {
+                        response.errorBody()?.string() ?: "Unknown error (${response.code()})"
+                    } catch (e: Exception) {
+                        "Failed to fetch QR code: ${response.code()}"
+                    }
+                    _qrError.value = errorMessage
                 }
             } catch (e: Exception) {
-                _qrError.value = e.message ?: "Failed to load QR code"
+                _qrError.value = "Failed to load QR code: ${e.message ?: "Unknown error"}"
             } finally {
                 _qrIsLoading.value = false
             }
@@ -276,5 +346,26 @@ class GroupDetailsViewModel(context: Context) : ViewModel() {
 
     fun clearQrError() {
         _qrError.value = null
+    }
+
+    suspend fun getExpensePayments(expenseId: Int): List<ExpensePayment> {
+        return try {
+            expensePaymentRepository.getPayments(expenseId)
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun togglePaymentStatus(expenseId: Int, payerId: Int, isPaid: Boolean): Boolean {
+        return try {
+            val result = if (isPaid) {
+                expensePaymentRepository.markPaid(expenseId, payerId)
+            } else {
+                expensePaymentRepository.unmarkPaid(expenseId, payerId)
+            }
+            result
+        } catch (e: Exception) {
+            false
+        }
     }
 }

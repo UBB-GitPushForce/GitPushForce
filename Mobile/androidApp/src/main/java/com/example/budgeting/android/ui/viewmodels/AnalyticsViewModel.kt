@@ -92,7 +92,8 @@ class AnalyticsViewModel(context: Context) : ViewModel() {
                 val userId = tokenStore.getUserId()
                 val response = groupRepository.getGroupsByUser(userId!!)
                 if (response.isSuccessful && response.body() != null) {
-                    _groupIds.value = response.body()!!.data!!.map { it.id!! }
+                    _groupIds.value = response.body()!!.map { it.id as Int }
+                    loadAnalytics()
                 }
             } catch (e: Exception) {
                 _error.value = e.localizedMessage
@@ -142,11 +143,11 @@ class AnalyticsViewModel(context: Context) : ViewModel() {
                 }
 
                 // --- CATEGORY AMOUNT ---
-                _categoryAmounts.value = expenses.groupBy { it.category }
+                _categoryAmounts.value = expenses.groupBy { it.categoryTitle }
                     .map { (cat, list) -> CategoryTotal(category = cat, total = list.sumOf { it.amount }.toFloat()) }
-
+                
                 // --- CATEGORY COUNT ---
-                _categoryCounts.value = expenses.groupBy { it.category }
+                _categoryCounts.value = expenses.groupBy { it.categoryTitle }
                     .map { (cat, list) -> CategoryCount(category = cat, count = list.size) }
 
                 // --- MONTHLY TREND ---
@@ -154,7 +155,7 @@ class AnalyticsViewModel(context: Context) : ViewModel() {
                     .map { (month, list) -> MonthlyTotal(month = month, total = list.sumOf { it.amount }.toFloat()) }
 
                 // --- AVAILABLE CATEGORIES ---
-                _categories.value = expenses.map { it.category }.distinct().sorted()
+                _categories.value = expenses.mapNotNull { it.category?.title }.distinct().sorted()
 
             } catch (e: Exception) {
                 _error.value = e.localizedMessage

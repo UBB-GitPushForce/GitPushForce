@@ -151,16 +151,15 @@ class ExpenseService(IExpenseService):
             data=expenses_response
         )
 
-    def get_group_expenses(self, group_id: int, *args, **kwargs) -> APIResponse:
+    def get_group_expenses(self, group_id: int, offset: int, limit: int, sort_by: str, order: str) -> APIResponse:
         """
         Method for returning group expenses
         """
         self._validate_group(group_id)
-        
         expenses = self.repository.get_by_group(group_id, *args, **kwargs)
         
         expenses_response = [ExpenseResponse.model_validate(expense) for expense in expenses]
-        
+
         return APIResponse(
             success=True,
             data=expenses_response

@@ -5,6 +5,7 @@ import retrofit2.Response
 import retrofit2.http.*
 import com.example.budgeting.android.data.model.Expense
 import com.example.budgeting.android.data.model.ExpenseIdResponse
+import com.example.budgeting.android.data.model.ExpenseCreateRequest
 
 interface ExpenseApiService {
 
@@ -55,7 +56,7 @@ interface ExpenseApiService {
     ): Response<ApiResponse<Expense>>
 
     @POST("/expenses/")
-    suspend fun addExpense(@Body expense: Expense): Response<ApiResponse<ExpenseIdResponse>>
+    suspend fun addExpense(@Body expense: ExpenseCreateRequest): Response<ApiResponse<ExpenseIdResponse>>
 
     @PUT("/expenses/{id}")
     suspend fun updateExpense(

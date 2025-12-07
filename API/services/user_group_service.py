@@ -128,9 +128,12 @@ class UserGroupService(IUserGroupService):
             )
         
         response = self.repository.add_user_to_group_by_invitation_code(user_id, invitation_code)
-        
-        group_response = GroupResponse.model_validate(response[0])
-        user_response = UserResponse.model_validate(response[1])
+
+        group_obj = self.group_repo.get_by_id(response[0])
+        user_obj = self.user_repo.get_by_id(response[1]) 
+
+        group_response = GroupResponse.model_validate(group_obj)
+        user_response = UserResponse.model_validate(user_obj)
         
         return APIResponse(
             success=True,

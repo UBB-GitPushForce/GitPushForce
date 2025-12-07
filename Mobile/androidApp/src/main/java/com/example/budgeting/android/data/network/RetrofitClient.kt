@@ -8,6 +8,9 @@ import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 
+// Import ExpensePaymentApiService
+import com.example.budgeting.android.data.network.ExpensePaymentApiService
+
 object RetrofitClient {
     private val BASE_URL: String = BuildConfig.BASE_URL
 
@@ -74,5 +77,19 @@ object RetrofitClient {
             .build()
 
         retrofit.create(UserApiService::class.java)
+    }
+
+    val expensePaymentInstance: ExpensePaymentApiService = run {
+        val client = OkHttpClient.Builder()
+            .addInterceptor(TokenAuthInterceptor())
+            .build()
+
+        val retrofit = Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(client)
+            .addConverterFactory(moshiConverterFactory)
+            .build()
+
+        retrofit.create(ExpensePaymentApiService::class.java)
     }
 }
