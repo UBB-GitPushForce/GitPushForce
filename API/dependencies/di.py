@@ -39,11 +39,15 @@ def get_group_service(repo: IGroupRepository = Depends(get_group_repository)) ->
 def get_expense_repository(db: Session = Depends(get_db)) -> IExpenseRepository:
     return ExpenseRepository(db)
 
+def get_user_group_repository(db: Session = Depends(get_db)) -> IUserGroupRepository:
+    return UserGroupRepository(db)
+
 def get_expense_service(
     repo: IExpenseRepository = Depends(get_expense_repository),
     group_repo: IGroupRepository = Depends(get_group_repository),
+    user_group_repository: IUserGroupRepository = Depends(get_user_group_repository)
 ) -> IExpenseService:
-    return ExpenseService(repo, group_repo)
+    return ExpenseService(repo, group_repo, user_group_repository)
 
 def get_user_group_repository(db: Session = Depends(get_db)) -> IUserGroupRepository:
     return UserGroupRepository(db)

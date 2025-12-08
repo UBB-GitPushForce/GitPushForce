@@ -162,3 +162,15 @@ def get_group_invite_qr(group_id: int, group_service: IGroupService = Depends(ge
     Returns QR code for joining group
     """
     return group_service.generate_invite_qr(group_id)
+
+
+@router.get("/{group_id}/statistics/user-summary")
+def get_user_group_statistics(
+    group_id: int,
+    user_id: int = Depends(JwtUtils.auth_wrapper),
+    expense_service: IExpenseService = Depends(get_expense_service)
+):
+    """
+    Returns statistics for the authenticated user within a specific group.
+    """
+    return expense_service.get_user_group_statistics(user_id, group_id)
