@@ -151,7 +151,7 @@ class ExpenseService(IExpenseService):
             data=expenses_response
         )
 
-    def get_group_expenses(self, group_id: int, offset: int, limit: int, sort_by: str, order: str) -> APIResponse:
+    def get_group_expenses(self, group_id: int, *args, **kwargs) -> APIResponse:
         """
         Method for returning group expenses
         """
