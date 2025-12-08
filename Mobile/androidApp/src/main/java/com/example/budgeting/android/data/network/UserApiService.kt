@@ -1,6 +1,7 @@
 package com.example.budgeting.android.data.network
 
 import com.example.budgeting.android.data.model.ApiResponse
+import com.example.budgeting.android.data.model.BudgetResponse
 import com.example.budgeting.android.data.model.ChangePasswordRequest
 import com.example.budgeting.android.data.model.UserResponse
 import com.example.budgeting.android.data.model.UserUpdateRequest
@@ -20,4 +21,6 @@ interface UserApiService {
     @PUT("/users/password/change")
     suspend fun changePassword(@Body request: ChangePasswordRequest): Response<ApiResponse<Unit>>
 
+    @GET("/users/{id}/remaining-budget")
+    suspend fun getRemainingBudget(@Path("id") id: Int): Response<ApiResponse<BudgetResponse>>
 }
