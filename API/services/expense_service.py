@@ -8,7 +8,7 @@ from repositories.group_repository import IGroupRepository
 from repositories.user_group_repository import IUserGroupRepository
 from schemas.api_response import APIResponse
 from schemas.expense import ExpenseCreate, ExpenseResponse, ExpenseUpdate
-from utils.helpers.constants import ID_FIELD, STATUS_FORBIDDEN, STATUS_NOT_FOUND
+from utils.helpers.constants import ID_FIELD, MY_SHARE_OF_EXPENSES, MY_TOTAL_PAID, NET_BALANCE_PAID_FOR_OTHERS, REST_OF_GROUP_EXPENSES, STATUS_FORBIDDEN, STATUS_NOT_FOUND, TOTAL_GROUP_SPEND
 
 
 class IExpenseService(ABC):
@@ -45,11 +45,17 @@ class ExpenseService(IExpenseService):
     Implementation for the interface
     """
     def __init__(self, repository: IExpenseRepository, group_repository: IGroupRepository, user_group_repository: IUserGroupRepository):
+        """
+        Constructor method
+        """
         self.repository = repository
         self.group_repository = group_repository
         self.user_group_repository = user_group_repository
 
     def _validate_expense(self, expense_id: int) -> Expense:
+        """
+        Internal method for validating that an expense exists.
+        """
         expense = self.repository.get_by_id(expense_id)
         if not expense:
             raise HTTPException(status_code=STATUS_NOT_FOUND, detail="Expense not found.")
@@ -57,11 +63,24 @@ class ExpenseService(IExpenseService):
         return expense
 
     def _validate_group(self, group_id: int) -> Group:
+        """
+        Internal method for validating that a group exists.
+        """
         group = self.group_repository.get_by_id(group_id)
         if not group:
             raise HTTPException(status_code=STATUS_NOT_FOUND, detail="Group not found.")
         
         return group
+    
+    def _validate_user_is_in_group(self, user_id: int, group_id: int) -> bool:
+        """
+        Internal method for checking that a user is in a group before getting the statistics for the group.
+        """
+        is_member = self.user_group_repository.is_member(user_id, group_id)
+        if not is_member:
+            raise HTTPException(status_code=STATUS_FORBIDDEN, detail="User is not a member of this group.")
+        
+        return True
 
     def _validate_owner(self, expense_id: int, requester_id: int) -> Expense:
         """
@@ -185,10 +204,7 @@ class ExpenseService(IExpenseService):
         Returns statistics for the authenticated user within a specific group.
         """
         self._validate_group(group_id)
-
-        is_member = self.user_group_repository.is_member(user_id, group_id)
-        if not is_member:
-            raise HTTPException(status_code=STATUS_FORBIDDEN, detail="User is not a member of this group.")
+        self._validate_user_is_in_group(user_id, group_id)
 
         group_expenses = self.repository.get_by_group(group_id, offset=0, limit=100000)
         total_group_spend = sum(e.amount for e in group_expenses)
@@ -208,10 +224,10 @@ class ExpenseService(IExpenseService):
         return APIResponse(
             success=True,
             data={
-                "total_group_spend": total_group_spend,
-                "my_total_paid": my_total_paid,
-                "my_share_of_expenses": my_share, 
-                "net_balance_paid_for_others": paid_for_others,
-                "rest_of_group_expenses": rest_of_expenses
+                TOTAL_GROUP_SPEND: total_group_spend,
+                MY_TOTAL_PAID: my_total_paid,
+                MY_SHARE_OF_EXPENSES: my_share, 
+                NET_BALANCE_PAID_FOR_OTHERS: paid_for_others,
+                REST_OF_GROUP_EXPENSES: rest_of_expenses
             }
         )

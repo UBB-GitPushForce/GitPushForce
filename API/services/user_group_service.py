@@ -113,7 +113,7 @@ class UserGroupService(IUserGroupService):
 
     def add_user_to_group_by_invitation_code(self, user_id: int, invitation_code: str) -> APIResponse:
         """
-        Method for adding a user to a group by invitation code
+        Method for adding a user to a group by invitation code.
         """
         self.logger.info(f"Adding user with id {user_id} to group which has invitation code {invitation_code}")
         

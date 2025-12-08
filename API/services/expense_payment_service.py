@@ -74,11 +74,11 @@ class ExpensePaymentService(IExpensePaymentService):
                 raise HTTPException(status_code=STATUS_BAD_REQUEST, detail="User not in group.")
 
         payment = self.repo.add(expense_id, payer_id)
-        response = ExpensePaymentResponse.model_validate(payment)
+        payment_response = ExpensePaymentResponse.model_validate(payment)
 
         return APIResponse(
             success=True,
-            data=response
+            data=payment_response
         )
 
     def unmark_paid(self, expense_id: int, payer_id: int, requester_id: int) -> APIResponse:
@@ -100,12 +100,9 @@ class ExpensePaymentService(IExpensePaymentService):
         self._validate_permissions(expense_id, requester_id)
 
         payments = self.repo.get_all_by_expense(expense_id)
-        response = [
-            ExpensePaymentResponse.model_validate(p)
-            for p in payments
-        ]
+        payments_response = [ExpensePaymentResponse.model_validate(p) for p in payments]
 
         return APIResponse(
             success=True,
-            data=response
+            data=payments_response
         )

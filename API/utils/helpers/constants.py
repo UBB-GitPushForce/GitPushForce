@@ -13,3 +13,11 @@ ID_FIELD = "id"
 BUDGET_FIELD = "budget"
 SPENT_THIS_MONTH = "spent_this_month"
 REMAINING_BUDGET = "remaining_budget"
+
+
+# Fields for group statistics 
+TOTAL_GROUP_SPEND="total_group_spend"
+MY_TOTAL_PAID="my_total_paid"
+MY_SHARE_OF_EXPENSES="my_share_of_expenses"
+NET_BALANCE_PAID_FOR_OTHERS="net_balance_paid_for_others"
+REST_OF_GROUP_EXPENSES="rest_of_group_expenses"
