@@ -1,7 +1,6 @@
-from dependencies.di import get_group_log_service, get_user_group_service, get_user_service
+from dependencies.di import get_user_group_service, get_user_service
 from fastapi import APIRouter, Depends, Request
 from schemas.user import UserChangePassword, UserUpdate
-from services.group_log_service import IGroupLogService
 from services.user_group_service import IUserGroupService
 from services.user_service import IUserService
 from utils.helpers.jwt_utils import JwtUtils
@@ -63,27 +62,12 @@ def delete_user(user_id: int, _ = Depends(get_current_user_id), user_service: IU
 def join_group_with_invitation_code(
     invitation_code: str, 
     user_id: int = Depends(get_current_user_id), 
-    user_group_service: IUserGroupService = Depends(get_user_group_service),
-    log_service: IGroupLogService = Depends(get_group_log_service)
+    user_group_service: IUserGroupService = Depends(get_user_group_service)
 ):
     """
     Allows the authenticated user to join a group using an invitation code.
     """
-    response = user_group_service.add_user_to_group_by_invitation_code(user_id, invitation_code)
-    
-    # log the join event if successful
-    if response.success and response.data:
-        group_data = response.data
-        if "group" in group_data:
-            group_obj = group_data["group"]
-            if hasattr(group_obj, "id"):
-                group_id = group_obj.id
-                log_service.log_join(group_id, user_id)
-            elif isinstance(group_obj, dict) and "id" in group_obj:
-                group_id = group_obj["id"]
-                log_service.log_join(group_id, user_id)
-    
-    return response
+    return user_group_service.add_user_to_group_by_invitation_code(user_id, invitation_code)
 
 @router.get("/{user_id}/budget")
 def get_budget(user_id: int, _ = Depends(get_current_user_id), user_service: IUserService = Depends(get_user_service)):

@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 from fastapi import HTTPException
+from services.group_log_service import IGroupLogService
 from models.group import Group
 from models.user import User
 from models.user_group import UserGroup
@@ -53,6 +54,7 @@ class UserGroupService(IUserGroupService):
         repository: IUserGroupRepository,
         group_repo: IGroupRepository,
         user_repo: IUserRepository,
+        log_service: IGroupLogService,
     ):
         """
         Constructor method.
@@ -61,6 +63,7 @@ class UserGroupService(IUserGroupService):
         self.group_repo = group_repo
         self.user_repo = user_repo
         self.logger = Logger()
+        self.log_service = log_service
         
     def _validate_group(self, group_id: int = None, invitation_code: str = None) -> Group:
         if group_id is not None:
@@ -134,6 +137,10 @@ class UserGroupService(IUserGroupService):
 
         group_response = GroupResponse.model_validate(group_obj)
         user_response = UserResponse.model_validate(user_obj)
+
+        # log the join event
+        if self.log_service:
+            self.log_service.log_join(group.id, user_id)
         
         return APIResponse(
             success=True,
