@@ -198,11 +198,11 @@ class ExpenseService(IExpenseService):
         
         rest_of_expenses = total_group_spend - my_total_paid
         member_count = self.user_group_repository.get_nr_of_users_from_group(group_id)
-        
+
+        my_share = 0
         if member_count > 0:
             my_share = total_group_spend / member_count
-        else:
-            my_share = 0
+            
         paid_for_others = my_total_paid - my_share
 
         return APIResponse(
