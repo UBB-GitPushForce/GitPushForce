@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS categories(
     id SERIAL PRIMARY KEY,
-    user_id INT,
+    user_id INT NOT NULL,
     title VARCHAR(30) NOT NULL,
     keywords TEXT[],
 
