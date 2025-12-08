@@ -30,13 +30,6 @@ def get_user_by_id(user_id: int, _ = Depends(get_current_user_id), user_service:
     """
     return user_service.get_by_id(user_id)
 
-@router.get("/me")
-def get_currently_logged_in_user(user_id: int = Depends(get_current_user_id), user_service: IUserService = Depends(get_user_service)):
-    """
-    Returns currently authenticated user.
-    """
-    return user_service.get_by_id(user_id)
-
 @router.put("/{user_id}")
 def update_user(user_id: int, user_in: UserUpdate, _ = Depends(get_current_user_id), user_service: IUserService = Depends(get_user_service)):
     """

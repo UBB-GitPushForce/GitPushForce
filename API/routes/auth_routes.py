@@ -1,3 +1,4 @@
+from api.utils.helpers.jwt_utils import JwtUtils
 from dependencies.di import get_user_service
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from schemas.user import UserCreate, UserLogin, UserPasswordReset
@@ -6,6 +7,12 @@ from utils.helpers import logger
 from utils.helpers.constants import ACCESS_TOKEN_FIELD
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
+
+def get_current_user_id(request: Request) -> int:
+    """
+    Returns the authenticated user id.
+    """
+    return JwtUtils.auth_wrapper(request)
 
 @router.post("/register")
 def register(user_in: UserCreate, user_service: IUserService = Depends(get_user_service)):
@@ -65,6 +72,13 @@ def login(user_in: UserLogin, response: Response, user_service: IUserService = D
         raise e
     except ValueError as e:
         raise HTTPException(status_code=401, detail=str(e))
+
+@router.get("/me")
+def get_currently_logged_in_user(user_id: int = Depends(get_current_user_id), user_service: IUserService = Depends(get_user_service)):
+    """
+    Returns currently authenticated user.
+    """
+    return user_service.get_by_id(user_id)
 
 @router.post("/logout")
 def logout(response: Response):
