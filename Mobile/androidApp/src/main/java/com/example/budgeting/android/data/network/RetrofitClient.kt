@@ -11,6 +11,10 @@ import retrofit2.converter.moshi.MoshiConverterFactory
 object RetrofitClient {
     private val BASE_URL: String = BuildConfig.BASE_URL
 
+    init {
+        Log.d("RetrofitClient", "Base URL: $BASE_URL")
+    }
+
     private val moshi = Moshi.Builder()
         .add(KotlinJsonAdapterFactory())
         .build()
