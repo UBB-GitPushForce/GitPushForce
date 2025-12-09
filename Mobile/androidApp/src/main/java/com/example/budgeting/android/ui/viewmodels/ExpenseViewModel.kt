@@ -253,4 +253,8 @@ class ExpenseViewModel(context: Context) : ViewModel() {
             }
         }
     }
+
+    fun getCategoryTitle(categoryId: Int): String {
+        return _categories.value.find { it.id == categoryId }?.title ?: "Unknown"
+    }
 }

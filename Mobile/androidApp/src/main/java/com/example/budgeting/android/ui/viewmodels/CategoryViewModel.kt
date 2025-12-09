@@ -83,4 +83,18 @@ class CategoryViewModel(context: Context): ViewModel() {
         }
     }
 
+    fun getTitle(id: Int?): String {
+        var title: String = ""
+        viewModelScope.launch {
+            _error.value = null
+
+            try {
+                title = repository.getTitle(id)
+            } catch (e: Exception) {
+                _error.value = e.localizedMessage
+            }
+        }
+        return title
+    }
+
 }

@@ -139,6 +139,7 @@ fun ExpensesScreen(
                         ExpensesList(
                             expenses = expenses,
                             currentUserId = userId,
+                            vm = expenseViewModel,
                             onClick = { expense ->
                                 if(expense.user_id == currentUserId){
                                     selectedExpense = expense
@@ -468,6 +469,7 @@ fun EmptyState() {
 fun ExpensesList(
     expenses: List<Expense>,
     currentUserId: Int,
+    vm: ExpenseViewModel,
     onClick: (Expense) -> Unit,
     onLongClick: (Expense) -> Unit
 ) {
@@ -477,6 +479,7 @@ fun ExpensesList(
         items(expenses) { expense ->
             ExpenseItem(
                 expense = expense,
+                categoryTitle = vm.getCategoryTitle(expense.categoryId!!),
                 currentUserId = currentUserId,
                 modifier = Modifier
                     .fillMaxWidth()

@@ -27,6 +27,7 @@ import com.example.budgeting.android.data.model.Expense
 fun ExpenseItem(
     expense: Expense,
     currentUserId: Int,
+    categoryTitle: String,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -48,7 +49,7 @@ fun ExpenseItem(
                 )
 
                 Text(
-                    text = "Category: ${expense.title}",
+                    text = "Category: $categoryTitle",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
