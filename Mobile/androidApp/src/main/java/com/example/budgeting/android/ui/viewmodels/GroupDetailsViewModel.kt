@@ -175,7 +175,7 @@ class GroupDetailsViewModel(context: Context) : ViewModel() {
                     val isDuplicate = existingExpenses.any { groupExpense ->
                         groupExpense.expense.title == expense.title &&
                         groupExpense.expense.amount == expense.amount &&
-                        groupExpense.expense.category == expense.category &&
+                        groupExpense.expense.categoryId == expense.categoryId &&
                         groupExpense.expense.user_id == userId
                     }
                     

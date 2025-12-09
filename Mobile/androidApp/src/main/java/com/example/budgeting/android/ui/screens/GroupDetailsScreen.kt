@@ -499,7 +499,7 @@ private fun isExpenseAlreadyInGroup(
     return groupExpenses.any { groupExpense ->
         groupExpense.expense.title == expense.title &&
         groupExpense.expense.amount == expense.amount &&
-        groupExpense.expense.category == expense.category &&
+        groupExpense.expense.categoryId == expense.categoryId &&
         groupExpense.expense.user_id == expense.user_id
     }
 }
@@ -719,7 +719,7 @@ private fun ExpensePickerDialog(
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = expense.category,
+                                        text = expense.categoryId.toString(), // TODO pretty print the category id
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         style = MaterialTheme.typography.bodySmall
                                     )

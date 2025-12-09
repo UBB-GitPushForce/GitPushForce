@@ -1,7 +1,6 @@
 package com.example.budgeting.android.ui.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import android.util.Log
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -10,16 +9,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.budgeting.android.ui.component.ExpenseItem
@@ -29,6 +27,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.example.budgeting.android.data.model.Category
+import com.example.budgeting.android.data.model.CategoryBody
 import com.example.budgeting.android.data.model.Expense
 import com.example.budgeting.android.data.model.SortOption
 import com.example.budgeting.android.ui.viewmodels.ExpenseMode
@@ -36,6 +36,7 @@ import com.example.budgeting.android.ui.viewmodels.ExpenseMode
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExpensesScreen(
+    onOpenCategories: () -> Unit,
     expenseViewModel: ExpenseViewModel = viewModel(
         factory = ExpenseViewModelFactory(LocalContext.current)
     )
@@ -61,7 +62,15 @@ fun ExpensesScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Expenses") }
+                title = { Text("Expenses") },
+                actions = {
+                    IconButton(onClick = onOpenCategories) {
+                        Icon(
+                            Icons.Default.Category,
+                            contentDescription = "Manage Categories"
+                        )
+                    }
+                }
             )
         },
         floatingActionButton = {
@@ -124,41 +133,52 @@ fun ExpensesScreen(
 
                     expenses.isEmpty() -> EmptyState()
 
-                    else -> ExpensesList(
-                        expenses = expenses,
-                        currentUserId = currentUserId!!,
-                        onClick = { expense ->
-                            if(expense.user_id == currentUserId){
-                                selectedExpense = expense
-                                showDialog = true
+
+                    else ->{
+                        val userId = currentUserId ?: return@Box
+                        ExpensesList(
+                            expenses = expenses,
+                            currentUserId = userId,
+                            onClick = { expense ->
+                                if(expense.user_id == currentUserId){
+                                    selectedExpense = expense
+                                    showDialog = true
+                                }
+                            },
+                            onLongClick = { expense ->
+                                if(expense.user_id == currentUserId){
+                                    selectedExpense = expense
+                                    showDeleteDialog = true
+                                }
                             }
-                        },
-                        onLongClick = { expense ->
-                            if(expense.user_id == currentUserId){
-                                selectedExpense = expense
-                                showDeleteDialog = true
-                            }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
 
         // ADD/EDIT DIALOG
         if (showDialog) {
-            AddEditExpenseDialog(
-                expense = selectedExpense,
-                onDismiss = { showDialog = false },
-                onSave = { expense ->
-                    if (selectedExpense != null)
-                        expenseViewModel.updateExpense(expense.copy(id = selectedExpense!!.id))
-                    else
-                        expenseViewModel.addExpense(expense)
+            val realCategories =
+                expenseViewModel.categories
+                    .collectAsState()
+                    .value
+                    .filter { it.id != 0 }
 
-                    selectedExpense = null
-                    showDialog = false
-                }
-            )
+                AddEditExpenseDialog(
+                    expense = selectedExpense,
+                    categories = realCategories,
+                    onDismiss = { showDialog = false },
+                    onSave = { expense ->
+                        if (selectedExpense != null)
+                            expenseViewModel.updateExpense(expense.copy(id = selectedExpense!!.id))
+                        else
+                            expenseViewModel.addExpense(expense)
+
+                        selectedExpense = null
+                        showDialog = false
+                    }
+                )
         }
 
         // DELETE CONFIRMATION
@@ -184,7 +204,7 @@ fun ExpensesScreen(
 fun FilterBar(
     search: String,
     onSearchChange: (String) -> Unit,
-    categories: List<String>,
+    categories: List<Category>,
     selectedCategory: String,
     onCategorySelected: (String) -> Unit,
     sortOption: SortOption,
@@ -279,7 +299,7 @@ fun ModeSelector(
 
 @Composable
 fun CategoryMenu(
-    categories: List<String>,
+    categories: List<Category>,
     selected: String,
     onSelected: (String) -> Unit
 ) {
@@ -287,14 +307,14 @@ fun CategoryMenu(
         DropdownMenuItem(
             text = {
                 Text(
-                    text = category,
-                    color = if (category == selected)
+                    text = category.title!!,
+                    color = if (category.title == selected)
                         MaterialTheme.colorScheme.primary
                     else
                         MaterialTheme.colorScheme.onSurface
                 )
             },
-            onClick = { onSelected(category) }
+            onClick = { onSelected(category.title!!) }
         )
     }
 }
@@ -309,54 +329,105 @@ fun SortMenu(onSelected: (SortOption) -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditExpenseDialog(
     expense: Expense?,
+    categories: List<Category>,
     onDismiss: () -> Unit,
     onSave: (Expense) -> Unit
 ) {
     var title by remember { mutableStateOf(expense?.title ?: "") }
-    var category by remember { mutableStateOf(expense?.category ?: "") }
     var amount by remember { mutableStateOf(expense?.amount?.toString() ?: "") }
+
+    var selectedCategoryId by remember { mutableStateOf<Int?>(null) }
+    var expanded by remember { mutableStateOf(false) }
+
+    LaunchedEffect(expense, categories) {
+        selectedCategoryId =
+            expense?.categoryId
+                ?: categories.firstOrNull()?.id
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (expense == null) "Add Expense" else "Edit Expense") },
         text = {
             Column {
+
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
                     label = { Text("Title") },
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(
-                    value = category,
-                    onValueChange = { category = it },
-                    label = { Text("Category") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp)
-                )
+
+                Spacer(Modifier.height(8.dp))
+
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    val categoryName = categories
+                        .find { it.id == selectedCategoryId }
+                        ?.title ?: ""
+
+                    OutlinedTextField(
+                        value = categoryName,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Category") },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded)
+                        },
+                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        categories.forEach { category ->
+                            DropdownMenuItem(
+                                text = { Text(category.title ?: "") },
+                                onClick = {
+                                    selectedCategoryId = category.id
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+
                 OutlinedTextField(
                     value = amount,
                     onValueChange = { amount = it },
                     label = { Text("Amount") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number
+                    ),
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         },
         confirmButton = {
-            TextButton(onClick = {
-                val parsedAmount = amount.toDoubleOrNull() ?: 0.0
-                if (title.isNotBlank() && category.isNotBlank()) {
-                    onSave(Expense(title = title, category = category, amount = parsedAmount))
+            TextButton(
+                enabled = title.isNotBlank() && selectedCategoryId != null,
+                onClick = {
+                    onSave(
+                        Expense(
+                            id = expense?.id,
+                            title = title,
+                            categoryId = selectedCategoryId!!,
+                            amount = amount.toDoubleOrNull() ?: 0.0
+                        )
+                    )
+                    onDismiss()
                 }
-            }) {
+            ) {
                 Text("Save")
             }
         },

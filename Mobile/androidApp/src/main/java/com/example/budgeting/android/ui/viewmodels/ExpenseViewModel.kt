@@ -4,10 +4,12 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.budgeting.android.data.local.TokenDataStore
+import com.example.budgeting.android.data.model.Category
 import com.example.budgeting.android.data.model.Expense
 import com.example.budgeting.android.data.model.ExpenseFilters
 import com.example.budgeting.android.data.model.SortOption
 import com.example.budgeting.android.data.network.RetrofitClient
+import com.example.budgeting.android.data.repository.CategoryRepository
 import com.example.budgeting.android.data.repository.ExpenseRepository
 import com.example.budgeting.android.data.repository.GroupRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,6 +28,8 @@ class ExpenseViewModel(context: Context) : ViewModel() {
     private val tokenStore = TokenDataStore(context)
     private val repository = ExpenseRepository(RetrofitClient.expenseInstance, tokenStore)
     private val groupRepository = GroupRepository(RetrofitClient.groupInstance, RetrofitClient.expenseInstance, tokenStore)
+
+    private val categoryRepository = CategoryRepository(RetrofitClient.categoryInstance)
 
     private val _expenses = MutableStateFlow<List<Expense>>(emptyList())
     val expenses: StateFlow<List<Expense>> = _expenses.asStateFlow()
@@ -48,8 +52,8 @@ class ExpenseViewModel(context: Context) : ViewModel() {
     private val _groupIds = MutableStateFlow<List<Int>>(emptyList())
     val groupIds: StateFlow<List<Int>> = _groupIds.asStateFlow()
 
-    private val _categories = MutableStateFlow<List<String>>(emptyList())
-    val categories: StateFlow<List<String>> = _categories
+    private val _categories = MutableStateFlow<List<Category>>(emptyList())
+    val categories: StateFlow<List<Category>> = _categories
 
     private val _currentUserId = MutableStateFlow<Int?>(null)
     val currentUserId: StateFlow<Int?> = _currentUserId.asStateFlow()
@@ -74,7 +78,7 @@ class ExpenseViewModel(context: Context) : ViewModel() {
             _error.value = null
 
             try {
-                _categories.value = listOf("All")
+                _categories.value = listOf(Category(0, "All", null, null))
                 val f = _filters.value
                 val data = when (_mode.value) {
 
@@ -133,16 +137,21 @@ class ExpenseViewModel(context: Context) : ViewModel() {
     }
 
     private fun updateCategories(expenses: List<Expense>) {
-        val newCategories = expenses
-            .map { it.category }
-            .filter { it.isNotBlank() }
-            .distinct()
-            .sorted()
+        viewModelScope.launch {
+            val usedCategoryIds = expenses
+                .map { it.categoryId }
+                .distinct()
 
-        // Merge with existing categories, keep All at top
-        val merged = listOf("All") + (_categories.value - "All" + newCategories).distinct()
-        _categories.value = merged
+            val resolvedCategories = usedCategoryIds.mapNotNull { categoryId ->
+                categoryRepository.getCategoryById(categoryId)
+            }
+
+            _categories.value =
+                listOf(Category(0, "All", null, null)) +
+                        resolvedCategories.sortedBy { it.title }
+        }
     }
+
 
     /** ----------------------------------------------------------
      *  MODES

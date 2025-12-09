@@ -10,6 +10,7 @@ import com.example.budgeting.android.data.model.Expense
 import com.example.budgeting.android.data.model.MonthlyTotal
 import com.example.budgeting.android.data.network.RetrofitClient
 import com.example.budgeting.android.data.repository.ExpenseRepository
+import com.example.budgeting.android.data.repository.CategoryRepository
 import com.example.budgeting.android.data.repository.GroupRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +27,8 @@ class AnalyticsViewModel(context: Context) : ViewModel() {
         RetrofitClient.expenseInstance,
         tokenStore
     )
+
+    private val categoryRepository = CategoryRepository(RetrofitClient.categoryInstance)
 
     // --- STATE ---
     private val _mode = MutableStateFlow(ExpenseMode.ALL)
@@ -142,11 +145,11 @@ class AnalyticsViewModel(context: Context) : ViewModel() {
                 }
 
                 // --- CATEGORY AMOUNT ---
-                _categoryAmounts.value = expenses.groupBy { it.category }
+                _categoryAmounts.value = expenses.groupBy { categoryRepository.getTitle(it.categoryId) }
                     .map { (cat, list) -> CategoryTotal(category = cat, total = list.sumOf { it.amount }.toFloat()) }
 
                 // --- CATEGORY COUNT ---
-                _categoryCounts.value = expenses.groupBy { it.category }
+                _categoryCounts.value = expenses.groupBy { categoryRepository.getTitle(it.categoryId) }
                     .map { (cat, list) -> CategoryCount(category = cat, count = list.size) }
 
                 // --- MONTHLY TREND ---
@@ -154,7 +157,7 @@ class AnalyticsViewModel(context: Context) : ViewModel() {
                     .map { (month, list) -> MonthlyTotal(month = month, total = list.sumOf { it.amount }.toFloat()) }
 
                 // --- AVAILABLE CATEGORIES ---
-                _categories.value = expenses.map { it.category }.distinct().sorted()
+                _categories.value = expenses.map { categoryRepository.getTitle(it.categoryId) }.distinct().sorted()
 
             } catch (e: Exception) {
                 _error.value = e.localizedMessage

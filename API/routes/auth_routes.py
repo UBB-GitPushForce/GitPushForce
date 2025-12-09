@@ -1,4 +1,4 @@
-from api.utils.helpers.jwt_utils import JwtUtils
+from utils.helpers.jwt_utils import JwtUtils
 from dependencies.di import get_user_service
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from schemas.user import UserCreate, UserLogin, UserPasswordReset

@@ -23,10 +23,10 @@ data class Expense(
     
     @Json(name = "title")
     val title: String,
-    
-    @Json(name = "category")
-    val category: String,
-    
+
+    @Json(name = "category_id")
+    val categoryId: Int? = null,
+
     @Json(name = "amount")
     val amount: Double,
     
