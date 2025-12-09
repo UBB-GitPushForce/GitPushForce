@@ -1,14 +1,25 @@
 from abc import ABC, abstractmethod
 
 from fastapi import HTTPException
+from models.category import Category
 from models.expense import Expense
 from models.group import Group
+from repositories.category_repository import ICategoryRepository
 from repositories.expense_repository import IExpenseRepository
 from repositories.group_repository import IGroupRepository
 from repositories.user_group_repository import IUserGroupRepository
 from schemas.api_response import APIResponse
 from schemas.expense import ExpenseCreate, ExpenseResponse, ExpenseUpdate
-from utils.helpers.constants import ID_FIELD, MY_SHARE_OF_EXPENSES, MY_TOTAL_PAID, NET_BALANCE_PAID_FOR_OTHERS, REST_OF_GROUP_EXPENSES, STATUS_FORBIDDEN, STATUS_NOT_FOUND, TOTAL_GROUP_SPEND
+from utils.helpers.constants import (
+    ID_FIELD,
+    MY_SHARE_OF_EXPENSES,
+    MY_TOTAL_PAID,
+    NET_BALANCE_PAID_FOR_OTHERS,
+    REST_OF_GROUP_EXPENSES,
+    STATUS_FORBIDDEN,
+    STATUS_NOT_FOUND,
+    TOTAL_GROUP_SPEND,
+)
 
 
 class IExpenseService(ABC):
@@ -44,13 +55,14 @@ class ExpenseService(IExpenseService):
     """
     Implementation for the interface
     """
-    def __init__(self, repository: IExpenseRepository, group_repository: IGroupRepository, user_group_repository: IUserGroupRepository):
+    def __init__(self, repository: IExpenseRepository, group_repository: IGroupRepository, user_group_repository: IUserGroupRepository, category_repository: ICategoryRepository):
         """
         Constructor method
         """
         self.repository = repository
         self.group_repository = group_repository
         self.user_group_repository = user_group_repository
+        self.category_repository = category_repository
 
     def _validate_expense(self, expense_id: int) -> Expense:
         """
@@ -92,6 +104,18 @@ class ExpenseService(IExpenseService):
         
         return expense
 
+    def _validate_category(self, category_id: int, requester_id: int) -> Category:
+        """
+        Internal method for validating that a category exists
+        """
+        category = self.category_repository.get_by_id(category_id)
+        if not category:
+            raise HTTPException(status_code=STATUS_NOT_FOUND, detail="Category not found")
+        if category.user_id != requester_id:
+            raise HTTPException(status_code=STATUS_FORBIDDEN, detail="This category does not belong to the user")
+
+        return category
+
     def create_expense(self, data: ExpenseCreate, user_id: int) -> APIResponse:
         """
         Method for creating an expense
@@ -102,6 +126,7 @@ class ExpenseService(IExpenseService):
         )
         if data.group_id is not None:
             self._validate_group(data.group_id)
+        self._validate_category(data.category_id, user_id)
         
         id = self.repository.add(expense)
         
@@ -170,6 +195,7 @@ class ExpenseService(IExpenseService):
         Method for updating an expense. It checks that the user owns the expense.
         """
         self._validate_owner(expense_id, requester_id)
+        self._validate_category(data.category_id, requester_id)
         
         fields = data.model_dump(exclude_unset=True)
         fields.pop("user_id", None)

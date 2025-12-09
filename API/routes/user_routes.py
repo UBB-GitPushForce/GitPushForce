@@ -30,7 +30,6 @@ def get_user_by_id(user_id: int, _ = Depends(get_current_user_id), user_service:
     """
     return user_service.get_by_id(user_id)
 
-
 @router.put("/{user_id}")
 def update_user(user_id: int, user_in: UserUpdate, _ = Depends(get_current_user_id), user_service: IUserService = Depends(get_user_service)):
     """
@@ -48,7 +47,6 @@ def change_password(password_data: UserChangePassword, user_id: int = Depends(ge
         old_password=password_data.old_password, 
         new_password=password_data.new_password
     )
-
 
 @router.delete("/{user_id}")
 def delete_user(user_id: int, _ = Depends(get_current_user_id), user_service: IUserService = Depends(get_user_service)):
