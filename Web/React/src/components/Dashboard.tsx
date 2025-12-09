@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import '../App.css';
 import ThemeToggle from './ThemeToggle';
 import { useCurrency } from '../contexts/CurrencyContext';
+import categoryService, { Category } from '../services/category-service';
 import Groups from './Groups';
 import Profile from './Profile';
 import Support from './Support';
@@ -16,7 +17,7 @@ import ChatBot from './ChatBot';
 import Data from './Data';
 import Alerts from './Alerts';
 import Notifications from './Notifications';
-import Map from './Map';
+import MapComponent from './Map';
 
 interface Tx {
   id: number;
@@ -62,16 +63,38 @@ const Dashboard: React.FC = () => {
         },
       });
 
-      const items = Array.isArray(res.data) ? res.data : [];
-      const mapped: Tx[] = items.map((x: any) => ({
-        id: x.id,
-        title: x.title,
-        cat: x.category || 'Other',
-        amount: x.amount,
-        thumb: x.title ? x.title[0].toUpperCase() : 'T',
-      }));
-
-      setRecentTx(mapped);
+      // Backend returns APIResponse { success: true, data: [expenses] } or just [expenses]
+      const responseData = res.data;
+      const items = Array.isArray(responseData) ? responseData : (Array.isArray(responseData?.data) ? responseData.data : []);
+      
+      // Fetch categories to map category_id to title
+      try {
+        const categories = await categoryService.getCategories();
+        const categoryArray = Array.isArray(categories) ? categories : [];
+        
+        const categoryMap = new Map(categoryArray.map((c: any) => [c.id, c.title]));
+        
+        const mapped: Tx[] = items.map((x: any) => ({
+          id: x.id,
+          title: x.title,
+          cat: categoryMap.get(x.category_id) || 'Other',
+          amount: x.amount,
+          thumb: x.title ? x.title[0].toUpperCase() : 'T',
+        }));
+        
+        setRecentTx(mapped);
+      } catch (catErr) {
+        console.error('Failed to fetch categories, showing without categories', catErr);
+        // Fallback without categories
+        const mapped: Tx[] = items.map((x: any) => ({
+          id: x.id,
+          title: x.title,
+          cat: 'Other',
+          amount: x.amount,
+          thumb: x.title ? x.title[0].toUpperCase() : 'T',
+        }));
+        setRecentTx(mapped);
+      }
     } catch (err) {
       console.error('Failed to fetch recent transactions', err);
       setRecentTx([]);
@@ -88,7 +111,9 @@ const Dashboard: React.FC = () => {
         },
       });
 
-      const items = Array.isArray(res.data) ? res.data : [];
+      // Backend returns APIResponse { success: true, data: [expenses] } or just [expenses]
+      const responseData = res.data;
+      const items = Array.isArray(responseData) ? responseData : (Array.isArray(responseData?.data) ? responseData.data : []);
       const total = items.reduce((acc: number, it: any) => acc + (Number(it.amount) || 0), 0);
       setTotalSpent(total);
     } catch (err) {
@@ -345,7 +370,7 @@ const Dashboard: React.FC = () => {
 
           {screen === 'notifications' && <Notifications />}
 
-          {screen === 'map' && <Map />}
+          {screen === 'map' && <MapComponent />}
         </div>
 
         {/* BOTTOM NAV — kept for mobile (hidden on desktop by CSS) */}

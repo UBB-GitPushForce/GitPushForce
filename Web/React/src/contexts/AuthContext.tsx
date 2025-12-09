@@ -47,7 +47,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const checkAuthStatus = async () => {
         try {
             const response = await authService.getMe(); // GET /users/auth/me
-            setUser(response.data);
+            // Backend returns APIResponse { success: true, data: UserResponse }
+            const userData = response.data?.data || response.data;
+            setUser(userData);
         } catch {
             setUser(null);
         } finally {
@@ -59,28 +61,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // call login endpoint
         const response = await authService.login({ email, password });
         
+        // Backend returns APIResponse { success: true, data: { access_token, user } }
+        const responseData = response.data?.data || response.data;
+        
         // If backend indicates 2FA is required, it should return e.g.:
         // { two_fa_required: true, two_fa_method: 'email', temp_token: '...' }
-        // For now, we support that shape if backend provides it.
-        if ((response as any).data?.two_fa_required) {
-            const method = (response as any).data?.two_fa_method || 'email';
-            const tempToken = (response as any).data?.temp_token || null;
+        if (responseData?.two_fa_required) {
+            const method = responseData?.two_fa_method || 'email';
+            const tempToken = responseData?.temp_token || null;
             setPendingTwoFactor({ method, tempToken });
             // DO NOT set user yet — wait for verifyTwoFactor
             return;
         }
 
-        // If backend doesn't return that shape, proceed as usual:
-        // NOTE: some backends can return user directly
-        if ((response as any).data?.user) {
-            setUser((response as any).data.user);
+        // Extract user from response
+        if (responseData?.user) {
+            setUser(responseData.user);
         } else {
             // fallback: attempt to fetch /me
             try {
                 const me = await authService.getMe();
-                setUser(me.data);
+                const userData = me.data?.data || me.data;
+                setUser(userData);
             } catch (err) {
-                // keep user null
                 console.error('Login: failed to fetch /me after login', err);
             }
         }
@@ -96,9 +99,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // MOCK behavior: accept code '123456' as valid
         if (code === '123456') {
             try {
-                // If backend supports getMe, use it. Here we try to fetch user after successful verify.
                 const me = await authService.getMe();
-                setUser(me.data);
+                const userData = me.data?.data || me.data;
+                setUser(userData);
             } catch (err) {
                 // If /me fails, try to set a minimal mock user (DEV fallback)
                 setUser({
@@ -121,17 +124,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     const register = useCallback(async (accountData: any, verificationMethod?: 'email'|'number') => {
-        // TODO: register endpoint should kick off verification (send code to email/sms)
-        // e.g. const res = await authService.register({ ...accountData, verification_method: verificationMethod });
-        // For now call register and then attempt to fetch /me or instruct UI to verify code.
+        // Register endpoint returns { success: true, data: { access_token, id, user } }
         const response = await authService.register(accountData);
-        // Some backends may not authenticate immediately; we'll try to fetch /me
-        try {
-            const me = await authService.getMe();
-            setUser(me.data);
-        } catch (err) {
-            // registration may require verification — keep user null and leave registration flow to component
-            console.warn('Register: user not automatically authenticated (verification may be required).', err);
+        const responseData = response.data?.data || response.data;
+        
+        // Extract user from register response
+        if (responseData?.user) {
+            setUser(responseData.user);
+        } else {
+            // fallback: attempt to fetch /me
+            try {
+                const me = await authService.getMe();
+                const userData = me.data?.data || me.data;
+                setUser(userData);
+            } catch (err) {
+                console.warn('Register: user not automatically authenticated (verification may be required).', err);
+            }
         }
     }, []);
 
@@ -148,7 +156,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const refreshUser = useCallback(async () => {
         try {
             const response = await authService.getMe();
-            setUser(response.data);
+            const userData = response.data?.data || response.data;
+            setUser(userData);
         } catch (err) {
             console.warn('refreshUser failed', err);
         }
