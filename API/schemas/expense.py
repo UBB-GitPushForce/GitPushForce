@@ -30,7 +30,8 @@ class ExpenseUpdate(BaseModel):
     """
     title: Optional[str] = Field(None, max_length=255)
     amount: Optional[float] = Field(None, gt=0)
-    description: Optional[str] = None 
+    description: Optional[str] = None
+    category_id: Optional[int] = None
 
 
 class ExpenseResponse(ExpenseBase):

@@ -5,6 +5,7 @@ from schemas.user import UserCreate, UserLogin, UserPasswordReset
 from services.user_service import IUserService
 from utils.helpers import logger
 from utils.helpers.constants import ACCESS_TOKEN_FIELD
+from utils.helpers.jwt_utils import JwtUtils
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
