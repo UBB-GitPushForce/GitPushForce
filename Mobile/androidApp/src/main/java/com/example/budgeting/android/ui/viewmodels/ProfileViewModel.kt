@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.budgeting.android.data.auth.TokenHolder
 import com.example.budgeting.android.data.local.TokenDataStore
+import com.example.budgeting.android.data.model.BudgetResponse
 import com.example.budgeting.android.data.model.UserResponse
 import com.example.budgeting.android.data.model.UserUpdateRequest
 import com.example.budgeting.android.data.network.RetrofitClient
@@ -15,6 +16,7 @@ import kotlinx.coroutines.launch
 
 data class ProfileUiState(
     val user: UserResponse? = null,
+    val budget: BudgetResponse? = null,
     val isLoading: Boolean = false,
     val isEditing: Boolean = false,
     val error: String? = null
@@ -29,23 +31,36 @@ class ProfileViewModel(context: Context) : ViewModel() {
     val uiState: StateFlow<ProfileUiState> = _uiState
 
     init {
-        loadUser()
+        loadUserAndBudget()
     }
 
-    fun loadUser() {
+    private fun loadUserAndBudget() {
         viewModelScope.launch {
-            _uiState.value = ProfileUiState(isLoading = true)
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
             try {
-                val userId = tokenDataStore.getUserId() ?: throw Exception("User ID not found")
+                val userId = tokenDataStore.getUserId()
+                    ?: throw Exception("User ID not found")
+
                 val user = userRepository.getUserById(userId)
-                _uiState.value = ProfileUiState(user = user)
+
+                val budget = userRepository.getBudgetData(user.id)
+
+                _uiState.value = _uiState.value.copy(
+                    user = user,
+                    budget = budget,
+                    isLoading = false
+                )
 
             } catch (e: Exception) {
-                _uiState.value = ProfileUiState(error = e.message)
+                _uiState.value = _uiState.value.copy(
+                    error = e.message,
+                    isLoading = false
+                )
             }
         }
     }
+
 
     fun setEditing(enabled: Boolean) {
         _uiState.value = _uiState.value.copy(isEditing = enabled)
@@ -57,7 +72,7 @@ class ProfileViewModel(context: Context) : ViewModel() {
 
             try {
                 userRepository.updateUser(current.id, updated)
-                loadUser() // refresh
+                loadUserAndBudget() // refresh
                 setEditing(false)
 
             } catch (e: Exception) {

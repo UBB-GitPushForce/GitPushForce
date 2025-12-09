@@ -14,19 +14,16 @@ data class Expense(
     
     @Json(name = "title")
     val title: String,
-    
+
     @Json(name = "category_id")
-    val category_id: Int? = null,
-    
-    @Json(name = "category")
-    val category: Category? = null,
-    
+    val categoryId: Int? = null,
+
     @Json(name = "amount")
     val amount: Double,
     
     @Json(name = "description")
     val description: String? = null,
-    
+
     @Json(name = "created_at")
     val created_at: String? = null
 ) {
@@ -42,16 +39,16 @@ data class ExpenseIdResponse(
 data class ExpenseCreateRequest(
     @Json(name = "title")
     val title: String,
-    
+
     @Json(name = "amount")
     val amount: Double,
-    
+
     @Json(name = "category_id")
     val category_id: Int,
-    
+
     @Json(name = "group_id")
     val group_id: Int? = null,
-    
+
     @Json(name = "description")
     val description: String? = null
 )

@@ -103,7 +103,7 @@ fun MainScreen(
                         .fillMaxSize()
                 ) { page ->
                     when (page) {
-                        0 -> ExpensesScreen()
+                        0 -> ExpensesScreen(onOpenCategories = {navController.navigate("categories")})
                         1 -> GroupsScreen(onOpenGroup = { id -> navController.navigate("groupDetails/$id") })
                         2 -> ReceiptScreen()
                         3 -> AnalyticsScreen()
@@ -117,6 +117,12 @@ fun MainScreen(
             val groupId = backStackEntry.arguments?.getString("groupId")?.toIntOrNull() ?: return@composable
             GroupDetailsScreen(
                 groupId = groupId,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable("categories") {
+            CategoriesScreen(
                 onBack = { navController.popBackStack() }
             )
         }
