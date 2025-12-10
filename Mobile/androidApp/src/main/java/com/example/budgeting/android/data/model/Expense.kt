@@ -26,10 +26,7 @@ data class Expense(
 
     @Json(name = "created_at")
     val created_at: String? = null
-) {
-    val categoryTitle: String
-        get() = category?.title ?: "Uncategorized"
-}
+)
 
 data class ExpenseIdResponse(
     @Json(name = "id")

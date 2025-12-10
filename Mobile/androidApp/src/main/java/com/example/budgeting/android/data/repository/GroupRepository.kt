@@ -127,18 +127,9 @@ class GroupRepository(
 
     suspend fun getExpenseById(id: Int) = expenseApiService.getExpenseById(id).body()?.data ?: throw Exception("Failed to fetch expense")
 
-    suspend fun addExpenseToGroup(expense: Expense, description: String? = null): Int {
-        // Convert Expense to ExpenseCreateRequest
-        // For now, use category_id = 1 as default (backend requires category_id, not category string)
+    suspend fun addExpenseToGroup(expense: Expense): Int {
         // TODO: Implement proper category lookup by name
-        val createRequest = ExpenseCreateRequest(
-            title = expense.title,
-            amount = expense.amount,
-            category_id = 1, // Default category - should be looked up from category name
-            group_id = expense.group_id,
-            description = description
-        )
-        return expenseApiService.addExpense(createRequest).body()?.data?.id ?: throw Exception("Failed to add expense")
+        return expenseApiService.addExpense(expense).body()?.data?.id ?: throw Exception("Failed to add expense")
     }
 
     suspend fun getGroupInviteQr(groupId: Int): Response<ResponseBody> {

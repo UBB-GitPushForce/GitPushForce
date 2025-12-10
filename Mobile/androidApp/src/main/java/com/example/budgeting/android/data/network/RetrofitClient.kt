@@ -8,9 +8,6 @@ import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 
-// Import ExpensePaymentApiService
-import com.example.budgeting.android.data.network.ExpensePaymentApiService
-
 object RetrofitClient {
     private val BASE_URL: String = BuildConfig.BASE_URL
 

@@ -15,7 +15,7 @@ object GroupUtils {
         return groupExpenses.any { groupExpense ->
             groupExpense.expense.title == expense.title &&
             groupExpense.expense.amount == expense.amount &&
-            groupExpense.expense.categoryTitle == expense.categoryTitle &&
+            groupExpense.expense.categoryId == expense.categoryId &&
             groupExpense.expense.user_id == expense.user_id
         }
     }

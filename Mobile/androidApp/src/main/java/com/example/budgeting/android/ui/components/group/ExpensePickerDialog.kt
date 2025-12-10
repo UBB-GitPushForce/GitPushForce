@@ -96,7 +96,7 @@ fun ExpensePickerDialog(
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = expense.categoryTitle,
+                                        text = expense.categoryId.toString(), // TODO display category title not id
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         style = MaterialTheme.typography.bodySmall
                                     )

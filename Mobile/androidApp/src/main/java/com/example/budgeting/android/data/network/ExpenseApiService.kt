@@ -56,7 +56,7 @@ interface ExpenseApiService {
     ): Response<ApiResponse<Expense>>
 
     @POST("/expenses/")
-    suspend fun addExpense(@Body expense: ExpenseCreateRequest): Response<ApiResponse<ExpenseIdResponse>>
+    suspend fun addExpense(@Body expense: Expense): Response<ApiResponse<ExpenseIdResponse>>
 
     @PUT("/expenses/{id}")
     suspend fun updateExpense(

@@ -205,7 +205,7 @@ class GroupDetailsViewModel(context: Context) : ViewModel() {
                     val isDuplicate = existingExpenses.any { groupExpense ->
                         groupExpense.expense.title == expense.title &&
                         groupExpense.expense.amount == expense.amount &&
-                        groupExpense.expense.categoryTitle == expense.categoryTitle &&
+                        groupExpense.expense.categoryId == expense.categoryId &&
                         groupExpense.expense.user_id == userId
                     }
                     
@@ -218,11 +218,12 @@ class GroupDetailsViewModel(context: Context) : ViewModel() {
                         id = null,
                         user_id = userId,
                         group_id = groupId,
-                        created_at = null
+                        created_at = null,
+                        description = description
                     )
 
                     try {
-                        val expenseId = groupRepository.addExpenseToGroup(expenseToCreate, description?.takeIf { it.isNotBlank() })
+                        val expenseId = groupRepository.addExpenseToGroup(expenseToCreate)
                         addedExpenseIds.add(expenseId)
                         
                         // Automatically mark the expense creator as having paid
