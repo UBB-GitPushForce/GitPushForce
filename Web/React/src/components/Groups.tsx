@@ -168,13 +168,26 @@ const Groups: React.FC<{
 
         try {
             await apiClient.post(`/users/join-group/${invitationCode.trim()}`);
+            // Successfully joined
             await fetchGroups();
             setInvitationCode('');
             setShowJoinForm(false);
             alert('Successfully joined the group!');
         } catch (err: any) {
             console.error('Failed to join group', err);
-            alert(err?.response?.data?.detail || 'Failed to join group. Check the invitation code.');
+            
+            // Backend has a bug where it returns 500 after successfully adding user to group
+            // The database operation completes, but the response serialization fails
+            // So we check if it's a 500 error and try to refresh groups anyway
+            if (err?.response?.status === 500 || err?.code === 'ERR_NETWORK') {
+                // Try refreshing groups - user might have been added successfully
+                await fetchGroups();
+                setInvitationCode('');
+                setShowJoinForm(false);
+                alert('You may have joined the group. Please check your groups list.');
+            } else {
+                alert(err?.response?.data?.detail || 'Failed to join group. Check the invitation code.');
+            }
         }
     };
 
