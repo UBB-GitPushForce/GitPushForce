@@ -15,9 +15,7 @@ import ReceiptsView from './ReceiptsView'; // <-- adăugat
 import ReceiptsManual from './ReceiptsManual';
 import ChatBot from './ChatBot';
 import Data from './Data';
-import Alerts from './Alerts';
 import Notifications from './Notifications';
-import MapComponent from './Map';
 
 interface Tx {
   id: number;
@@ -37,11 +35,8 @@ const Dashboard: React.FC = () => {
     | 'profile'
     | 'support'
     | 'groupDetail'
-    | 'chat'
     | 'data'
-    | 'alerts'
     | 'notifications'
-    | 'map'
   >('home');
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [recentTx, setRecentTx] = useState<Tx[]>([]);
@@ -234,24 +229,9 @@ const Dashboard: React.FC = () => {
             <div>Data</div>
           </div>
 
-          <div className={`bp-nav-item ${screen === 'chat' ? 'active' : ''}`} onClick={() => navigate('chat')} role="button">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 0-2-2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" strokeWidth="1.4"/></svg>
-            <div>AI</div>
-          </div>
-
-          {/* Alerts — no image currently. */}
-          <div className={`bp-nav-item ${screen === 'alerts' ? 'active' : ''}`} onClick={() => navigate('alerts')} role="button">
-            <div>Alerts</div>
-          </div>
-
           {/* Notifications — no image currently. */}
           <div className={`bp-nav-item ${screen === 'notifications' ? 'active' : ''}`} onClick={() => navigate('notifications')} role="button">
             <div>Notifications</div>
-          </div>
-
-          {/* Map (Goals) page — no image */}
-          <div className={`bp-nav-item ${screen === 'map' ? 'active' : ''}`} onClick={() => navigate('map')} role="button">
-            <div>Map</div>
           </div>
 
           <div style={{ marginLeft: 'auto' }} />
@@ -362,15 +342,9 @@ const Dashboard: React.FC = () => {
 
           {screen === 'receipts' && <Receipts navigate={(t: string) => setScreen(t as any)} />}
 
-          {screen === 'chat' && <ChatBot />}
-
           {screen === 'data' && <Data />}
 
-          {screen === 'alerts' && <Alerts />}
-
           {screen === 'notifications' && <Notifications />}
-
-          {screen === 'map' && <MapComponent />}
         </div>
 
         {/* BOTTOM NAV — kept for mobile (hidden on desktop by CSS) */}
@@ -393,11 +367,6 @@ const Dashboard: React.FC = () => {
           <div className={`bp-nav-item ${screen === 'data' ? 'active' : ''}`} onClick={() => navigate('data')}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18" strokeWidth="1.4"/></svg>
             <div>Data</div>
-          </div>
-
-          <div className={`bp-nav-item ${screen === 'chat' ? 'active' : ''}`} onClick={() => navigate('chat')}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 0-2-2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" strokeWidth="1.4"/></svg>
-            <div>AI</div>
           </div>
 
           <div className={`bp-nav-item ${screen === 'profile' ? 'active' : ''}`} onClick={() => navigate('profile')}>
