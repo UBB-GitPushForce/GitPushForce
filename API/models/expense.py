@@ -41,3 +41,15 @@ class Expense(Base):
             name="chk_expenses_one_fk"
         ),
     )
+
+    @property
+    def split_amount(self) -> float:
+        """
+        Calculates amount per person if it is a group expense.
+        """
+        print(f"DEBUG: Group {self.group_id} has members: {[u.id for u in self.group.users]}")
+        if self.group_id and self.group and self.group.users:
+            member_count = len(self.group.users)
+            if member_count > 0:
+                return round(self.amount / member_count, 2)
+        return self.amount
