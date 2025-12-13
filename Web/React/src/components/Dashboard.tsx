@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import '../App.css';
 import ThemeToggle from './ThemeToggle';
 import { useCurrency } from '../contexts/CurrencyContext';
+import categoryService, { Category } from '../services/category-service';
 import Groups from './Groups';
 import Profile from './Profile';
 import Support from './Support';
@@ -14,9 +15,7 @@ import ReceiptsView from './ReceiptsView'; // <-- adăugat
 import ReceiptsManual from './ReceiptsManual';
 import ChatBot from './ChatBot';
 import Data from './Data';
-import Alerts from './Alerts';
 import Notifications from './Notifications';
-import Map from './Map';
 
 interface Tx {
   id: number;
@@ -36,11 +35,8 @@ const Dashboard: React.FC = () => {
     | 'profile'
     | 'support'
     | 'groupDetail'
-    | 'chat'
     | 'data'
-    | 'alerts'
     | 'notifications'
-    | 'map'
   >('home');
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [recentTx, setRecentTx] = useState<Tx[]>([]);
@@ -62,16 +58,38 @@ const Dashboard: React.FC = () => {
         },
       });
 
-      const items = Array.isArray(res.data) ? res.data : [];
-      const mapped: Tx[] = items.map((x: any) => ({
-        id: x.id,
-        title: x.title,
-        cat: x.category || 'Other',
-        amount: x.amount,
-        thumb: x.title ? x.title[0].toUpperCase() : 'T',
-      }));
-
-      setRecentTx(mapped);
+      // Backend returns APIResponse { success: true, data: [expenses] } or just [expenses]
+      const responseData = res.data;
+      const items = Array.isArray(responseData) ? responseData : (Array.isArray(responseData?.data) ? responseData.data : []);
+      
+      // Fetch categories to map category_id to title
+      try {
+        const categories = await categoryService.getCategories();
+        const categoryArray = Array.isArray(categories) ? categories : [];
+        
+        const categoryMap = new Map(categoryArray.map((c: any) => [c.id, c.title]));
+        
+        const mapped: Tx[] = items.map((x: any) => ({
+          id: x.id,
+          title: x.title,
+          cat: categoryMap.get(x.category_id) || 'Other',
+          amount: x.amount,
+          thumb: x.title ? x.title[0].toUpperCase() : 'T',
+        }));
+        
+        setRecentTx(mapped);
+      } catch (catErr) {
+        console.error('Failed to fetch categories, showing without categories', catErr);
+        // Fallback without categories
+        const mapped: Tx[] = items.map((x: any) => ({
+          id: x.id,
+          title: x.title,
+          cat: 'Other',
+          amount: x.amount,
+          thumb: x.title ? x.title[0].toUpperCase() : 'T',
+        }));
+        setRecentTx(mapped);
+      }
     } catch (err) {
       console.error('Failed to fetch recent transactions', err);
       setRecentTx([]);
@@ -88,7 +106,9 @@ const Dashboard: React.FC = () => {
         },
       });
 
-      const items = Array.isArray(res.data) ? res.data : [];
+      // Backend returns APIResponse { success: true, data: [expenses] } or just [expenses]
+      const responseData = res.data;
+      const items = Array.isArray(responseData) ? responseData : (Array.isArray(responseData?.data) ? responseData.data : []);
       const total = items.reduce((acc: number, it: any) => acc + (Number(it.amount) || 0), 0);
       setTotalSpent(total);
     } catch (err) {
@@ -209,24 +229,9 @@ const Dashboard: React.FC = () => {
             <div>Data</div>
           </div>
 
-          <div className={`bp-nav-item ${screen === 'chat' ? 'active' : ''}`} onClick={() => navigate('chat')} role="button">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 0-2-2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" strokeWidth="1.4"/></svg>
-            <div>AI</div>
-          </div>
-
-          {/* Alerts — no image currently. */}
-          <div className={`bp-nav-item ${screen === 'alerts' ? 'active' : ''}`} onClick={() => navigate('alerts')} role="button">
-            <div>Alerts</div>
-          </div>
-
           {/* Notifications — no image currently. */}
           <div className={`bp-nav-item ${screen === 'notifications' ? 'active' : ''}`} onClick={() => navigate('notifications')} role="button">
             <div>Notifications</div>
-          </div>
-
-          {/* Map (Goals) page — no image */}
-          <div className={`bp-nav-item ${screen === 'map' ? 'active' : ''}`} onClick={() => navigate('map')} role="button">
-            <div>Map</div>
           </div>
 
           <div style={{ marginLeft: 'auto' }} />
@@ -337,15 +342,9 @@ const Dashboard: React.FC = () => {
 
           {screen === 'receipts' && <Receipts navigate={(t: string) => setScreen(t as any)} />}
 
-          {screen === 'chat' && <ChatBot />}
-
           {screen === 'data' && <Data />}
 
-          {screen === 'alerts' && <Alerts />}
-
           {screen === 'notifications' && <Notifications />}
-
-          {screen === 'map' && <Map />}
         </div>
 
         {/* BOTTOM NAV — kept for mobile (hidden on desktop by CSS) */}
@@ -368,11 +367,6 @@ const Dashboard: React.FC = () => {
           <div className={`bp-nav-item ${screen === 'data' ? 'active' : ''}`} onClick={() => navigate('data')}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18" strokeWidth="1.4"/></svg>
             <div>Data</div>
-          </div>
-
-          <div className={`bp-nav-item ${screen === 'chat' ? 'active' : ''}`} onClick={() => navigate('chat')}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 0-2-2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" strokeWidth="1.4"/></svg>
-            <div>AI</div>
           </div>
 
           <div className={`bp-nav-item ${screen === 'profile' ? 'active' : ''}`} onClick={() => navigate('profile')}>
