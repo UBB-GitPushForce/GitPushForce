@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import com.example.budgeting.android.ui.screens.QrCaptureActivity
 import com.journeyapps.barcodescanner.ScanContract
@@ -80,7 +81,7 @@ fun JoinGroupDialog(
         }
     }
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(dismissOnClickOutside = false)) {
         Surface(
             color = MaterialTheme.colorScheme.background,
             shape = RoundedCornerShape(16.dp)

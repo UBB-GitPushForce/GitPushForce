@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.example.budgeting.android.ui.utils.GroupUtils
 
 @Composable
@@ -34,7 +35,7 @@ fun GroupShareDialog(
         }
     }
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(dismissOnClickOutside = false)) {
         Surface(
             color = MaterialTheme.colorScheme.background,
             shape = RoundedCornerShape(16.dp),

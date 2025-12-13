@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.example.budgeting.android.data.model.Expense
 import com.example.budgeting.android.data.model.ExpensePayment
 import com.example.budgeting.android.data.model.UserData
@@ -31,7 +32,7 @@ fun ExpensePaymentDialog(
     expense: Expense,
     members: List<UserData>,
     vm: GroupDetailsViewModel,
-    onDismiss: () -> Unit
+        onDismiss: () -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
     var payments by remember { mutableStateOf<List<ExpensePayment>>(emptyList()) }
@@ -70,7 +71,7 @@ fun ExpensePaymentDialog(
         members.filter { it.id != expense.user_id }
     }
     
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(dismissOnClickOutside = false)) {
         Surface(
             color = MaterialTheme.colorScheme.background,
             shape = RoundedCornerShape(16.dp),

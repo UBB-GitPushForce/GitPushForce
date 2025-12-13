@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 
 @Composable
 fun CreateGroupDialog(
@@ -25,7 +26,7 @@ fun CreateGroupDialog(
     var groupName by remember { mutableStateOf("") }
     var groupDescription by remember { mutableStateOf("") }
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(dismissOnClickOutside = false)) {
         val configuration = LocalConfiguration.current
         val maxHeight = configuration.screenHeightDp.dp * 0.6f
         Surface(

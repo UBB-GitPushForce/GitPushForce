@@ -6,12 +6,14 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.budgeting.android.ui.components.group.*
 import com.example.budgeting.android.ui.utils.DateUtils
@@ -51,10 +53,26 @@ fun GroupDetailsScreen(
     var selectedExpense by remember { mutableStateOf<GroupExpense?>(null) }
     var showPaymentDialog by remember { mutableStateOf(false) }
 
+    var paidUserIds by remember { mutableStateOf<Set<Int>>(emptySet()) }
+    var isFetchingPayments by remember { mutableStateOf(false) }
+
     LaunchedEffect(showShareDialog, group?.id) {
         val id = group?.id
         if (showShareDialog && id != null) {
             vm.loadGroupInviteQr(id, forceRefresh = true)
+        }
+    }
+
+    LaunchedEffect(selectedExpense) {
+        if (selectedExpense != null) {
+            isFetchingPayments = true
+            val payments = vm.getExpensePayments(selectedExpense!!.expense.id!!)
+            
+            paidUserIds = payments.mapNotNull { it.user_id }.toSet()
+            isFetchingPayments = false
+        } else {
+            paidUserIds = emptySet()
+            isFetchingPayments = false
         }
     }
 
@@ -255,15 +273,92 @@ fun GroupDetailsScreen(
     }
 
     if (showPaymentDialog && selectedExpense != null) {
-        ExpensePaymentDialog(
-            expense = selectedExpense!!.expense,
-            members = members,
-            vm = vm,
-            onDismiss = {
-                showPaymentDialog = false
-                selectedExpense = null
-                vm.loadGroup(groupId) // Reload group to refresh expenses and payments
+        if (isFetchingPayments) {
+            AlertDialog(
+                onDismissRequest = {},
+                properties = DialogProperties(
+                    dismissOnClickOutside = false,
+                    dismissOnBackPress = true
+                ),
+                confirmButton = {},
+                text = {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    }
+                },
+                containerColor = MaterialTheme.colorScheme.surface,
+            )
+        } else {
+            val unpaidMembers = remember(members, paidUserIds) {
+                members.filter { member ->
+                    !paidUserIds.contains(member.id) &&
+                            member.id != selectedExpense!!.expense.user_id
+                }
             }
-        )
+
+            if (unpaidMembers.isEmpty()) {
+                AlertDialog(
+                    onDismissRequest = {
+                        showPaymentDialog = false
+                        selectedExpense = null
+                    },
+                    properties = DialogProperties(
+                        dismissOnClickOutside = false,
+                        dismissOnBackPress = true
+                    ),
+                    icon = {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(48.dp)
+                        )
+                    },
+                    title = {
+                        Text(
+                            text = "All Settled",
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = "All users have paid for this expense.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                showPaymentDialog = false
+                                selectedExpense = null
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                        ) {
+                            Text("Ok")
+                        }
+                    }
+                )
+            } else {
+                ExpensePaymentDialog(
+                    expense = selectedExpense!!.expense,
+                    members = unpaidMembers,
+                    vm = vm,
+                    onDismiss = {
+                        showPaymentDialog = false
+                        selectedExpense = null
+                        vm.loadGroup(groupId)
+                    }
+                )
+            }
+        }
     }
 }
