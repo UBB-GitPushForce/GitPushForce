@@ -146,8 +146,8 @@ class UserGroupService(IUserGroupService):
         return APIResponse(
             success=True,
             data={
-                GROUP_FIELD: group_response,
-                USER_FIELD: user_response,
+                GROUP_FIELD: group_id,
+                USER_FIELD: user_id,
             }
         )
 
