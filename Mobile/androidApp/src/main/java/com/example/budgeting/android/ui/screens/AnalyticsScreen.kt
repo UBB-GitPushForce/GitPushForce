@@ -2,6 +2,7 @@ package com.example.budgeting.android.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
@@ -30,6 +31,8 @@ import java.time.LocalDate
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.rememberDatePickerState
+import com.example.budgeting.android.data.model.*
+import com.example.budgeting.android.ui.viewmodels.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,45 +55,63 @@ fun AnalyticsScreen() {
 
     LaunchedEffect(Unit) { viewModel.loadAnalytics() }
 
-    val scrollState = rememberScrollState()
-
     Scaffold(
-        topBar = { CenterAlignedTopAppBar(title = { Text("Analytics") }) }
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        "Analytics",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                }
+            )
+        }
     ) { padding ->
+
         Column(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .verticalScroll(scrollState)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp)
         ) {
 
             Spacer(Modifier.height(8.dp))
 
             ModeSelector(selected = mode, onSelected = { viewModel.setMode(it) })
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
 
-            // --- FILTER ROW WITH CATEGORY AND CALENDAR DATE PICKERS ---
-            AnalyticsFilterRow(
-                categories = categories,
-                selectedCategory = selectedCategory,
-                onCategorySelected = { viewModel.setCategory(it) },
-                from = from,
-                to = to,
-                onFromSelected = { viewModel.setDateFrom(it) },
-                onToSelected = { viewModel.setDateTo(it) }
-            )
+            // ---------------- FILTER CARD ----------------
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                tonalElevation = 2.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                AnalyticsFilterRow(
+                    categories = categories,
+                    selectedCategory = selectedCategory,
+                    onCategorySelected = { viewModel.setCategory(it) },
+                    from = from,
+                    to = to,
+                    onFromSelected = { viewModel.setDateFrom(it) },
+                    onToSelected = { viewModel.setDateTo(it) }
+                )
+            }
 
             Spacer(Modifier.height(16.dp))
 
             when {
-                isLoading -> Box(
-                    Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) { CircularProgressIndicator() }
-                error != null -> Text("Error: $error", color = MaterialTheme.colorScheme.error)
-                else -> AnalyticsContent(categoryCounts, categoryAmounts, monthlyTotals)
+                isLoading -> CenterLoading()
+                error != null -> CenterError(error!!)
+                else -> AnalyticsContent(
+                    categoryCounts,
+                    categoryAmounts,
+                    monthlyTotals
+                )
             }
+
+            Spacer(Modifier.height(24.dp))
         }
     }
 }
@@ -110,67 +131,29 @@ fun AnalyticsFilterRow(
     var showFromDatePicker by remember { mutableStateOf(false) }
     var showToDatePicker by remember { mutableStateOf(false) }
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+    Column(
+        modifier = Modifier.padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-
-        // --- CATEGORY BUTTON WITH ICON ---
-        Box {
-            IconButton(onClick = { showCategoryMenu = true }) {
-                Icon(
-                    Icons.Default.Category,
-                    contentDescription = "Select Category",
-                    tint = if (selectedCategory != "All")
-                        MaterialTheme.colorScheme.primary
-                    else
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            DropdownMenu(
-                expanded = showCategoryMenu,
-                onDismissRequest = { showCategoryMenu = false }
-            ) {
-                DropdownMenuItem(text = { Text("All") }, onClick = {
-                    onCategorySelected("All")
-                    showCategoryMenu = false
-                })
-                categories.forEach { cat ->
-                    DropdownMenuItem(text = { Text(cat) }, onClick = {
-                        onCategorySelected(cat)
-                        showCategoryMenu = false
-                    })
-                }
-            }
-        }
-
-        // --- DATE PICKERS WITH ICONS ---
-        Row {
-            // From Date
-            IconButton(onClick = { showFromDatePicker = true }) {
-                Icon(Icons.Default.CalendarToday, contentDescription = "Select From Date")
-            }
+        // DATE RANGE
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
             TextButton(onClick = { showFromDatePicker = true }) {
+                Icon(Icons.Default.CalendarToday, contentDescription = null)
+                Spacer(Modifier.width(6.dp))
                 Text(from?.toString() ?: "From")
             }
 
-            Spacer(Modifier.width(8.dp))
-
-            // To Date
-            IconButton(onClick = { showToDatePicker = true }) {
-                Icon(Icons.Default.CalendarToday, contentDescription = "Select To Date")
-            }
             TextButton(onClick = { showToDatePicker = true }) {
+                Icon(Icons.Default.CalendarToday, contentDescription = null)
+                Spacer(Modifier.width(6.dp))
                 Text(to?.toString() ?: "To")
             }
         }
     }
 
-    // --- FROM DATE PICKER DIALOG ---
     if (showFromDatePicker) {
         val state = rememberDatePickerState(
             initialSelectedDateMillis = from?.toEpochDay()?.times(86400000L)
@@ -179,21 +162,20 @@ fun AnalyticsFilterRow(
             onDismissRequest = { showFromDatePicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    state.selectedDateMillis?.let { millis ->
-                        onFromSelected(LocalDate.ofEpochDay(millis / 86400000L))
+                    state.selectedDateMillis?.let {
+                        onFromSelected(LocalDate.ofEpochDay(it / 86400000L))
                     }
                     showFromDatePicker = false
                 }) { Text("OK") }
             },
             dismissButton = {
-                TextButton(onClick = { showFromDatePicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showFromDatePicker = false }) {
+                    Text("Cancel")
+                }
             }
-        ) {
-            DatePicker(state = state)
-        }
+        ) { DatePicker(state = state) }
     }
 
-    // --- TO DATE PICKER DIALOG ---
     if (showToDatePicker) {
         val state = rememberDatePickerState(
             initialSelectedDateMillis = to?.toEpochDay()?.times(86400000L)
@@ -202,24 +184,65 @@ fun AnalyticsFilterRow(
             onDismissRequest = { showToDatePicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    state.selectedDateMillis?.let { millis ->
-                        onToSelected(LocalDate.ofEpochDay(millis / 86400000L))
+                    state.selectedDateMillis?.let {
+                        onToSelected(LocalDate.ofEpochDay(it / 86400000L))
                     }
                     showToDatePicker = false
                 }) { Text("OK") }
             },
             dismissButton = {
-                TextButton(onClick = { showToDatePicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showToDatePicker = false }) {
+                    Text("Cancel")
+                }
             }
-        ) {
-            DatePicker(state = state)
+        ) { DatePicker(state = state) }
+    }
+}
+
+@Composable
+fun AnalyticsContent(
+    categoryCounts: List<CategoryCount>,
+    categoryAmounts: List<CategoryTotal>,
+    monthlyTotals: List<MonthlyTotal>
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+
+        AnalyticsCard("Expenses per category") {
+            CategoryCountBarChart(categoryCounts)
+        }
+
+        AnalyticsCard("Total amount per category") {
+            CategoryAmountBarChart(categoryAmounts)
+        }
+
+        AnalyticsCard("Monthly trend") {
+            MonthlyLineChart(monthlyTotals)
         }
     }
 }
 
+@Composable
+fun AnalyticsCard(
+    title: String,
+    content: @Composable () -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(12.dp))
+            content()
+        }
+    }
+}
+
+
 // ----------------- REMAINING ANALYTICS CHARTS -----------------
 @Composable
-fun AnalyticsContent(
+fun AnalyticsContentOLD(
     categoryCounts: List<CategoryCount>,
     categoryAmounts: List<CategoryTotal>,
     monthlyTotals: List<MonthlyTotal>
@@ -331,39 +354,6 @@ fun MonthlyLineChart(data: List<MonthlyTotal>) {
         startAxis = rememberStartAxis(),
         bottomAxis = bottomAxis
     )
-}
-
-// ----------------- CATEGORY DROPDOWN -----------------
-@Composable
-fun CategoryDropdown(
-    categories: List<String>,
-    selected: String,
-    onSelected: (String) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    Box {
-        TextButton(onClick = { expanded = true }) {
-            Text("Category: ${selected}")
-        }
-
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            DropdownMenuItem(text = { Text("All") }, onClick = {
-                onSelected("All")
-                expanded = false
-            })
-
-            categories.forEach { cat ->
-                DropdownMenuItem(text = { Text(cat) }, onClick = {
-                    onSelected(cat)
-                    expanded = false
-                })
-            }
-        }
-    }
 }
 
 // ----------------- DATE PICKER -----------------

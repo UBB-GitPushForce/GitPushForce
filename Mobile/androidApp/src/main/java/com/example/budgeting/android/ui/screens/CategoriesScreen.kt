@@ -2,17 +2,7 @@ package com.example.budgeting.android.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,42 +10,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.InputChip
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.budgeting.android.ui.viewmodels.CategoryViewModel
 import com.example.budgeting.android.data.model.Category
 import com.example.budgeting.android.data.model.CategoryBody
+import com.example.budgeting.android.ui.viewmodels.CategoryViewModel
 import com.example.budgeting.android.ui.viewmodels.CategoryViewModelFactory
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,11 +42,19 @@ fun CategoriesScreen(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Categories") },
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Categories",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
                     }
                 },
                 actions = {
@@ -94,6 +68,7 @@ fun CategoriesScreen(
             )
         }
     ) { padding ->
+
         Box(
             modifier = Modifier
                 .padding(padding)
@@ -104,19 +79,21 @@ fun CategoriesScreen(
                     CircularProgressIndicator()
                 }
                 error != null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Error: $error", color = MaterialTheme.colorScheme.error)
+                    Text(
+                        text = error!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
-                categories.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No categories found")
-                }
+                categories.isEmpty() -> EmptyCategoriesState()
                 else -> LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(8.dp)
+                    contentPadding = PaddingValues(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(categories) { category ->
                         CategoryItem(
                             category = category,
-                            modifier = Modifier.padding(vertical = 4.dp),
                             onClick = {
                                 editingCategory = category
                                 showDialog = true
@@ -125,7 +102,6 @@ fun CategoriesScreen(
                                 categoryToDelete = category
                                 showDeleteDialog = true
                             }
-
                         )
                     }
                 }
@@ -135,9 +111,10 @@ fun CategoriesScreen(
         if (showDeleteDialog && categoryToDelete != null) {
             AlertDialog(
                 onDismissRequest = { showDeleteDialog = false },
-                title = { Text("Delete Category") },
+                shape = RoundedCornerShape(20.dp),
+                title = { Text("Delete category") },
                 text = {
-                    Text("Are you sure you want to delete '${categoryToDelete!!.title}'?")
+                    Text("Are you sure you want to delete \"${categoryToDelete!!.title}\"?")
                 },
                 confirmButton = {
                     TextButton(onClick = {
@@ -158,7 +135,6 @@ fun CategoriesScreen(
                 }
             )
         }
-
     }
 
     if (showDialog) {
@@ -177,12 +153,10 @@ fun CategoriesScreen(
                     )
                 }
             }
-
         )
     }
 }
 
-// ========================= ADD/EDIT CATEGORY DIALOG =========================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditCategoryDialog(
@@ -191,36 +165,37 @@ fun AddEditCategoryDialog(
     onSave: (String, List<String>) -> Unit
 ) {
     var title by remember { mutableStateOf(category?.title ?: "") }
-
     var keywordInput by remember { mutableStateOf("") }
     var keywords by remember {
-        mutableStateOf<MutableList<String>>(category?.keywords?.toMutableList() ?: mutableListOf())
+        mutableStateOf(category?.keywords ?: mutableListOf())
     }
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(20.dp),
         title = {
-            Text(if (category == null) "Add Category" else "Edit Category")
+            Text(
+                text = if (category == null) "Add category" else "Edit category",
+                style = MaterialTheme.typography.titleLarge
+            )
         },
         text = {
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
-                // Title
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
                     label = { Text("Title") },
+                    placeholder = { Text("eg. Food") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Spacer(Modifier.height(12.dp))
-
-                // Keyword input
                 OutlinedTextField(
                     value = keywordInput,
                     onValueChange = { keywordInput = it },
                     label = { Text("Add keyword") },
+                    placeholder = { Text("eg. Grocery") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = {
@@ -239,32 +214,25 @@ fun AddEditCategoryDialog(
                     }
                 )
 
-                // Keyword chips
                 if (keywords.isNotEmpty()) {
-                    Spacer(Modifier.height(8.dp))
-
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         keywords.forEach { keyword ->
                             AssistChip(
+                                onClick = {},
                                 label = { Text(keyword) },
-                                onClick = { /* maybe do nothing */ },
                                 trailingIcon = {
                                     Icon(
-                                        imageVector = Icons.Default.Close,
+                                        Icons.Default.Close,
                                         contentDescription = "Remove",
-                                        modifier = Modifier
-                                            .padding(start = 4.dp)
-                                            .clickable {
-                                                keywords = keywords.toMutableList().also { it.remove(keyword) }
-                                            }
+                                        modifier = Modifier.clickable {
+                                            keywords =
+                                                keywords.toMutableList().also { it.remove(keyword) }
+                                        }
                                     )
-                                },
-                                colors = AssistChipDefaults.assistChipColors(
-                                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                                )
+                                }
                             )
                         }
                     }
@@ -290,7 +258,6 @@ fun AddEditCategoryDialog(
     )
 }
 
-
 @Composable
 fun CategoryItem(
     category: Category,
@@ -306,44 +273,39 @@ fun CategoryItem(
                 onLongClick = onLongClick
             ),
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
 
-            // Title
             Text(
                 text = category.title.orEmpty(),
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.SemiBold
             )
 
-            // Keywords
             val keywords = category.keywords.orEmpty()
             if (keywords.isNotEmpty()) {
-                Spacer(Modifier.height(8.dp))
-
                 FlowRow(
-                    horizontalArrangement = Arrangement.Absolute.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.Absolute.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     keywords.forEach { keyword ->
                         AssistChip(
                             onClick = {},
+                            label = { Text(keyword) },
                             colors = AssistChipDefaults.assistChipColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceVariant
-                            ),
-                            label = { Text(keyword) }
+                            )
                         )
-
                     }
                 }
             }
-
-            Spacer(Modifier.height(8.dp))
 
             Text(
                 text = "Tap to edit · Hold to delete",
@@ -354,3 +316,13 @@ fun CategoryItem(
     }
 }
 
+@Composable
+fun EmptyCategoriesState() {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(
+            "No categories yet",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}

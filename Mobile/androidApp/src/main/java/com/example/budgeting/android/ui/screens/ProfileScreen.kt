@@ -54,15 +54,12 @@ fun ProfileScreen(
                         onClick = {
                             profileViewModel.logout()
                             onLogout()
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        ),
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier.padding(end = 12.dp)
+                        }
                     ) {
-                        Text("Logout")
+                        Text(
+                            text = "Logout",
+                            color = MaterialTheme.colorScheme.error
+                        )
                     }
                 }
             )
@@ -110,7 +107,7 @@ fun ProfileScreen(
                 Surface(
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.size(80.dp)
+                    modifier = Modifier.size(72.dp)
                 ) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
@@ -121,7 +118,7 @@ fun ProfileScreen(
                     }
                 }
 
-                Spacer(Modifier.width(20.dp))
+                Spacer(Modifier.width(16.dp))
 
                 Column(
                     modifier = Modifier.weight(1f)

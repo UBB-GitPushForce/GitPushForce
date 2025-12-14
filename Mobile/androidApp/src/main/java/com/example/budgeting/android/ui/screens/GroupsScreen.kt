@@ -33,7 +33,14 @@ fun GroupsScreen(onOpenGroup: (Int) -> Unit) {
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(modifier = Modifier.fillMaxSize()) {
-            CenterAlignedTopAppBar(title = { Text("Groups", color = MaterialTheme.colorScheme.onBackground) })
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Groups",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                }
+            )
 
             Text(
                 text = "My Groups",
