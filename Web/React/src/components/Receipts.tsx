@@ -1,9 +1,11 @@
 // src/components/Receipts.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../App.css';
 import ReceiptsView from './ReceiptsView';
 import ReceiptsUpload from './ReceiptsUpload';
 import ReceiptsCamera from './ReceiptsCamera';
+import { useAuth } from '../hooks/useAuth';
+import groupService, { Group } from '../services/group-service';
 
 export type ReceiptItem = {
   id: number;
@@ -19,21 +21,36 @@ export type ReceiptItem = {
   initial?: string;
 };
 
-const mockGroups = [
-  { id: 1, name: 'Vacation' },
-  { id: 2, name: 'Household' },
-  { id: 3, name: 'Friends' },
-];
-
 const Receipts: React.FC<{ navigate?: (to: string) => void }> = ({ navigate }) => {
+  const { user } = useAuth();
   // Modified: default entry is the "chooseAdd" step so Receipts page shows the Add flow directly.
   const [subpage, setSubpage] = useState<'menu'|'chooseAdd'|'addOptions'|'view'|'upload'|'camera'>('chooseAdd');
+
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [loadingGroups, setLoadingGroups] = useState(false);
 
   // groupId when adding a group-linked receipt
   const [selectedGroup, setSelectedGroup] = useState<number | null>(null);
 
   // refreshKey: increment to trigger ReceiptsView reload
   const [refreshKey, setRefreshKey] = useState<number>(0);
+
+  // Fetch groups on mount
+  useEffect(() => {
+    if (!user) return;
+    const fetchGroups = async () => {
+      setLoadingGroups(true);
+      try {
+        const data = await groupService.getUserGroups(user.id);
+        setGroups(data);
+      } catch (err) {
+        console.error('Failed to load groups', err);
+      } finally {
+        setLoadingGroups(false);
+      }
+    };
+    fetchGroups();
+  }, [user]);
 
   const triggerRefresh = () => {
     setRefreshKey(prev => prev + 1);
@@ -56,9 +73,13 @@ const Receipts: React.FC<{ navigate?: (to: string) => void }> = ({ navigate }) =
             <button className="bp-add-btn" onClick={() => { setSelectedGroup(null); setSubpage('addOptions'); }}>Single (only you)</button>
 
             <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-              <select value={selectedGroup ?? ''} onChange={(e) => setSelectedGroup(e.target.value ? Number(e.target.value) : null)}>
-                <option value="">Select group...</option>
-                {mockGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+              <select 
+                value={selectedGroup ?? ''} 
+                onChange={(e) => setSelectedGroup(e.target.value ? Number(e.target.value) : null)}
+                disabled={loadingGroups}
+              >
+                <option value="">{loadingGroups ? 'Loading...' : 'Select group...'}</option>
+                {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
               </select>
               <button className="bp-add-btn" onClick={() => {
                 if (!selectedGroup) { alert('Select a group first'); return; }
@@ -77,6 +98,11 @@ const Receipts: React.FC<{ navigate?: (to: string) => void }> = ({ navigate }) =
       {subpage === 'addOptions' && (
         <div style={{ marginTop: 12, display: 'grid', gap: 12 }}>
           <div style={{ fontWeight:700 }}>How do you want to add the receipt?</div>
+          {selectedGroup && (
+             <div style={{ fontSize: 13, color: 'var(--muted-dark)' }}>
+               Adding to group: <strong>{groups.find(g => g.id === selectedGroup)?.name}</strong>
+             </div>
+          )}
 
           <div style={{ display:'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px,1fr))', gap:12 }}>
             {/* Manual add removed: use Home 'Add Expense' instead */}
@@ -111,7 +137,11 @@ const Receipts: React.FC<{ navigate?: (to: string) => void }> = ({ navigate }) =
           </div>
 
           <div style={{ marginTop:12 }}>
-            <ReceiptsUpload onUploaded={(it) => { triggerRefresh(); setSubpage('chooseAdd'); }} groupId={selectedGroup} />
+            <ReceiptsUpload 
+                onUploaded={(it) => { triggerRefresh(); setSubpage('chooseAdd'); }} 
+                groupId={selectedGroup} 
+                groups={groups}
+            />
           </div>
         </div>
       )}
@@ -127,7 +157,11 @@ const Receipts: React.FC<{ navigate?: (to: string) => void }> = ({ navigate }) =
           </div>
 
           <div style={{ marginTop:12 }}>
-            <ReceiptsCamera onUploaded={(it) => { triggerRefresh(); setSubpage('chooseAdd'); }} groupId={selectedGroup} />
+            <ReceiptsCamera 
+                onUploaded={(it) => { triggerRefresh(); setSubpage('chooseAdd'); }} 
+                groupId={selectedGroup}
+                groups={groups}
+            />
           </div>
         </div>
       )}
