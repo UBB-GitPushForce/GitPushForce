@@ -432,7 +432,7 @@ fun BudgetSummaryCard(
                 )
 
                 Text(
-                    text = "$${totalBudget}",
+                    text = "${totalBudget}",
                     style = MaterialTheme.typography.titleMedium
                 )
             }
@@ -462,7 +462,7 @@ private fun BudgetStat(
             )
 
             Text(
-                text = "$${amount.toInt()}",
+                text = "${amount.toInt()}",
                 style = MaterialTheme.typography.titleLarge
             )
         }

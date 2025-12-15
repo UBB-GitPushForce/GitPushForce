@@ -3,6 +3,7 @@ package com.example.budgeting.android.ui.viewmodels
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.budgeting.android.data.local.TokenDataStore
 import com.example.budgeting.android.data.model.Category
 import com.example.budgeting.android.data.model.Expense
@@ -152,6 +153,11 @@ class ExpenseViewModel(context: Context) : ViewModel() {
         }
     }
 
+    fun getCategoriesOfUser() {
+        viewModelScope.launch {
+            _categories.value = categoryRepository.getCategories(null, null)
+        }
+    }
 
     /** ----------------------------------------------------------
      *  MODES

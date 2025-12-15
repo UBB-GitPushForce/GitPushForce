@@ -39,6 +39,7 @@ fun ExpensesScreen(
     val mode by expenseViewModel.mode.collectAsState()
     val currentUserId by expenseViewModel.currentUserId.collectAsState()
     val filters by expenseViewModel.filters.collectAsState()
+    val categories by expenseViewModel.categories.collectAsState()
 
     val focusManager = LocalFocusManager.current
 
@@ -141,8 +142,8 @@ fun ExpensesScreen(
         }
 
         if (showDialog) {
-            val realCategories =
-                expenseViewModel.categories.collectAsState().value.filter { it.id != 0 }
+            expenseViewModel.getCategoriesOfUser()
+            val realCategories = categories
 
             AddEditExpenseDialog(
                 expense = selectedExpense,

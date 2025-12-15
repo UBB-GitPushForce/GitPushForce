@@ -13,7 +13,7 @@ interface UserApiService {
     suspend fun getUserById(@Path("id") id: Int): Response<ApiResponse<UserResponse>>
 
     @PUT("/users/{id}")
-    suspend fun updateUser(@Path("id") id: Int, @Body user: UserUpdateRequest): Response<ApiResponse<Unit>>
+    suspend fun updateUser(@Path("id") id: Int, @Body user: UserUpdateRequest): Response<ApiResponse<UserResponse>>
 
     @DELETE("/users/{id}")
     suspend fun deleteUser(@Path("id") id: Int): Response<ApiResponse<Unit>>
