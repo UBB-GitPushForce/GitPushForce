@@ -4,6 +4,7 @@ import type { ReceiptItem } from './Receipts';
 import { useAuth } from '../hooks/useAuth';
 import { useCurrency } from '../contexts/CurrencyContext';
 import apiClient from '../services/api-client';
+import categoryService, { Category } from '../services/category-service';
 
 /*
   ReceiptsView: infinite scroll grid with filters and delete action (mock).
@@ -24,6 +25,20 @@ function randomDate(start: Date, end: Date) {
   return t.toISOString().slice(0, 10);
 }
 
+// Cache for categories
+let categoriesCache: Category[] | null = null;
+
+async function getCategories(): Promise<Category[]> {
+  if (categoriesCache) return categoriesCache;
+  try {
+    categoriesCache = await categoryService.getCategories();
+    return categoriesCache;
+  } catch (err) {
+    console.error('Failed to fetch categories', err);
+    return [];
+  }
+}
+
 
 // DONE: paged fetch
 async function fetchPage(pageIndex: number, pageSize: number, filters: any) {
@@ -35,47 +50,71 @@ async function fetchPage(pageIndex: number, pageSize: number, filters: any) {
       order: filters.sortOrder || 'desc',
     };
 
-    // fixed mappings:
-    // title search
-    if (filters.qTitle) params.title = filters.qTitle;
-    // subtitle/category search
+    // Backend supported filters:
+    // category: string (category title, resolved to IDs on backend)
     if (filters.qSubtitle) params.category = filters.qSubtitle;
 
-    // amount range (keep backend-friendly names used earlier: min_price/max_price)
+    // amount range: min_price, max_price
     if (filters.minAmount != null) params.min_price = filters.minAmount;
     if (filters.maxAmount != null) params.max_price = filters.maxAmount;
 
-    // date added filters (created_at)
+    // date filters: date_from, date_to (ISO date strings)
     if (filters.dateAddedFrom) params.date_from = filters.dateAddedFrom;
     if (filters.dateAddedTo) params.date_to = filters.dateAddedTo;
 
-    // onlyGroup: map to a single param the backend can interpret
-    // (group / independent / any)
-    if (filters.onlyGroup && filters.onlyGroup !== 'any') {
-      params.only_group = filters.onlyGroup === 'group' ? 'group' : 'independent';
+    // group_ids: array of group IDs
+    if (filters.groupIds && filters.groupIds.length > 0) {
+      params.group_ids = filters.groupIds;
     }
-
+    
     const res = await apiClient.get('/expenses', { params });
 
-    const items: any[] = Array.isArray(res.data) ? res.data : [];
+    // Backend returns APIResponse { success: true, data: [expenses] }
+    const responseData = res.data;
+    const items: any[] = Array.isArray(responseData) ? responseData : (responseData?.data || []);
+    
+    const categories = await getCategories();
+    const categoryMap = new Map(categories.map(c => [c.id, c.title]));
+
+    // Fetch group names for expenses that have group_id
+    const uniqueGroupIds = [...new Set(items.filter(x => x.group_id).map(x => x.group_id))];
+    const groupNameMap = new Map<number, string>();
+    
+    await Promise.all(
+      uniqueGroupIds.map(async (groupId: any) => {
+        try {
+          const groupRes = await apiClient.get(`/groups/${groupId}`);
+          const groupData = groupRes.data?.data || groupRes.data;
+          groupNameMap.set(groupId, groupData.name || `Group ${groupId}`);
+        } catch (err) {
+          console.error(`Failed to fetch group ${groupId}`, err);
+          groupNameMap.set(groupId, `Group ${groupId}`);
+        }
+      })
+    );
 
     const pageItems: ReceiptItem[] = items.map((x: any) => ({
       id: x.id,
       title: x.title,
-      subtitle: x.category || 'Uncategorized',
+      subtitle: categoryMap.get(x.category_id) || 'Uncategorized',
       amount: x.amount,
       dateTransaction: x.created_at ? x.created_at.slice(0, 10) : '',
       dateAdded: x.created_at ? x.created_at.slice(0, 10) : '',
       isGroup: !!x.group_id,
       groupId: x.group_id || undefined,
-      groupName: x.group_id ? `Group ${x.group_id}` : undefined, // TODO: fetch group name if needed
+      groupName: x.group_id ? groupNameMap.get(x.group_id) : undefined,
       addedBy: x.user_id ? `User ${x.user_id}` : 'Unknown',
       initial: x.user_id ? String(x.user_id)[0] : 'U',
     }));
 
+    // Frontend title filtering (backend doesn't support it)
+    const filtered = filters.qTitle 
+      ? pageItems.filter(item => item.title.toLowerCase().includes(filters.qTitle.toLowerCase()))
+      : pageItems;
+
     const hasMore = items.length === pageSize;
 
-    return { items: pageItems, hasMore };
+    return { items: filtered, hasMore };
   } catch (err) {
     console.error('Failed to fetch expenses', err);
     return { items: [], hasMore: false };
@@ -124,7 +163,6 @@ const ReceiptsView: React.FC<{ onNeedRefresh?: () => void; refreshKey?: number }
     maxAmount: '',
     dateAddedFrom: '',
     dateAddedTo: '',
-    onlyGroup: 'any',
     selectedCategory: '',
     sortBy: 'created_at',
     sortOrder: 'desc',
@@ -173,18 +211,11 @@ const saveEdit = async () => {
   if (!editingId || !user) return;
   
   try {
+    // Backend ExpenseUpdate only supports: title, amount, description
     const body: any = {
       title: editForm.title.trim(),
-      category: editForm.subtitle.trim() || 'Manual',
       amount: Number(editForm.amount),
     };
-
-    const item = items.find(x => x.id === editingId);
-    if (item?.isGroup && item.groupId) {
-      body.group_id = item.groupId;
-    } else {
-      body.user_id = user.id;
-    }
 
     const updated = await updateExpense(editingId, body);
 
@@ -193,22 +224,10 @@ const saveEdit = async () => {
         ? { 
             ...x, 
             title: updated.title || editForm.title, 
-            subtitle: updated.category || editForm.subtitle, 
             amount: updated.amount !== undefined ? updated.amount : Number(editForm.amount)
           }
         : x
     ));
-
-    // Update categories with the new/updated category
-    const newCategory = updated.category || editForm.subtitle;
-    if (newCategory && newCategory.trim()) {
-      setCategories(prev => {
-        if (!prev.includes(newCategory)) {
-          return [...prev, newCategory];
-        }
-        return prev;
-      });
-    }
 
     cancelEdit();
   } catch (err: any) {
@@ -244,16 +263,18 @@ const saveEdit = async () => {
 
   const onApply = () => {
     const f: any = {
-      qTitle: local.qTitle?.trim() || undefined,
       qSubtitle: local.selectedCategory || local.qSubtitle?.trim() || undefined,
       minAmount: local.minAmount ? Number(local.minAmount) : null,
       maxAmount: local.maxAmount ? Number(local.maxAmount) : null,
       dateAddedFrom: local.dateAddedFrom || null,
       dateAddedTo: local.dateAddedTo || null,
-      onlyGroup: local.onlyGroup || 'any',
       sortBy: local.sortBy,
       sortOrder: local.sortOrder,
     };
+    
+    // Store title filter for frontend filtering (backend doesn't support title search)
+    f.qTitle = local.qTitle?.trim() || undefined;
+    
     setItems([]); setPageIndex(0); setHasMore(true);
     setFilters(f);
   };
@@ -266,7 +287,6 @@ const saveEdit = async () => {
       maxAmount: '',
       dateAddedFrom: '',
       dateAddedTo: '',
-      onlyGroup: 'any',
       selectedCategory: '',
       sortBy: 'created_at',
       sortOrder: 'desc',
