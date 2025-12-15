@@ -21,6 +21,12 @@ class ICategoryRepository(ABC):
 
     @abstractmethod
     def delete(self, category_id: int) -> None: ...
+    
+    @abstractmethod
+    def get_by_title_or_keywords(self, user_id: int, title: str, keywords: list[str]) -> bool: ...
+    
+    @abstractmethod
+    def get_by_user(self, user_id: int) -> List[Category]: ...
 
 class CategoryRepository(ICategoryRepository):
     def __init__(self, db: Session):
@@ -47,6 +53,11 @@ class CategoryRepository(ICategoryRepository):
     def get_by_id(self, category_id: int) -> Category:
         statement = select(Category).where(Category.id == category_id)
         return self.db.scalars(statement).first()
+    
+    def get_by_user(self, user_id: int) -> List[Category]: 
+        statement = select(Category).where(Category.user_id == user_id)
+        
+        return list(self.db.scalars(statement))
 
     def update(self, category_id: int, fields: dict) -> int:
         category = self.get_by_id(category_id)

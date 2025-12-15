@@ -26,6 +26,9 @@ class ICategoryService(ABC):
 
     @abstractmethod
     def delete_category(self, category_id: int, requester_id: int) -> APIResponse: ...
+    
+    @abstractmethod
+    def get_categories_by_user(self, user_id: int) -> APIResponse: ...
 
 class CategoryService(ICategoryService):
     def __init__(self, repository: ICategoryRepository):
@@ -73,6 +76,12 @@ class CategoryService(ICategoryService):
             success=True,
             data=categories_response
         )
+        
+    def get_categories_by_user(self, user_id: int) -> APIResponse:
+        self.logger.info(f"Fetching categories for user with id {user_id}")
+        categories = self.repository.get_by_user(user_id)
+        
+        return categories
 
     def update_category(self, category_id: int, data: CategoryUpdate, requester_id: int) -> APIResponse:
         self.logger.info(f"Updating category with id {category_id}")
