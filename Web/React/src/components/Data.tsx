@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import '../App.css';
 import { useAuth } from '../hooks/useAuth';
 import apiClient from '../services/api-client';
+import categoryService, { Category } from '../services/category-service';
 import {
   ResponsiveContainer,
   LineChart,
@@ -22,11 +23,10 @@ import {
 type Expense = {
   id: number;
   title: string;
-  category: string;
-  amount: number; // negative for expense, positive for income
-  created_at?: string; // ISO date
-  date?: string; // fallback
-  user_id?: number;
+  category_id: number; // API returns ID, not string name
+  amount: number;
+  created_at?: string;
+  date?: string;
 };
 
 // Data will be loaded from the backend `/expenses` endpoints.
@@ -51,33 +51,29 @@ const Data: React.FC = () => {
   const { user } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(false);
-  const [categoryFilter, setCategoryFilter] = useState<string>('any');
-  const [categoriesList, setCategoriesList] = useState<string[]>([]);
+  const [categoryFilterId, setCategoryFilterId] = useState<number | 'all'>('all');
+  const [categories, setCategories] = useState<Category[]>([]);
   const [dateFrom, setDateFrom] = useState<string>('');
   const [dateTo, setDateTo] = useState<string>('');
 
   // Load available categories once (from user's expenses). We limit to a reasonable number.
   useEffect(() => {
-    let cancelled = false;
-    const loadCategories = async () => {
+    const fetchCats = async () => {
       try {
-        const res = await apiClient.get('/expenses', { params: { offset: 0, limit: 1000 } });
-        const items: Expense[] = Array.isArray(res.data) ? res.data : [];
-        if (cancelled) return;
-        const setCats = new Set<string>();
-        items.forEach((it) => setCats.add(it.category || 'Uncategorized'));
-        setCategoriesList(Array.from(setCats));
+        const data = await categoryService.getCategories();
+        setCategories(data);
       } catch (err) {
-        console.error('Failed to load categories for Data page', err);
-        setCategoriesList([]);
+        console.error('Failed to load categories', err);
       }
     };
-
-    if (user) loadCategories();
-    return () => {
-      cancelled = true;
-    };
+    if (user) fetchCats();
   }, [user]);
+
+  const categoryNameMap = useMemo(() => {
+    const map = new Map<number, string>();
+    categories.forEach(c => map.set(c.id, c.title));
+    return map;
+  }, [categories]);
 
   // Load expenses whenever filters change — server-side filtering keeps data consistent and scales.
   useEffect(() => {
@@ -85,16 +81,24 @@ const Data: React.FC = () => {
     const load = async () => {
       setLoading(true);
       try {
+        // We fetch a large batch to calculate accurate trends on the frontend
         const params: any = { offset: 0, limit: 1000 };
-        if (categoryFilter && categoryFilter !== 'any') params.category = categoryFilter;
+        
+        // Pass date filters to backend to optimize query
         if (dateFrom) params.date_from = dateFrom;
         if (dateTo) params.date_to = dateTo;
+        
+        // Note: We handle category filtering on frontend for chart consistency, 
+        // or you can pass `category` (name) to backend if your API supports it.
+        // For now, we fetch all for the date range and filter locally.
+
         const res = await apiClient.get('/expenses', { params });
-        const items: Expense[] = Array.isArray(res.data) ? res.data : [];
+        const items: Expense[] = Array.isArray(res.data) ? res.data : (res.data.data || []);
+        
         if (cancelled) return;
         setExpenses(items);
       } catch (err) {
-        console.error('Failed to fetch expenses for Data page', err);
+        console.error('Failed to fetch expenses', err);
         setExpenses([]);
       } finally {
         if (!cancelled) setLoading(false);
@@ -102,49 +106,60 @@ const Data: React.FC = () => {
     };
 
     if (user) load();
-    else setExpenses([]);
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user, categoryFilter, dateFrom, dateTo]);
+    return () => { cancelled = true; };
+  }, [user, dateFrom, dateTo]); // Reload when dates change
 
   // Filtering
   const filtered = useMemo(() => {
     return expenses.filter((e) => {
-      const d = dateKey(e);
-      if (dateFrom && d < dateFrom) return false;
-      if (dateTo && d > dateTo) return false;
-      if (categoryFilter !== 'any' && e.category !== categoryFilter) return false;
+      // Date filtering is handled by backend, but double check here if needed
+      // Category filtering:
+      if (categoryFilterId !== 'all' && e.category_id !== categoryFilterId) return false;
       return true;
     });
-  }, [expenses, categoryFilter, dateFrom, dateTo]);
+  }, [expenses, categoryFilterId]);
 
   // Line chart: totals per day (sum amounts)
   const lineData = useMemo(() => {
-    const grouped = sumBy(filtered, dateKey, (e) => e.amount);
+    const grouped = sumBy(filtered, dateKey, (e) => Math.abs(e.amount)); 
     // sort by date ascending
     grouped.sort((a, b) => (a.key < b.key ? -1 : 1));
-    return grouped.map((g) => ({ date: g.key, total: Math.round((g.value + Number.EPSILON) * 100) / 100 }));
+    return grouped.map((g) => ({ 
+        date: g.key, 
+        total: Math.round((g.value + Number.EPSILON) * 100) / 100 
+    }));
   }, [filtered]);
 
   // Bar chart: daily absolute spending (expenses only)
   const barData = useMemo(() => {
-    // take only negative amounts (expenses) and sum absolute
-    const expensesOnly = filtered.filter((e) => e.amount < 0);
-    const grouped = sumBy(expensesOnly, dateKey, (e) => Math.abs(e.amount));
+    const grouped = sumBy(filtered, dateKey, (e) => Math.abs(e.amount));
     grouped.sort((a, b) => (a.key < b.key ? -1 : 1));
-    return grouped.map((g) => ({ date: g.key, spent: Math.round((g.value + Number.EPSILON) * 100) / 100 }));
+    return grouped.map((g) => ({ 
+        date: g.key, 
+        spent: Math.round((g.value + Number.EPSILON) * 100) / 100 
+    }));
   }, [filtered]);
 
   // Pie chart: by category totals (absolute)
   const pieData = useMemo(() => {
-    const grouped = sumBy(filtered, (e) => e.category || 'Uncategorized', (e) => Math.abs(e.amount));
-    grouped.sort((a, b) => b.value - a.value); // descending
-    return grouped.map((g, i) => ({ name: g.key, value: Math.round((g.value + Number.EPSILON) * 100) / 100, color: COLORS[i % COLORS.length] }));
-  }, [filtered]);
-
-  const categories = useMemo(() => ['any', ...categoriesList], [categoriesList]);
+    // Only count expenses (negative amounts)
+    const expensesOnly = filtered.filter((e) => e.amount < 0);
+    
+    // Group by Category Name (looked up from ID)
+    const grouped = sumBy(
+        filtered, 
+        (e) => categoryNameMap.get(e.category_id) || 'Uncategorized', 
+        (e) => Math.abs(e.amount)
+    );
+    
+    grouped.sort((a, b) => b.value - a.value);
+    
+    return grouped.map((g, i) => ({ 
+        name: g.key, 
+        value: Math.round((g.value + Number.EPSILON) * 100) / 100, 
+        color: COLORS[i % COLORS.length] 
+    }));
+  }, [filtered, categoryNameMap]);
 
   return (
     <div style={{ marginTop: 12 }}>
@@ -158,23 +173,26 @@ const Data: React.FC = () => {
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             Category:
-            <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+            <select 
+                value={categoryFilterId} 
+                onChange={(e) => setCategoryFilterId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc' }}
+            >
+              <option value="all">All</option>
               {categories.map((c) => (
-                <option key={c} value={c}>
-                  {c === 'any' ? 'All' : c}
-                </option>
+                <option key={c.id} value={c.id}>{c.title}</option>
               ))}
             </select>
           </label>
 
           <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             From:
-            <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+            <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} style={{ padding: 6, borderRadius: 6, border: '1px solid #ccc' }} />
           </label>
 
           <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             To:
-            <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+            <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} style={{ padding: 6, borderRadius: 6, border: '1px solid #ccc' }} />
           </label>
 
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
@@ -182,30 +200,12 @@ const Data: React.FC = () => {
               className="bp-add-btn"
               onClick={() => {
                 // reset filters
-                setCategoryFilter('any');
+                setCategoryFilterId('all');
                 setDateFrom('');
                 setDateTo('');
               }}
             >
               Reset filters
-            </button>
-            <button
-              className="bp-add-btn"
-              onClick={() => {
-                // TODO: export current filtered data to CSV/PDF
-                const csv = filtered
-                  .map((r) => `${r.id},"${r.title}","${r.category}",${r.amount},${dateKey(r)}`)
-                  .join('\n');
-                const blob = new Blob([`id,title,category,amount,date\n${csv}`], { type: 'text/csv' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'expenses_export.csv';
-                a.click();
-                URL.revokeObjectURL(url);
-              }}
-            >
-              Export CSV
             </button>
           </div>
         </div>

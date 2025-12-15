@@ -16,6 +16,7 @@ import ReceiptsManual from './ReceiptsManual';
 import ChatBot from './ChatBot';
 import Data from './Data';
 import Notifications from './Notifications';
+import Categories from './Categories';
 
 interface Tx {
   id: number;
@@ -27,11 +28,13 @@ interface Tx {
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
+  const { formatAmount } = useCurrency(); 
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [screen, setScreen] = useState<
     | 'home'
     | 'groups'
     | 'receipts'
+    | 'categories'
     | 'profile'
     | 'support'
     | 'groupDetail'
@@ -229,6 +232,14 @@ const Dashboard: React.FC = () => {
             <div>Data</div>
           </div>
 
+          <div className={`bp-nav-item ${screen === 'categories' ? 'active' : ''}`} onClick={() => navigate('categories')} role="button">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+              <line x1="7" y1="7" x2="7.01" y2="7"></line>
+            </svg>
+            <div>Categories</div>
+          </div>
+
           {/* Notifications — no image currently. */}
           <div className={`bp-nav-item ${screen === 'notifications' ? 'active' : ''}`} onClick={() => navigate('notifications')} role="button">
             <div>Notifications</div>
@@ -257,7 +268,7 @@ const Dashboard: React.FC = () => {
               <div className="bp-row" style={{ marginTop: 10 }}>
                 <div className="bp-box" style={{ flex: 1 }}>
                   <div className="label">Total Spent</div>
-                  <div className="value" style={{ color: '#ff6b6b' }}>{useCurrency().formatAmount(-Math.abs(totalSpent))}</div>
+                  <div className="value" style={{ color: '#ff6b6b' }}>{formatAmount(-Math.abs(totalSpent))}</div>
                 </div>
               </div>
 
@@ -277,7 +288,7 @@ const Dashboard: React.FC = () => {
                         <div className="bp-tx-cat">{tx.cat}</div>
                       </div>
                           <div className="bp-amount negative">
-                {useCurrency().formatAmount(-Math.abs(tx.amount))}
+                {formatAmount(-Math.abs(tx.amount))}
               </div>
                     </div>
                   ))
@@ -344,6 +355,8 @@ const Dashboard: React.FC = () => {
 
           {screen === 'data' && <Data />}
 
+          {screen === 'categories' && <Categories />}
+
           {screen === 'notifications' && <Notifications />}
         </div>
 
@@ -364,9 +377,12 @@ const Dashboard: React.FC = () => {
             <div>Receipts</div>
           </div>
 
-          <div className={`bp-nav-item ${screen === 'data' ? 'active' : ''}`} onClick={() => navigate('data')}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18" strokeWidth="1.4"/></svg>
-            <div>Data</div>
+          <div className={`bp-nav-item ${screen === 'categories' ? 'active' : ''}`} onClick={() => navigate('categories')}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+              <line x1="7" y1="7" x2="7.01" y2="7"></line>
+            </svg>
+            <div>Cats</div>
           </div>
 
           <div className={`bp-nav-item ${screen === 'profile' ? 'active' : ''}`} onClick={() => navigate('profile')}>
