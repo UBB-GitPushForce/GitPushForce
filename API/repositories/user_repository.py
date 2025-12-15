@@ -29,6 +29,9 @@ class IUserRepository(ABC):
     
     @abstractmethod
     def delete(self, user_id: int) -> None: ...
+    
+    @abstractmethod
+    def get_user_monthly_spent(self, user_id: int, month_start: datetime) -> float: ...
 
 
 class UserRepository(IUserRepository):

@@ -54,6 +54,18 @@ class IUserService(ABC):
     
     @abstractmethod
     def change_password(self, user_id: int, old_password: str, new_password: str) -> APIResponse: ...
+    
+    @abstractmethod
+    def get_budget(self, user_id: int) -> APIResponse: ...
+    
+    @abstractmethod
+    def update_budget(self, user_id: int, new_budget: int) -> APIResponse: ...
+    
+    @abstractmethod
+    def get_spent_this_month(self, user_id: int) -> APIResponse: ...
+    
+    @abstractmethod
+    def get_remaining_budget(self, user_id: int) -> APIResponse: ...
 
 
 class UserService:
@@ -307,11 +319,13 @@ class UserService:
         now = datetime.now(ROMANIA_TZ)
         month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         spent = self.repository.get_user_monthly_spent(user_id, month_start)
-        remaining = max(float(user.budget) - spent, 0)
+        remaining = float(user.budget) - spent
+        budget = float(user.budget)
+        
         return APIResponse(
             success=True,
             data={
-                BUDGET_FIELD: user.budget,
+                BUDGET_FIELD: budget,
                 SPENT_THIS_MONTH: spent,
                 REMAINING_BUDGET: remaining,
             }
