@@ -28,11 +28,14 @@ def get_all_categories(
 ):
     return category_service.get_all_categories(sort_by, order)
 
-@router.get("/{user_id}")
+@router.get("/by_user")
 def get_categories_by_user(
     user_id = Depends(get_current_user_id),
     category_service: ICategoryService = Depends(get_category_service)
 ):
+    """
+    Returns the categories of the currently authenticated user
+    """
     return category_service.get_categories_by_user(user_id)
 
 @router.put("/{category_id}")
