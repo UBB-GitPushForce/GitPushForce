@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, Column, DateTime, Integer, String, Float, func
+from sqlalchemy import CheckConstraint, Column, DateTime, Float, Integer, String, func
 from sqlalchemy.orm import relationship
 
 from models.base import Base
