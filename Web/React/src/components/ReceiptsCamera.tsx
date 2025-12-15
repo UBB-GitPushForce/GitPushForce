@@ -2,43 +2,38 @@
 import React, { useRef, useState } from 'react';
 import '../App.css';
 import type { ReceiptItem } from './Receipts';
+import type { Group } from '../services/group-service';
 
-/*
-  Camera page: shows video preview, allows snapshot and uploads mock.
-  TODO: replace uploadMockFromBlob with real upload + OCR API.
-*/
-
-async function uploadMockFromBlob(blob: Blob, linkGroupId?: number | null): Promise<ReceiptItem> {
-  // TODO: send blob to backend and return created receipt
-  await new Promise(r => setTimeout(r, 900));
-  const now = new Date().toISOString().slice(0,10);
-  return {
-    id: Date.now(),
-    title: 'photo-' + Date.now(),
-    subtitle: 'Camera (mock)',
-    amount: Math.round((Math.random()*200+1) * (Math.random()>0.7?1:-1)),
-    dateTransaction: now,
-    dateAdded: now,
-    isGroup: !!linkGroupId,
-    groupId: linkGroupId || undefined,
-    groupName: linkGroupId ? (linkGroupId === 1 ? 'Vacation' : linkGroupId === 2 ? 'Household' : 'Friends') : undefined,
-    addedBy: 'You',
-    initial: 'Y',
-  };
+interface ReceiptsCameraProps {
+  onUploaded: (it: ReceiptItem) => void;
+  groupId?: number | null;
+  groups: Group[];
 }
 
-const ReceiptsCamera: React.FC<{ onUploaded: (it: ReceiptItem) => void; groupId?: number | null }> = ({ onUploaded, groupId = null }) => {
+async function uploadMockFromBlob(blob: Blob, linkGroupId?: number | null): Promise<ReceiptItem> {
+    await new Promise(r => setTimeout(r, 900));
+    const now = new Date().toISOString().slice(0,10);
+    return {
+        id: Date.now(),
+        title: 'photo-' + Date.now(),
+        subtitle: 'Camera (mock)',
+        amount: 50,
+        dateTransaction: now,
+        dateAdded: now,
+        isGroup: !!linkGroupId,
+        groupId: linkGroupId || undefined,
+        groupName: linkGroupId ? `Group ${linkGroupId}` : undefined,
+        addedBy: 'You',
+        initial: 'Y',
+    };
+}
+
+const ReceiptsCamera: React.FC<ReceiptsCameraProps> = ({ onUploaded, groupId = null, groups }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [taking, setTaking] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<number | null>(groupId ?? null);
-
-  const mockGroups = [
-    { id: 1, name: 'Vacation' },
-    { id: 2, name: 'Household' },
-    { id: 3, name: 'Friends' },
-  ];
 
   const startCamera = async () => {
     if (stream) return;
@@ -88,16 +83,20 @@ const ReceiptsCamera: React.FC<{ onUploaded: (it: ReceiptItem) => void; groupId?
 
   return (
     <div style={{ display:'grid', gap:12 }}>
-      <div style={{ color:'var(--muted-dark)' }}>Use your device camera to capture the receipt. After taking the photo it will be uploaded (mock).</div>
+      <div style={{ color:'var(--muted-dark)' }}>Use your device camera to capture the receipt.</div>
 
       <div style={{ display:'flex', gap:8 }}>
         <div style={{ display:'flex', gap:8, alignItems:'center' }}>
           <div style={{ fontSize:13, color:'var(--muted-dark)' }}>Link to group (optional):</div>
-          <select value={selectedGroup ?? ''} onChange={(e)=> setSelectedGroup(e.target.value ? Number(e.target.value) : null)} style={{ padding:8, borderRadius:8 }}>
+          <select 
+            value={selectedGroup ?? ''} 
+            onChange={(e)=> setSelectedGroup(e.target.value ? Number(e.target.value) : null)} 
+            style={{ padding:8, borderRadius:8 }}
+          >
             <option value="">(independent)</option>
-            <option value={1}>Vacation</option>
-            <option value={2}>Household</option>
-            <option value={3}>Friends</option>
+            {groups.map(g => (
+                <option key={g.id} value={g.id}>{g.name}</option>
+            ))}
           </select>
         </div>
 

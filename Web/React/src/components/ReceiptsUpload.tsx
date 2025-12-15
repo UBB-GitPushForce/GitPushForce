@@ -2,6 +2,7 @@
 import React, { useRef, useState } from 'react';
 import '../App.css';
 import type { ReceiptItem } from './Receipts';
+import type { Group } from '../services/group-service';
 
 /*
   Upload page: file picker + "drop file" area + max size enforcement.
@@ -25,13 +26,19 @@ async function uploadMock(file: File, linkGroupId?: number | null): Promise<Rece
     dateAdded: now,
     isGroup: !!linkGroupId,
     groupId: linkGroupId || undefined,
-    groupName: linkGroupId ? (linkGroupId === 1 ? 'Vacation' : linkGroupId === 2 ? 'Household' : 'Friends') : undefined,
+    groupName: linkGroupId ? `Group ${linkGroupId}` : undefined, 
     addedBy: 'You',
     initial: 'Y',
   };
 }
 
-const ReceiptsUpload: React.FC<{ onUploaded: (it: ReceiptItem) => void; groupId?: number | null }> = ({ onUploaded, groupId = null }) => {
+interface ReceiptsUploadProps {
+    onUploaded: (it: ReceiptItem) => void;
+    groupId?: number | null;
+    groups: Group[]; // New Prop
+}
+
+const ReceiptsUpload: React.FC<ReceiptsUploadProps> = ({ onUploaded, groupId = null, groups }) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<number | null>(groupId ?? null);
@@ -96,11 +103,15 @@ const ReceiptsUpload: React.FC<{ onUploaded: (it: ReceiptItem) => void; groupId?
       <div style={{ display:'flex', gap:8, alignItems:'center' }}>
         <div style={{ display:'flex', gap:8, alignItems:'center' }}>
           <div style={{ fontSize:13, color:'var(--muted-dark)' }}>Link to group (optional):</div>
-          <select value={selectedGroup ?? ''} onChange={(e)=> setSelectedGroup(e.target.value ? Number(e.target.value) : null)} style={{ padding:8, borderRadius:8 }}>
+          <select 
+            value={selectedGroup ?? ''} 
+            onChange={(e)=> setSelectedGroup(e.target.value ? Number(e.target.value) : null)} 
+            style={{ padding:8, borderRadius:8 }}
+          >
             <option value="">(independent)</option>
-            <option value={1}>Vacation</option>
-            <option value={2}>Household</option>
-            <option value={3}>Friends</option>
+            {groups.map(g => (
+                <option key={g.id} value={g.id}>{g.name}</option>
+            ))}
           </select>
         </div>
 
