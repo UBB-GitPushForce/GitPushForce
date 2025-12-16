@@ -18,6 +18,7 @@ from services.expense_payment_service import (
 from services.expense_service import ExpenseService, IExpenseService
 from services.group_log_service import GroupLogService, IGroupLogService
 from services.group_service import GroupService, IGroupService
+from services.receipt_service import IReceiptService, ReceiptService
 from services.user_group_service import IUserGroupService, UserGroupService
 from services.user_service import IUserService, UserService
 from sqlalchemy.orm import Session
@@ -85,3 +86,6 @@ def get_expense_payment_service(
 
 def get_category_service(repo: ICategoryRepository = Depends(get_category_repository)) -> ICategoryService:
     return CategoryService(repo)
+
+def get_receipt_service(category_repository: ICategoryRepository = Depends(get_category_repository)) -> IReceiptService:
+    return ReceiptService(category_repository)
