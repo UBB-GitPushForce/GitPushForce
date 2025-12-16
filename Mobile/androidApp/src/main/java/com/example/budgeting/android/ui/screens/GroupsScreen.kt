@@ -1,14 +1,8 @@
 package com.example.budgeting.android.ui.screens
 
-import android.Manifest
-import android.content.pm.PackageManager
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -16,21 +10,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.platform.LocalContext
+import com.example.budgeting.android.ui.components.group.*
 import com.example.budgeting.android.ui.viewmodels.GroupsViewModel
 import com.example.budgeting.android.ui.viewmodels.GroupsViewModelFactory
-import androidx.compose.runtime.LaunchedEffect
-import com.example.budgeting.android.data.model.Group
-import com.journeyapps.barcodescanner.ScanContract
-import com.journeyapps.barcodescanner.ScanOptions
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,7 +33,14 @@ fun GroupsScreen(onOpenGroup: (Int) -> Unit) {
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(modifier = Modifier.fillMaxSize()) {
-            CenterAlignedTopAppBar(title = { Text("Groups", color = MaterialTheme.colorScheme.onBackground) })
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Groups",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                }
+            )
 
             Text(
                 text = "My Groups",
@@ -195,332 +187,5 @@ fun GroupsScreen(onOpenGroup: (Int) -> Unit) {
                 }
             }
         )
-    }
-}
-
-@Composable
-private fun GroupRow(group: Group, onOpenGroup: (Int) -> Unit) {
-    // Safe to use !! since we filter out nulls before passing to this composable
-    val groupId = group.id!!
-    val groupName = group.name!!
-    
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .clickable { onOpenGroup(groupId) }
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(20.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary)
-            )
-        }
-
-        Spacer(modifier = Modifier.size(12.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = groupName, color = MaterialTheme.colorScheme.onSurface)
-        }
-    }
-}
-
-@Composable
-private fun CreateGroupDialog(
-    onDismiss: () -> Unit,
-    isLoading: Boolean,
-    error: String?,
-    onCreate: (name: String, description: String?) -> Unit
-) {
-    var groupName by remember { mutableStateOf("") }
-    var groupDescription by remember { mutableStateOf("") }
-
-    Dialog(onDismissRequest = onDismiss) {
-        val configuration = LocalConfiguration.current
-        val maxHeight = configuration.screenHeightDp.dp * 0.6f
-        Surface(
-            color = MaterialTheme.colorScheme.background,
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .heightIn(max = maxHeight)
-        ) {
-            Column(
-                modifier = Modifier
-                    .padding(12.dp)
-                    .fillMaxWidth()
-            ) {
-                // Top bar with close and title
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TextButton(onClick = onDismiss) { Text("✕", color = MaterialTheme.colorScheme.onBackground) }
-                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        Text(text = "New Group", color = MaterialTheme.colorScheme.onBackground)
-                    }
-                    Spacer(modifier = Modifier.size(32.dp))
-                }
-
-                // Inputs
-                Column(
-                    modifier = Modifier
-                        .padding(horizontal = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    TextField(
-                        value = groupName,
-                        onValueChange = { groupName = it },
-                        placeholder = { Text("Group Name") },
-                        label = { Text("Group Name") },
-                        singleLine = true,
-                        enabled = !isLoading,
-                        shape = RoundedCornerShape(10.dp),
-                        colors = TextFieldDefaults.colors(
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            cursorColor = MaterialTheme.colorScheme.primary,
-                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            unfocusedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    
-                    TextField(
-                        value = groupDescription,
-                        onValueChange = { groupDescription = it },
-                        placeholder = { Text("Description (optional)") },
-                        label = { Text("Description") },
-                        singleLine = false,
-                        maxLines = 3,
-                        enabled = !isLoading,
-                        shape = RoundedCornerShape(10.dp),
-                        colors = TextFieldDefaults.colors(
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            cursorColor = MaterialTheme.colorScheme.primary,
-                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            unfocusedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    
-                    // Show error message if any
-                    error?.let { errorMsg ->
-                        Text(
-                            text = errorMsg,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(start = 4.dp, top = 4.dp)
-                        )
-                    }
-                }
-
-                // Bottom action button
-                Button(
-                    onClick = { 
-                        onCreate(
-                            groupName, 
-                            groupDescription.ifBlank { null }
-                        ) 
-                    },
-                    enabled = !isLoading && groupName.isNotBlank(),
-                    modifier = Modifier
-                        .padding(12.dp)
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    )
-                ) {
-                    if (isLoading) {
-                        Text("Creating...")
-                    } else {
-                        Text("Create Group")
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun JoinGroupDialog(
-    onDismiss: () -> Unit,
-    isLoading: Boolean,
-    error: String?,
-    onJoinByCode: (code: String) -> Unit
-) {
-    var invitationCodeText by remember { mutableStateOf("") }
-    var localErrorMessage by remember { mutableStateOf<String?>(null) }
-    val context = LocalContext.current
-
-    val scanLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
-        val scannedCode = result.contents?.trim()
-        if (!scannedCode.isNullOrBlank()) {
-            invitationCodeText = scannedCode
-            localErrorMessage = null
-            onJoinByCode(scannedCode)
-        }
-    }
-
-    val startScanner = remember(scanLauncher) {
-        {
-            val options = ScanOptions().apply {
-                setDesiredBarcodeFormats(ScanOptions.QR_CODE)
-                setPrompt("")
-                setBeepEnabled(false)
-                setBarcodeImageEnabled(false)
-                setOrientationLocked(true)
-                setCaptureActivity(QrCaptureActivity::class.java)
-            }
-            scanLauncher.launch(options)
-        }
-    }
-
-    val cameraPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) {
-            startScanner()
-        } else {
-            localErrorMessage = "Camera permission is required to scan QR codes."
-        }
-    }
-
-    fun launchScanner() {
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
-            == PackageManager.PERMISSION_GRANTED
-        ) {
-            startScanner()
-        } else {
-            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-        }
-    }
-
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            color = MaterialTheme.colorScheme.background,
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Column(modifier = Modifier
-                .padding(12.dp)
-                .fillMaxWidth()
-            ) {
-                // Top bar with close and title
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TextButton(onClick = onDismiss) { 
-                        Text("✕", color = MaterialTheme.colorScheme.onBackground) 
-                    }
-                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        Text(text = "Join Group", color = MaterialTheme.colorScheme.onBackground)
-                    }
-                }
-
-                Column(
-                    modifier = Modifier
-                        .padding(horizontal = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = "Enter the invitation code or scan the QR shared with you.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-
-                    TextField(
-                        value = invitationCodeText,
-                        onValueChange = {
-                            invitationCodeText = it.trim().uppercase()
-                            localErrorMessage = null
-                        },
-                        placeholder = { Text("Invitation Code") },
-                        singleLine = true,
-                        enabled = !isLoading,
-                        shape = RoundedCornerShape(10.dp),
-                        colors = TextFieldDefaults.colors(
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            cursorColor = MaterialTheme.colorScheme.primary,
-                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            unfocusedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    OutlinedButton(
-                        onClick = { launchScanner() },
-                        enabled = !isLoading,
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Scan QR Code")
-                    }
-
-                    (localErrorMessage ?: error)?.let { errorMsg ->
-                        Text(
-                            text = errorMsg,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(start = 4.dp, top = 4.dp)
-                        )
-                    }
-                }
-
-                val canSubmit = invitationCodeText.isNotBlank()
-                Button(
-                    onClick = { 
-                        if (invitationCodeText.isBlank()) {
-                            localErrorMessage = "Please enter or scan an invitation code"
-                        } else {
-                            onJoinByCode(invitationCodeText)
-                        }
-                    },
-                    enabled = !isLoading && canSubmit,
-                    modifier = Modifier
-                        .padding(12.dp)
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    )
-                ) {
-                    if (isLoading) {
-                        Text("Joining...")
-                    } else {
-                        Text("Join Group")
-                    }
-                }
-            }
-        }
     }
 }

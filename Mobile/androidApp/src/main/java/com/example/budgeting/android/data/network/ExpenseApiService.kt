@@ -5,6 +5,7 @@ import retrofit2.Response
 import retrofit2.http.*
 import com.example.budgeting.android.data.model.Expense
 import com.example.budgeting.android.data.model.ExpenseIdResponse
+import com.example.budgeting.android.data.model.ExpenseCreateRequest
 
 interface ExpenseApiService {
 

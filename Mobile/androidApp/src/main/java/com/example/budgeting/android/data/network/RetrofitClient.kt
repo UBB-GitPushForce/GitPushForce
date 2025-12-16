@@ -11,6 +11,10 @@ import retrofit2.converter.moshi.MoshiConverterFactory
 object RetrofitClient {
     private val BASE_URL: String = BuildConfig.BASE_URL
 
+    init {
+        Log.d("RetrofitClient", "Base URL: $BASE_URL")
+    }
+
     private val moshi = Moshi.Builder()
         .add(KotlinJsonAdapterFactory())
         .build()
@@ -74,5 +78,33 @@ object RetrofitClient {
             .build()
 
         retrofit.create(UserApiService::class.java)
+    }
+
+    val expensePaymentInstance: ExpensePaymentApiService = run {
+        val client = OkHttpClient.Builder()
+            .addInterceptor(TokenAuthInterceptor())
+            .build()
+
+        val retrofit = Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(client)
+            .addConverterFactory(moshiConverterFactory)
+            .build()
+
+        retrofit.create(ExpensePaymentApiService::class.java)
+    }
+
+    val categoryInstance: CategoryApiService = run {
+        val client = OkHttpClient.Builder()
+            .addInterceptor(TokenAuthInterceptor())
+            .build()
+
+        val retrofit = Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(client)
+            .addConverterFactory(moshiConverterFactory)
+            .build()
+
+        retrofit.create(CategoryApiService::class.java)
     }
 }

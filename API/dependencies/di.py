@@ -61,6 +61,9 @@ def get_expense_service(
 def get_group_service(repo: IGroupRepository = Depends(get_group_repository)) -> IGroupService:
     return GroupService(repo)
 
+def get_group_log_repository(db: Session = Depends(get_db)) -> IGroupLogRepository:
+    return GroupLogRepository(db)
+
 def get_user_group_service(
     user_group_repo: IUserGroupRepository = Depends(get_user_group_repository),
     group_repo: IGroupRepository = Depends(get_group_repository),
@@ -74,6 +77,17 @@ def get_group_log_service(
     user_repo: IUserRepository = Depends(get_user_repository),
 ) -> IGroupLogService:
     return GroupLogService(group_log_repo, group_repo, user_repo)
+
+def get_user_group_service(
+    user_group_repo: IUserGroupRepository = Depends(get_user_group_repository),
+    group_repo: IGroupRepository = Depends(get_group_repository),
+    user_repo: IUserRepository = Depends(get_user_repository),
+    log_repo: IGroupLogRepository = Depends(get_group_log_repository),
+) -> IUserGroupService:
+    return UserGroupService(user_group_repo, group_repo, user_repo, log_repo)
+
+def get_expense_payment_repository(db: Session = Depends(get_db)) -> IExpensePaymentRepository:
+    return ExpensePaymentRepository(db)
 
 def get_expense_payment_service(
     repo: IExpensePaymentRepository = Depends(get_expense_payment_repository),

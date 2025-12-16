@@ -9,6 +9,7 @@ from schemas.api_response import APIResponse
 from schemas.group import GroupCreate, GroupResponse, GroupUpdate
 from utils.helpers.constants import ID_FIELD, STATUS_BAD_REQUEST, STATUS_NOT_FOUND
 from utils.helpers.generate_invitation_code import generate_invitation_code
+import base64
 
 
 class IGroupService(ABC):
@@ -153,7 +154,10 @@ class GroupService(IGroupService):
         img.save(buffer, format="PNG")
         buffer.seek(0)
         
+        # fastapi is throwing error when returning bytes directly, so encode it to base64
+        b64_bytes = base64.b64encode(buffer.read()).decode("utf-8")
+
         return APIResponse(
             success=True,
-            data=buffer.read(),
+            data=b64_bytes
         )

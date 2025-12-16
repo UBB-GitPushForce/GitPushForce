@@ -57,7 +57,11 @@ def delete_user(user_id: int, _ = Depends(get_current_user_id), user_service: IU
 
 
 @router.post("/join-group/{invitation_code}")
-def join_group_with_invitation_code(invitation_code: str, user_id: int = Depends(get_current_user_id), user_group_service: IUserGroupService = Depends(get_user_group_service)):
+def join_group_with_invitation_code(
+    invitation_code: str, 
+    user_id: int = Depends(get_current_user_id), 
+    user_group_service: IUserGroupService = Depends(get_user_group_service)
+):
     """
     Allows the authenticated user to join a group using an invitation code.
     """

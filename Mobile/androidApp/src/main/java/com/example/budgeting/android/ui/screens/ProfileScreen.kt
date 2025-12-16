@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -53,15 +54,12 @@ fun ProfileScreen(
                         onClick = {
                             profileViewModel.logout()
                             onLogout()
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        ),
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier.padding(end = 12.dp)
+                        }
                     ) {
-                        Text("Logout")
+                        Text(
+                            text = "Logout",
+                            color = MaterialTheme.colorScheme.error
+                        )
                     }
                 }
             )
@@ -109,7 +107,7 @@ fun ProfileScreen(
                 Surface(
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.size(80.dp)
+                    modifier = Modifier.size(72.dp)
                 ) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
@@ -120,7 +118,7 @@ fun ProfileScreen(
                     }
                 }
 
-                Spacer(Modifier.width(20.dp))
+                Spacer(Modifier.width(16.dp))
 
                 Column(
                     modifier = Modifier.weight(1f)
@@ -226,7 +224,9 @@ fun ProfileScreen(
             // =============== VIEW MODE ======================
             if (!uiState.isEditing) {
                 InfoCard(title = "Phone Number", value = user.phone_number)
-                InfoCard(title = "Budget", value = "$${user.budget}")
+                uiState.budget?.let { budget ->
+                    BudgetSummaryCard(totalBudget = budget.budget, spent = budget.spentThisMonth, remaining = budget.remainingBudget)
+                }
             }
 
             // =============== EDIT MODE ======================
@@ -372,3 +372,100 @@ fun ChangePasswordDialog(
         }
     )
 }
+
+@Composable
+fun BudgetSummaryCard(
+    totalBudget: Double,
+    spent: Double,
+    remaining: Double,
+    modifier: Modifier = Modifier
+) {
+    val realRemaining = totalBudget - spent
+
+    ElevatedCard(
+        shape = RoundedCornerShape(20.dp),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+
+            // Header
+            Text(
+                text = "Budget Summary",
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            // Top row: Spent / Remaining
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+
+                BudgetStat(
+                    label = "Spent",
+                    amount = spent,
+                    background = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.weight(1f)
+                )
+
+                BudgetStat(
+                    label = "Remaining",
+                    amount = if(remaining > 0) remaining else realRemaining,
+                    background = MaterialTheme.colorScheme.tertiaryContainer,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Divider()
+
+            // Bottom row: Total
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Total Budget",
+                    style = MaterialTheme.typography.labelLarge
+                )
+
+                Text(
+                    text = "${totalBudget}",
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BudgetStat(
+    label: String,
+    amount: Double,
+    background: Color,
+    modifier: Modifier
+) {
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = background,
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium
+            )
+
+            Text(
+                text = "${amount.toInt()}",
+                style = MaterialTheme.typography.titleLarge
+            )
+        }
+    }
+}
+

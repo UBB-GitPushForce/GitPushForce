@@ -14,9 +14,6 @@ class ICategoryRepository(ABC):
     def get_all(self, sort_by: str, order: str) -> List[Category]: ...
 
     @abstractmethod
-    def get_by_id(self, category_id: int) -> Category: ...
-
-    @abstractmethod
     def update(self, category_id: int, fields: dict) -> int: ...
 
     @abstractmethod
@@ -33,7 +30,9 @@ class CategoryRepository(ICategoryRepository):
         return category.id
 
     def get_by_title_or_keywords(self, user_id: int, title: str, keywords: list[str]) -> bool:
-        statement = (select(Category.id).where(Category.user_id == user_id,or_(
+        statement = (select(Category.id).where(
+                Category.user_id == user_id,
+                or_(
                     Category.title == title,
                     Category.keywords.op("&&")(cast(keywords, ARRAY(Text))))))
         return self.db.scalar(statement) is not None

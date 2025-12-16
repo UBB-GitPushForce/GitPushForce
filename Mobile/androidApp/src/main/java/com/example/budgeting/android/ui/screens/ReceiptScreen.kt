@@ -73,8 +73,13 @@ fun ReceiptScreen() {
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Receipts", color = MaterialTheme.colorScheme.onBackground) }
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Groups",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                }
             )
         },
         bottomBar = {

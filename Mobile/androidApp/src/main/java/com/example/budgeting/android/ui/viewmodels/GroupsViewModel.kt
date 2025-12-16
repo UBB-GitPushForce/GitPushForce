@@ -65,12 +65,13 @@ class GroupsViewModel(context: Context) : ViewModel() {
                 }
                 
                 val response = repository.getGroupsByUser(userId)
-                if (response.isSuccessful) {
+                if (response.isSuccessful && response.body() != null) {
                     try {
-                        val groups = response.body()?.data?.filterNotNull() ?: emptyList()
+                        val groups = response.body()!!.filterNotNull()
                         // Filter out any groups that might be missing required fields
                         val validGroups = groups.filter { it.isValid }
                         _groups.value = validGroups
+                        _error.value = null // Clear any previous errors on success
                     } catch (e: Exception) {
                         // JSON parsing error - response body might be malformed
                         val errorBody = try {
@@ -82,9 +83,14 @@ class GroupsViewModel(context: Context) : ViewModel() {
                         _groups.value = emptyList()
                     }
                 } else {
+                    val errorBody = try {
+                        response.errorBody()?.string()
+                    } catch (e: Exception) {
+                        null
+                    }
                     val errorMessage = GroupsErrorHandler.parseErrorResponse(
                         response.code(),
-                        response.errorBody()?.string()
+                        errorBody
                     )
                     _error.value = errorMessage
                 }
@@ -134,7 +140,6 @@ class GroupsViewModel(context: Context) : ViewModel() {
                 
                 val response = repository.addUserToGroup(groupId, userId)
                 if (response.isSuccessful) {
-                    // Reload groups to get the updated list from the server
                     loadGroups()
                     onSuccess()
                 } else {
@@ -144,20 +149,13 @@ class GroupsViewModel(context: Context) : ViewModel() {
                         errorBody
                     )
                     
-                    // Workaround: If the error is about 'id' missing (backend refresh issue),
-                    // check if the user was actually added by reloading groups
-                    // This handles the case where the backend successfully adds the user
-                    // but fails on db.refresh() due to composite primary key
                     if (errorBody?.contains("required valued", ignoreCase = true) == true && 
                         errorBody.contains("id", ignoreCase = true)) {
-                        // The backend might have succeeded but failed on refresh
-                        // Check if we're now in the group by reloading
                         val checkResponse = repository.getGroupsByUser(userId)
-                        if (checkResponse.isSuccessful) {
-                            val userGroups = checkResponse.body()?.data?.filterNotNull() ?: emptyList()
+                        if (checkResponse.isSuccessful && checkResponse.body() != null) {
+                            val userGroups = checkResponse.body()!!.filterNotNull()
                             val wasAdded = userGroups.any { it.id == groupId }
                             if (wasAdded) {
-                                // Success! The user was added despite the error
                                 loadGroups()
                                 onSuccess()
                                 return@launch
@@ -165,7 +163,6 @@ class GroupsViewModel(context: Context) : ViewModel() {
                         }
                     }
                     
-                    // For 404 errors, ErrorHandler already returns "Group not found"
                     _error.value = errorMessage
                     _isLoading.value = false
                 }
@@ -213,12 +210,21 @@ class GroupsViewModel(context: Context) : ViewModel() {
                     return@launch
                 }
 
-                try{
-                    repository.joinGroupByInvitationCode(sanitizedCode)
+                val response = repository.joinGroupByInvitationCode(sanitizedCode)
+                if (response.isSuccessful) {
                     loadGroups()
                     onSuccess()
-                }catch (e: Exception){
-                    _error.value = e.toString()
+                } else {
+                    val errorBody = try {
+                        response.errorBody()?.string()
+                    } catch (e: Exception) {
+                        null
+                    }
+                    val errorMessage = GroupsErrorHandler.parseErrorResponse(
+                        response.code(),
+                        errorBody
+                    )
+                    _error.value = errorMessage
                     _isLoading.value = false
                 }
             } catch (e: Exception) {
@@ -234,7 +240,6 @@ class GroupsViewModel(context: Context) : ViewModel() {
             _isLoading.value = true
             _error.value = null
             try {
-                // Ensure token is loaded
                 if (TokenHolder.token.isNullOrBlank()) {
                     val savedToken = tokenDataStore.tokenFlow.firstOrNull()
                     if (!savedToken.isNullOrBlank()) {
@@ -250,42 +255,40 @@ class GroupsViewModel(context: Context) : ViewModel() {
                 }
                 
                 val response = repository.createGroup(name, description)
-                if (response.isSuccessful) {
-                    val groupId = response.body()?.data
-                    if (groupId != null) {
-                        // Automatically add the creator to the group
-                        val addUserResponse = repository.addUserToGroup(groupId, userId)
-                        if (addUserResponse.isSuccessful) {
-                            // Reload groups to get the updated list from the server
-                            loadGroups()
-                            onSuccess(repository.getGroup(groupId).body()?.data!!)
+                if (response.isSuccessful && response.body() != null) {
+                    val groupId = response.body()!!
+                    val addUserResponse = repository.addUserToGroup(groupId, userId)
+                    if (addUserResponse.isSuccessful) {
+                        loadGroups()
+                        val groupResponse = repository.getGroup(groupId)
+                        if (groupResponse.isSuccessful && groupResponse.body() != null) {
+                            onSuccess(groupResponse.body()!!)
                         } else {
-                            // Group was created but failed to add user - check if user was actually added
-                            // Sometimes the backend succeeds but returns an error due to refresh issues
-                            val checkResponse = repository.getGroupsByUser(userId)
-                            if (checkResponse.isSuccessful) {
-                                val userGroups = checkResponse.body()?.data?.filterNotNull() ?: emptyList()
-                                val wasAdded = userGroups.any { it.id == groupId }
-                                if (wasAdded) {
-                                    // Success! The user was added despite the error
-                                    loadGroups()
-                                    onSuccess(repository.getGroup(groupId).body()?.data!!)
+                            onSuccess(Group(id = groupId, name = name, description = description))
+                        }
+                    } else {
+                        val checkResponse = repository.getGroupsByUser(userId)
+                        if (checkResponse.isSuccessful && checkResponse.body() != null) {
+                            val userGroups = checkResponse.body()!!.filterNotNull()
+                            val wasAdded = userGroups.any { it.id == groupId }
+                            if (wasAdded) {
+                                loadGroups()
+                                val groupResponse = repository.getGroup(groupId)
+                                if (groupResponse.isSuccessful && groupResponse.body() != null) {
+                                    onSuccess(groupResponse.body()!!)
                                 } else {
-                                    // Group was created but user wasn't added - still reload groups
-                                    loadGroups()
-                                    _error.value = "Group created but failed to add you as a member. Please try joining manually."
-                                    _isLoading.value = false
+                                    onSuccess(Group(id = groupId, name = name, description = description))
                                 }
                             } else {
-                                // Couldn't verify, but group was created
                                 loadGroups()
                                 _error.value = "Group created but failed to add you as a member. Please try joining manually."
                                 _isLoading.value = false
                             }
+                        } else {
+                            loadGroups()
+                            _error.value = "Group created but failed to add you as a member. Please try joining manually."
+                            _isLoading.value = false
                         }
-                    } else {
-                        _error.value = "Create failed: No group data received"
-                        _isLoading.value = false
                     }
                 } else {
                     val errorMessage = GroupsErrorHandler.parseErrorResponse(
@@ -308,7 +311,6 @@ class GroupsViewModel(context: Context) : ViewModel() {
             _isLoading.value = true
             _error.value = null
             try {
-                // Ensure token is loaded
                 if (TokenHolder.token.isNullOrBlank()) {
                     val savedToken = tokenDataStore.tokenFlow.firstOrNull()
                     if (!savedToken.isNullOrBlank()) {
@@ -317,16 +319,10 @@ class GroupsViewModel(context: Context) : ViewModel() {
                 }
 
                 val response = repository.updateGroup(groupId, name, description)
-                if (response.isSuccessful) {
-                    val group = response.body()
-                    if (group != null) {
-                        // Reload groups to get the updated list from the server
-                        loadGroups()
-                        onSuccess(repository.getGroup(groupId).body()?.data!!)
-                    } else {
-                        _error.value = "Update failed: No group data received"
-                        _isLoading.value = false
-                    }
+                if (response.isSuccessful && response.body() != null) {
+                    val group = response.body()!!
+                    loadGroups()
+                    onSuccess(group)
                 } else {
                     val errorMessage = GroupsErrorHandler.parseErrorResponse(
                         response.code(),
@@ -358,7 +354,6 @@ class GroupsViewModel(context: Context) : ViewModel() {
 
                 val response = repository.deleteGroup(groupId)
                 if (response.isSuccessful) {
-                    // Reload groups to get the updated list from the server
                     loadGroups()
                     onSuccess()
                 } else {

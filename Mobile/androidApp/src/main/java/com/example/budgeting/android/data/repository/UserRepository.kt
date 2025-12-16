@@ -1,6 +1,7 @@
 package com.example.budgeting.android.data.repository
 
 import com.example.budgeting.android.data.local.TokenDataStore
+import com.example.budgeting.android.data.model.BudgetResponse
 import com.example.budgeting.android.data.model.ChangePasswordRequest
 import com.example.budgeting.android.data.model.UserResponse
 import com.example.budgeting.android.data.model.UserUpdateRequest
@@ -42,6 +43,11 @@ class UserRepository(
         if (!response.isSuccessful) {
             throw Exception("Failed to change password")
         }
+    }
+
+    // GET BUDGET DATA
+    suspend fun getBudgetData(id: Int): BudgetResponse{
+        return api.getRemainingBudget(id).body()?.data ?: throw Exception("Failed to get budget data")
     }
 
 }

@@ -127,7 +127,7 @@ class ExpenseService(IExpenseService):
         if data.group_id is not None:
             self._validate_group(data.group_id)
         self._validate_category(data.category_id, user_id)
-        
+
         id = self.repository.add(expense)
         
         return APIResponse(
@@ -181,11 +181,10 @@ class ExpenseService(IExpenseService):
         Method for returning group expenses
         """
         self._validate_group(group_id)
-        
         expenses = self.repository.get_by_group(group_id, *args, **kwargs)
         
         expenses_response = [ExpenseResponse.model_validate(expense) for expense in expenses]
-        
+
         return APIResponse(
             success=True,
             data=expenses_response
@@ -197,7 +196,7 @@ class ExpenseService(IExpenseService):
         """
         self._validate_owner(expense_id, requester_id)
         self._validate_category(data.category_id, requester_id)
-        
+
         fields = data.model_dump(exclude_unset=True)
         fields.pop("user_id", None)
         
