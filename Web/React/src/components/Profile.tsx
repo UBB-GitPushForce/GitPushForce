@@ -23,6 +23,7 @@ const Profile: React.FC<ProfileProps> = ({ onRequestNavigate }) => {
     password: '••••••••',
   });
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // editing helpers used by the existing UI pattern
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -30,8 +31,27 @@ const Profile: React.FC<ProfileProps> = ({ onRequestNavigate }) => {
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
 
+  const getBackendErrorMessage = (err: any): string => {
+    if (err.response && err.response.data) {
+      const data = err.response.data;
+
+      if (data.message) {
+        return data.message;
+      }
+      if (typeof data.detail === 'string') {
+        return data.detail;
+      }
+      if (Array.isArray(data.detail)) {
+        return data.detail.map((e: any) => e.msg || 'Invalid input').join(', ');
+      }
+    }
+    return err.message || 'An unexpected error occurred. Please try again.';
+  };
+
   const startEdit = (field: string) => {
     setEditingField(field);
+    setErrorMessage(null);
+    setSavedMessage(null);
     if (field === 'currency') {
       setTempValue(currency);
     } else if (field === 'password') {
@@ -48,9 +68,12 @@ const Profile: React.FC<ProfileProps> = ({ onRequestNavigate }) => {
     setTempValue('');
     setOldPassword('');
     setNewPassword('');
+    setErrorMessage(null);
   };
 
   const saveEdit = async () => {
+    setErrorMessage(null);
+    setSavedMessage(null);
     try {
       if (!editingField) return;
 
@@ -65,7 +88,7 @@ const Profile: React.FC<ProfileProps> = ({ onRequestNavigate }) => {
 
       if (editingField === 'password') {
         if (!oldPassword || !newPassword) {
-          alert('Please enter both current and new password');
+          setErrorMessage('Please enter both current and new password');
           return;
         }
         await apiClient.put('/users/password/change', { old_password: oldPassword, new_password: newPassword });
@@ -91,15 +114,16 @@ const Profile: React.FC<ProfileProps> = ({ onRequestNavigate }) => {
       setTempValue('');
     } catch (err: any) {
       console.error('Failed to save profile field', err);
-      alert(err?.response?.data?.detail || err.message || 'Save failed');
+      setErrorMessage(getBackendErrorMessage(err));
     }
   };
 
   const handleDelete = async () => {
+    setErrorMessage(null);
     const ok = confirm('Are you sure you want to delete your account? This action cannot be undone.');
     if (!ok) return;
     if (!user?.id) {
-      alert('Not authenticated');
+      setErrorMessage('Not authenticated');
       return;
     }
 
@@ -115,7 +139,7 @@ const Profile: React.FC<ProfileProps> = ({ onRequestNavigate }) => {
       }
     } catch (err: any) {
       console.error('Failed to delete account', err);
-      alert(err?.response?.data?.detail || err?.message || 'Failed to delete account');
+      setErrorMessage(getBackendErrorMessage(err));
     }
   };
 
@@ -136,6 +160,19 @@ const Profile: React.FC<ProfileProps> = ({ onRequestNavigate }) => {
     <>
       <div className="bp-title" style={{ marginTop: 12 }}>Profile</div>
 
+      {errorMessage && !editingField && (
+        <div style={{ 
+          marginTop: 12, 
+          padding: '8px 12px', 
+          backgroundColor: '#ffebee', 
+          color: '#c62828', 
+          borderRadius: 6,
+          fontSize: 14 
+        }}>
+          {errorMessage}
+        </div>
+      )}
+
       <div style={{ marginTop: 12, display: 'grid', gap: 12 }}>
         {/* First Name */}
         <div className="bp-box" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -145,10 +182,13 @@ const Profile: React.FC<ProfileProps> = ({ onRequestNavigate }) => {
           </div>
           <div>
             {editingField === 'first_name' ? (
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input value={tempValue} onChange={e => setTempValue(e.target.value)} />
-                <button onClick={saveEdit} className="bp-add-btn">Save</button>
-                <button onClick={cancelEdit} className="bp-add-btn">Cancel</button>
+              <div style={{ display: 'flex', gap: 8, flexDirection: 'column', alignItems: 'flex-end' }}>
+                <div style={{ display: 'flex', gap: 8 }}>
+                    <input value={tempValue} onChange={e => setTempValue(e.target.value)} />
+                    <button onClick={saveEdit} className="bp-add-btn">Save</button>
+                    <button onClick={cancelEdit} className="bp-add-btn">Cancel</button>
+                </div>
+                {errorMessage && <div style={{ color: '#d32f2f', fontSize: 12 }}>{errorMessage}</div>}
               </div>
             ) : (
               <button onClick={() => startEdit('first_name')} className="bp-add-btn" style={{ padding: '8px 12px', fontSize: 13 }}>Modify</button>
@@ -164,10 +204,13 @@ const Profile: React.FC<ProfileProps> = ({ onRequestNavigate }) => {
           </div>
           <div>
             {editingField === 'last_name' ? (
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input value={tempValue} onChange={e => setTempValue(e.target.value)} />
-                <button onClick={saveEdit} className="bp-add-btn">Save</button>
-                <button onClick={cancelEdit} className="bp-add-btn">Cancel</button>
+              <div style={{ display: 'flex', gap: 8, flexDirection: 'column', alignItems: 'flex-end' }}>
+                <div style={{ display: 'flex', gap: 8 }}>
+                    <input value={tempValue} onChange={e => setTempValue(e.target.value)} />
+                    <button onClick={saveEdit} className="bp-add-btn">Save</button>
+                    <button onClick={cancelEdit} className="bp-add-btn">Cancel</button>
+                </div>
+                {errorMessage && <div style={{ color: '#d32f2f', fontSize: 12 }}>{errorMessage}</div>}
               </div>
             ) : (
               <button onClick={() => startEdit('last_name')} className="bp-add-btn" style={{ padding: '8px 12px', fontSize: 13 }}>Modify</button>
@@ -183,10 +226,13 @@ const Profile: React.FC<ProfileProps> = ({ onRequestNavigate }) => {
           </div>
           <div>
             {editingField === 'email' ? (
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input value={tempValue} onChange={e => setTempValue(e.target.value)} />
-                <button onClick={saveEdit} className="bp-add-btn">Save</button>
-                <button onClick={cancelEdit} className="bp-add-btn">Cancel</button>
+              <div style={{ display: 'flex', gap: 8, flexDirection: 'column', alignItems: 'flex-end' }}>
+                <div style={{ display: 'flex', gap: 8 }}>
+                    <input value={tempValue} onChange={e => setTempValue(e.target.value)} />
+                    <button onClick={saveEdit} className="bp-add-btn">Save</button>
+                    <button onClick={cancelEdit} className="bp-add-btn">Cancel</button>
+                </div>
+                {errorMessage && <div style={{ color: '#d32f2f', fontSize: 12 }}>{errorMessage}</div>}
               </div>
             ) : (
               <button onClick={() => startEdit('email')} className="bp-add-btn" style={{ padding: '8px 12px', fontSize: 13 }}>Modify</button>
@@ -202,11 +248,14 @@ const Profile: React.FC<ProfileProps> = ({ onRequestNavigate }) => {
           </div>
           <div>
             {editingField === 'password' ? (
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <input type="password" placeholder="Current password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} />
-                <input type="password" placeholder="New password" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
-                <button onClick={saveEdit} className="bp-add-btn">Save</button>
-                <button onClick={cancelEdit} className="bp-add-btn">Cancel</button>
+              <div style={{ display: 'flex', gap: 8, flexDirection: 'column', alignItems: 'flex-end' }}>
+                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <input type="password" placeholder="Current password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} />
+                    <input type="password" placeholder="New password" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+                    <button onClick={saveEdit} className="bp-add-btn">Save</button>
+                    <button onClick={cancelEdit} className="bp-add-btn">Cancel</button>
+                 </div>
+                 {errorMessage && <div style={{ color: '#d32f2f', fontSize: 12 }}>{errorMessage}</div>}
               </div>
             ) : (
               <button onClick={() => startEdit('password')} className="bp-add-btn" style={{ padding: '8px 12px', fontSize: 13 }}>Modify</button>
@@ -222,10 +271,13 @@ const Profile: React.FC<ProfileProps> = ({ onRequestNavigate }) => {
           </div>
           <div>
             {editingField === 'phone_number' ? (
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input value={tempValue} onChange={e => setTempValue(e.target.value)} />
-                <button onClick={saveEdit} className="bp-add-btn">Save</button>
-                <button onClick={cancelEdit} className="bp-add-btn">Cancel</button>
+              <div style={{ display: 'flex', gap: 8, flexDirection: 'column', alignItems: 'flex-end' }}>
+                <div style={{ display: 'flex', gap: 8 }}>
+                    <input value={tempValue} onChange={e => setTempValue(e.target.value)} />
+                    <button onClick={saveEdit} className="bp-add-btn">Save</button>
+                    <button onClick={cancelEdit} className="bp-add-btn">Cancel</button>
+                </div>
+                {errorMessage && <div style={{ color: '#d32f2f', fontSize: 12 }}>{errorMessage}</div>}
               </div>
             ) : (
               <button onClick={() => startEdit('phone_number')} className="bp-add-btn" style={{ padding: '8px 12px', fontSize: 13 }}>Modify</button>
