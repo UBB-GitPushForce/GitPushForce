@@ -16,7 +16,7 @@ class User(Base):
     email = Column(String(255), unique=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
     phone_number = Column(String(50), nullable=False)
-    budget = Column(Float, server_default=0, nullable=True) 
+    budget = Column(Float, default=0, nullable=True) 
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
