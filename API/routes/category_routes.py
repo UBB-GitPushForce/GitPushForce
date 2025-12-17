@@ -28,6 +28,10 @@ def get_all_categories(
 ):
     return category_service.get_all_categories(sort_by, order)
 
+@router.get("/{user_id}")
+def get_user_categories(user_id: int = Depends(get_current_user_id), category_service: ICategoryService = Depends(get_category_service), sort_by: str = Query("title"), order: str = Query("asc", regex="^(asc|desc)$")):
+    return category_service.get_user_categories(user_id, sort_by, order)
+
 @router.put("/{category_id}")
 def update_category(category_id: int, category_in: CategoryUpdate, requester_id: int = Depends(get_current_user_id), category_service: ICategoryService = Depends(get_category_service)):
     return category_service.update_category(category_id, category_in, requester_id)

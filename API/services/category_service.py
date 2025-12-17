@@ -74,6 +74,16 @@ class CategoryService(ICategoryService):
             data=categories_response
         )
 
+    def get_user_categories(self, user_id: int, sort_by: str, order: str) -> APIResponse:
+        self.logger.info(f"Fetching categories for user with id {user_id}")
+
+        categories = self.repository.get_by_user(user_id, sort_by, order)
+        categories_response = [CategoryResponse.model_validate(category) for category in categories]
+        return APIResponse(
+            success=True,
+            data=categories_response
+        )
+
     def update_category(self, category_id: int, data: CategoryUpdate, requester_id: int) -> APIResponse:
         self.logger.info(f"Updating category with id {category_id}")
 
