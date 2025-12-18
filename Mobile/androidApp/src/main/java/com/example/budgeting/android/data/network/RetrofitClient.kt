@@ -107,4 +107,18 @@ object RetrofitClient {
 
         retrofit.create(CategoryApiService::class.java)
     }
+
+    val receiptInstance: ReceiptApiService = run {
+        val client = OkHttpClient.Builder()
+            .addInterceptor(TokenAuthInterceptor())
+            .build()
+
+        val retrofit = Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(client)
+            .addConverterFactory(moshiConverterFactory)
+            .build()
+
+        retrofit.create(ReceiptApiService::class.java)
+    }
 }
