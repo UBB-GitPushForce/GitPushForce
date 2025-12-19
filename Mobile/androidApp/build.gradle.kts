@@ -60,6 +60,7 @@ dependencies {
     implementation(libs.compose.material3)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.foundation)
     debugImplementation(libs.compose.ui.tooling)
 
     // Core Compose dependencies

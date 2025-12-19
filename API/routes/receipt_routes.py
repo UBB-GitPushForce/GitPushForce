@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, File, Request, UploadFile
 from services.receipt_service import IReceiptService
 from utils.helpers.jwt_utils import JwtUtils
 
-router = APIRouter(prefix="/receipt", tags=["Receipt"])
+router = APIRouter(tags=["Receipt"])
 
 def get_current_user_id(request: Request) -> int:
     """

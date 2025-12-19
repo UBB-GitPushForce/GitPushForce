@@ -1,8 +1,8 @@
 package com.example.budgeting.android.ui.viewmodels
 
-import android.content.Context
+import android.app.Application
 import android.net.Uri
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.budgeting.android.data.auth.TokenHolder
 import com.example.budgeting.android.data.local.TokenDataStore
@@ -22,6 +22,7 @@ import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import java.io.File
 import java.io.FileOutputStream
+import java.util.UUID
 
 sealed class ReceiptUiState {
     object Idle : ReceiptUiState()
@@ -31,9 +32,9 @@ sealed class ReceiptUiState {
     data class Error(val message: String) : ReceiptUiState()
 }
 
-class ReceiptViewModel(context: Context) : ViewModel() {
-    private val tokenDataStore = TokenDataStore(context.applicationContext)
+class ReceiptViewModel(application: Application) : AndroidViewModel(application) {
 
+    private val tokenDataStore = TokenDataStore(application)
     private val expenseRepository = ExpenseRepository(RetrofitClient.expenseInstance, tokenDataStore)
     private val categoryRepository = CategoryRepository(RetrofitClient.categoryInstance)
     private val receiptApi = RetrofitClient.receiptInstance
@@ -51,19 +52,22 @@ class ReceiptViewModel(context: Context) : ViewModel() {
         }
     }
 
-    fun processReceiptImage(uri: Uri, context: Context) {
+    fun processReceiptImage(uri: Uri) {
         viewModelScope.launch {
             _uiState.value = ReceiptUiState.Loading("Analyzing receipt with AI...")
 
             try {
-                val file = File(context.cacheDir, "receipt_upload.jpg")
-                withContext(Dispatchers.IO) {
-                    context.contentResolver.openInputStream(uri)?.use { input ->
-                        FileOutputStream(file).use { output -> input.copyTo(output) }
-                    }
+                val file = withContext(Dispatchers.IO) {
+                    createTempFileFromUri(uri)
                 }
 
-                val reqBody = file.asRequestBody("image/jpeg".toMediaTypeOrNull())
+                if (file == null || file.length() == 0L) {
+                    _uiState.value = ReceiptUiState.Error("Error: Image file is empty or invalid")
+                    return@launch
+                }
+
+                val mediaType = "image/jpeg".toMediaTypeOrNull()
+                val reqBody = file.asRequestBody(mediaType)
                 val part = MultipartBody.Part.createFormData("image", file.name, reqBody)
 
                 val response = receiptApi.processReceipt(part)
@@ -74,60 +78,68 @@ class ReceiptViewModel(context: Context) : ViewModel() {
                 } else {
                     _uiState.value = ReceiptUiState.Error("AI Analysis failed: ${response.code()}")
                 }
+                
+                file.delete()
+
             } catch (e: Exception) {
                 _uiState.value = ReceiptUiState.Error("Error: ${e.message}")
             }
         }
     }
 
-    fun saveExpenses() {
+    fun saveExpenses(itemsToSave: List<ProcessedItem>) {
         viewModelScope.launch {
             _uiState.value = ReceiptUiState.Loading("Saving expenses...")
 
             try {
-                var existingCategories = try {
+                val initialCategories = try {
                     categoryRepository.getCategories(null, null)
                 } catch (e: Exception) { emptyList() }
-
-                val itemsToSave = _scannedItems.value
+                
+                val localCategoryCache = initialCategories.toMutableList()
                 var successCount = 0
 
-                itemsToSave.forEach { item ->
-                    var targetCategory = existingCategories.find {
-                        it.title.equals(item.category, ignoreCase = true)
-                    }
-
-                    if (targetCategory == null) {
-                        try {
-                            categoryRepository.addCategory(
-                                CategoryBody(title = item.category, keywords = item.keywords)
-                            )
-                            existingCategories = categoryRepository.getCategories(null, null)
-                            targetCategory = existingCategories.find {
-                                it.title.equals(item.category, ignoreCase = true)
-                            }
-                        } catch (e: Exception) {
-                            e.printStackTrace()
+                withContext(Dispatchers.IO) {
+                    itemsToSave.forEach { item ->
+                        
+                        var targetCategory = localCategoryCache.find {
+                            it.title.equals(item.category, ignoreCase = true)
                         }
-                    }
 
-                    if (targetCategory != null) {
-                        try {
-                            expenseRepository.addExpense(
-                                Expense(
-                                    id = null,
-                                    title = item.name,
-                                    amount = item.price,
-                                    categoryId = targetCategory.id!!,
-                                    description = "Scanned Receipt Item",
-                                    user_id = null,
-                                    group_id = null,
-                                    created_at = null
+                        if (targetCategory == null) {
+                            try {
+                                val newCategory = categoryRepository.addCategory(
+                                    CategoryBody(title = item.category, keywords = item.keywords)
                                 )
-                            )
-                            successCount++
-                        } catch (e: Exception) {
-                            e.printStackTrace()
+                                val refreshedCats = categoryRepository.getCategories(null, null)
+                                targetCategory = refreshedCats.find { it.title.equals(item.category, ignoreCase = true) }
+                                
+                                if (targetCategory != null) {
+                                    localCategoryCache.add(targetCategory)
+                                }
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
+
+                        if (targetCategory?.id != null) {
+                            try {
+                                expenseRepository.addExpense(
+                                    Expense(
+                                        id = null,
+                                        title = item.name,
+                                        amount = item.price,
+                                        categoryId = targetCategory.id!!,
+                                        description = "Scanned Receipt Item",
+                                        user_id = null,
+                                        group_id = null,
+                                        created_at = null
+                                    )
+                                )
+                                successCount++
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
                         }
                     }
                 }
@@ -141,7 +153,24 @@ class ReceiptViewModel(context: Context) : ViewModel() {
         }
     }
 
+    private fun createTempFileFromUri(uri: Uri): File? {
+        return try {
+            val context = getApplication<Application>()
+            val stream = context.contentResolver.openInputStream(uri) ?: return null
+            val file = File(context.cacheDir, "receipt_${UUID.randomUUID()}.jpg")
+            FileOutputStream(file).use { output ->
+                stream.copyTo(output)
+            }
+            stream.close()
+            file
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
     fun dismissError() { _uiState.value = ReceiptUiState.Idle }
+    
     fun cancelReview() {
         _scannedItems.value = emptyList()
         _uiState.value = ReceiptUiState.Idle
