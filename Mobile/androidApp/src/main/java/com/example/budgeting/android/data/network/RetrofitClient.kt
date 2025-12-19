@@ -7,6 +7,7 @@ import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
+import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
     private val BASE_URL: String = BuildConfig.BASE_URL
@@ -18,7 +19,7 @@ object RetrofitClient {
     private val moshi = Moshi.Builder()
         .add(KotlinJsonAdapterFactory())
         .build()
-    
+
     fun getMoshi(): Moshi = moshi
     
     private val moshiConverterFactory = MoshiConverterFactory.create(moshi)
@@ -106,5 +107,22 @@ object RetrofitClient {
             .build()
 
         retrofit.create(CategoryApiService::class.java)
+    }
+
+    val receiptInstance: ReceiptApiService = run {
+        val client = OkHttpClient.Builder()
+            .addInterceptor(TokenAuthInterceptor())
+            .connectTimeout(60, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
+            .build()
+
+        val retrofit = Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(client)
+            .addConverterFactory(moshiConverterFactory)
+            .build()
+
+        retrofit.create(ReceiptApiService::class.java)
     }
 }
