@@ -43,6 +43,12 @@ class CategoryRepository(ICategoryRepository):
         statement = select(Category).order_by(sort_order)
         return list(self.db.scalars(statement))
 
+    def get_by_user(self, user_id: int, sort_by: str, order: str) -> List[Category]:
+        sort_column = getattr(Category, sort_by, Category.title)
+        sort_order = asc(sort_column) if order == "asc" else desc(sort_column)
+        statement = select(Category).where(Category.user_id == user_id).order_by(sort_order)
+        return list(self.db.scalars(statement))
+
     def get_by_id(self, category_id: int) -> Category:
         statement = select(Category).where(Category.id == category_id)
         return self.db.scalars(statement).first()
