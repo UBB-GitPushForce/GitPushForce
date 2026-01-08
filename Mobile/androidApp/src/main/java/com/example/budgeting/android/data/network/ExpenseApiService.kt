@@ -18,6 +18,10 @@ interface ExpenseApiService {
         @Query("category") category: String? = null,
         @Query("sort_by") sortBy: String? = "created_at",
         @Query("order") order: String? = "desc",
+        @Query("offset") offset: Int? = 0,
+        @Query("limit") limit: Int? = 100,
+        @Query("min_price") minPrice: Float? = null,
+        @Query("max_price") maxPrice: Float? = null,
         @Query("date_from") dateFrom: String? = null,
         @Query("date_to") dateTo: String? = null
     ): Response<ApiResponse<List<Expense>>>
@@ -30,6 +34,10 @@ interface ExpenseApiService {
         @Query("category") category: String? = null,
         @Query("sort_by") sortBy: String? = "created_at",
         @Query("order") order: String? = "desc",
+        @Query("offset") offset: Int? = 0,
+        @Query("limit") limit: Int? = 100,
+        @Query("min_price") minPrice: Float? = null,
+        @Query("max_price") maxPrice: Float? = null,
         @Query("date_from") dateFrom: String? = null,
         @Query("date_to") dateTo: String? = null
     ): Response<ApiResponse<List<Expense>>>
@@ -43,6 +51,10 @@ interface ExpenseApiService {
         @Query("category") category: String? = null,
         @Query("sort_by") sortBy: String? = "created_at",
         @Query("order") order: String? = "desc",
+        @Query("offset") offset: Int? = 0,
+        @Query("limit") limit: Int? = 100,
+        @Query("min_price") minPrice: Float? = null,
+        @Query("max_price") maxPrice: Float? = null,
         @Query("date_from") dateFrom: String? = null,
         @Query("date_to") dateTo: String? = null
     ): Response<ApiResponse<List<Expense>>>

@@ -211,11 +211,11 @@ fun AnalyticsContent(
             CategoryCountBarChart(categoryCounts)
         }
 
-        AnalyticsCard("Total amount per category") {
+        AnalyticsCard("Spending by category") {
             CategoryAmountBarChart(categoryAmounts)
         }
 
-        AnalyticsCard("Monthly trend") {
+        AnalyticsCard("Spending over time") {
             MonthlyLineChart(monthlyTotals)
         }
     }

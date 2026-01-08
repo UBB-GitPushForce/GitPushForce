@@ -59,6 +59,10 @@ class ExpenseViewModel(context: Context) : ViewModel() {
     private val _currentUserId = MutableStateFlow<Int?>(null)
     val currentUserId: StateFlow<Int?> = _currentUserId.asStateFlow()
 
+    private var offset = 0
+    private var limit = 20
+    private var endReached = false
+
     init {
         loadCurrentUserId()
         loadUserGroups()
@@ -73,62 +77,81 @@ class ExpenseViewModel(context: Context) : ViewModel() {
         }
     }
 
-    fun loadExpenses() {
+    fun loadExpenses(append: Boolean = false) {
+        if (_isLoading.value || endReached && append) return
+
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
 
             try {
+                if (!append) {
+                    offset = 0
+                    endReached = false
+                    _expenses.value = emptyList()
+                }
+
                 _categories.value = listOf(Category(0, 0, "All", emptyList()))
                 val f = _filters.value
+
                 val data = when (_mode.value) {
 
-                    ExpenseMode.PERSONAL -> {
-                        val response = repository.getPersonalExpenses(
+                    ExpenseMode.PERSONAL ->
+                        repository.getPersonalExpenses(
                             search = f.search,
                             category = if (f.category == "All" || f.category.isBlank()) null else f.category,
                             sortBy = f.sortOption.sortBy,
                             order = f.sortOption.order,
-                            dateFrom = null,
-                            dateTo = null
+                            offset = offset,
+                            limit = limit,
+                            minPrice = f.minAmount,
+                            maxPrice = f.maxAmount,
+                            dateFrom = f.startDate,
+                            dateTo = f.endDate
                         )
-                        val filtered = response.filter { it.title.contains(f.search, ignoreCase = true) }
-                        filtered
-                    }
 
-                    ExpenseMode.ALL -> {
-                        val response = repository.getAllExpenses(
+                    ExpenseMode.ALL ->
+                        repository.getAllExpenses(
                             category = if (f.category == "All" || f.category.isBlank()) null else f.category,
                             sortBy = f.sortOption.sortBy,
                             order = f.sortOption.order,
-                            dateFrom = null,
-                            dateTo = null
+                            offset = offset,
+                            limit = limit,
+                            minPrice = f.minAmount,
+                            maxPrice = f.maxAmount,
+                            dateFrom = f.startDate,
+                            dateTo = f.endDate
                         )
-                        val filtered = response.filter { it.title.contains(f.search, ignoreCase = true) }
-                        filtered
-                    }
 
                     ExpenseMode.GROUP -> {
-                        // fetch expenses from all groups the user is part of
-                        val allExpenses = mutableListOf<Expense>()
+                        val all = mutableListOf<Expense>()
                         _groupIds.value.forEach { groupId ->
-                            val response = repository.getGroupExpenses(
+                            all += repository.getGroupExpenses(
                                 groupId = groupId,
                                 category = if (f.category == "All" || f.category.isBlank()) null else f.category,
                                 sortBy = f.sortOption.sortBy,
                                 order = f.sortOption.order,
-                                dateFrom = null,
-                                dateTo = null
+                                offset = offset,
+                                limit = limit,
+                                minPrice = f.minAmount,
+                                maxPrice = f.maxAmount,
+                                dateFrom = f.startDate,
+                                dateTo = f.endDate
                             )
-                            val filtered = response.filter { it.title.contains(f.search, ignoreCase = true) }
-                            allExpenses.addAll(filtered)
                         }
-                        allExpenses
+                        all
                     }
                 }
 
-                _expenses.value = data
-                updateCategories(data)
+                if (data.size < limit) endReached = true
+                offset += data.size
+
+                _expenses.value =
+                    if (append) _expenses.value + data
+                    else data
+
+                updateCategories(_expenses.value)
+
             } catch (e: Exception) {
                 _error.value = e.localizedMessage
             } finally {
@@ -136,6 +159,7 @@ class ExpenseViewModel(context: Context) : ViewModel() {
             }
         }
     }
+
 
     private fun updateCategories(expenses: List<Expense>) {
         viewModelScope.launch {
@@ -207,6 +231,16 @@ class ExpenseViewModel(context: Context) : ViewModel() {
 
     fun setSortOption(option: SortOption) {
         _filters.value = _filters.value.copy(sortOption = option)
+        loadExpenses()
+    }
+
+    fun setAmountRange(min: Float?, max: Float?) {
+        _filters.value = _filters.value.copy(minAmount = min, maxAmount = max)
+        loadExpenses()
+    }
+
+    fun setDateRange(start: String?, end: String?) {
+        _filters.value = _filters.value.copy(startDate = start, endDate = end)
         loadExpenses()
     }
 

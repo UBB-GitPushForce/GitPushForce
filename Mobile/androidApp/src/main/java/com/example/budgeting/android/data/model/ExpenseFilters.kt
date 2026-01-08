@@ -3,7 +3,11 @@ package com.example.budgeting.android.data.model
 data class ExpenseFilters(
     val search: String = "",
     val category: String = "All",
-    val sortOption: SortOption = SortOption.NEWEST
+    val sortOption: SortOption = SortOption.NEWEST,
+    val minAmount: Float? = null,
+    val maxAmount: Float? = null,
+    val startDate: String? = null,
+    val endDate: String? = null
 )
 
 enum class SortOption(
