@@ -117,6 +117,10 @@ class AnalyticsViewModel(context: Context) : ViewModel() {
                         category = if (_selectedCategory.value == "All") null else _selectedCategory.value,
                         sortBy = null,
                         order = null,
+                        offset = null,
+                        limit = null,
+                        minPrice = null,
+                        maxPrice = null,
                         dateFrom = _dateFrom.value?.toString(),
                         dateTo = _dateTo.value?.toString()
                     )
@@ -125,6 +129,10 @@ class AnalyticsViewModel(context: Context) : ViewModel() {
                         category = if (_selectedCategory.value == "All") null else _selectedCategory.value,
                         sortBy = null,
                         order = null,
+                        offset = null,
+                        limit = null,
+                        minPrice = null,
+                        maxPrice = null,
                         dateFrom = _dateFrom.value?.toString(),
                         dateTo = _dateTo.value?.toString()
                     )
@@ -137,6 +145,10 @@ class AnalyticsViewModel(context: Context) : ViewModel() {
                                 category = if (_selectedCategory.value == "All") null else _selectedCategory.value,
                                 sortBy = null,
                                 order = null,
+                                offset = null,
+                                limit = null,
+                                minPrice = null,
+                                maxPrice = null,
                                 dateFrom = _dateFrom.value?.toString(),
                                 dateTo = _dateTo.value?.toString()
                             ))

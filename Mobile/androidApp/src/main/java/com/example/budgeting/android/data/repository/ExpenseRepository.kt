@@ -17,6 +17,10 @@ class ExpenseRepository(
         category: String?,
         sortBy: String?,
         order: String?,
+        offset: Int?,
+        limit: Int?,
+        minPrice: Float?,
+        maxPrice: Float?,
         dateFrom: String?,
         dateTo: String?
     ): List<Expense> {
@@ -25,6 +29,10 @@ class ExpenseRepository(
             category = category,
             sortBy = sortBy,
             order = order,
+            offset = offset,
+            limit = limit,
+            minPrice = minPrice,
+            maxPrice = maxPrice,
             dateFrom = dateFrom,
             dateTo = dateTo
         ).body()?.data ?: throw Exception("Failed to fetch expenses")
@@ -37,6 +45,10 @@ class ExpenseRepository(
         category: String?,
         sortBy: String?,
         order: String?,
+        offset: Int?,
+        limit: Int?,
+        minPrice: Float?,
+        maxPrice: Float?,
         dateFrom: String?,
         dateTo: String?
     ): List<Expense> {
@@ -44,6 +56,10 @@ class ExpenseRepository(
             category = category,
             sortBy = sortBy,
             order = order,
+            offset = offset,
+            limit = limit,
+            minPrice = minPrice,
+            maxPrice = maxPrice,
             dateFrom = dateFrom,
             dateTo = dateTo
         ).body()?.data ?: throw Exception("Failed to fetch expenses")
@@ -57,6 +73,10 @@ class ExpenseRepository(
         category: String?,
         sortBy: String?,
         order: String?,
+        offset: Int?,
+        limit: Int?,
+        minPrice: Float?,
+        maxPrice: Float?,
         dateFrom: String?,
         dateTo: String?
     ): List<Expense> {
@@ -65,6 +85,10 @@ class ExpenseRepository(
             category = category,
             sortBy = sortBy,
             order = order,
+            offset = offset,
+            limit = limit,
+            minPrice = minPrice,
+            maxPrice = maxPrice,
             dateFrom = dateFrom,
             dateTo = dateTo
         ).body()?.data ?: throw Exception("Failed to fetch expenses")

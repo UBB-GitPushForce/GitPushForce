@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +25,15 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.budgeting.android.data.model.*
 import com.example.budgeting.android.ui.component.ExpenseItem
 import com.example.budgeting.android.ui.viewmodels.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.filled.CalendarToday
+import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,6 +55,7 @@ fun ExpensesScreen(
 
     var showDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showAdvancedFilterDialog by remember { mutableStateOf(false) }
     var selectedExpense by remember { mutableStateOf<Expense?>(null) }
 
     LaunchedEffect(Unit) {
@@ -105,10 +116,29 @@ fun ExpensesScreen(
 
             Spacer(Modifier.height(12.dp))
 
-            ModeSelector(
-                selected = mode,
-                onSelected = { expenseViewModel.setMode(it) }
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ModeSelector(
+                    selected = mode,
+                    onSelected = { expenseViewModel.setMode(it) }
+                )
+
+                Spacer(Modifier.weight(1f))
+
+                AssistChip(
+                    onClick = { showAdvancedFilterDialog = true },
+                    label = { Text("Filters") },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.FilterList,
+                            contentDescription = "Advanced filters"
+                        )
+                    }
+                )
+            }
 
             Spacer(Modifier.height(12.dp))
 
@@ -175,6 +205,21 @@ fun ExpensesScreen(
                 }
             )
         }
+
+        if (showAdvancedFilterDialog) {
+            AdvancedFilterDialog(
+                initialMin = filters.minAmount,
+                initialMax = filters.maxAmount,
+                initialStartDate = filters.startDate,
+                initialEndDate = filters.endDate,
+                onDismiss = { showAdvancedFilterDialog = false },
+                onApply = { min, max, start, end ->
+                    expenseViewModel.setAmountRange(min, max)
+                    expenseViewModel.setDateRange(start, end)
+                }
+            )
+        }
+
     }
 }
 
@@ -264,7 +309,6 @@ fun ModeSelector(
     onSelected: (ExpenseMode) -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         ExpenseMode.entries.forEach { mode ->
@@ -463,7 +507,19 @@ fun ExpensesList(
     onClick: (Expense) -> Unit,
     onLongClick: (Expense) -> Unit
 ) {
-    LazyColumn {
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(listState) {
+        snapshotFlow {
+            listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index
+        }.collect { lastVisible ->
+            if (lastVisible != null && lastVisible >= expenses.size - 5) {
+                vm.loadExpenses(append = true)
+            }
+        }
+    }
+
+    LazyColumn(state = listState) {
         items(expenses) { expense ->
             ExpenseItem(
                 expense = expense,
@@ -481,6 +537,7 @@ fun ExpensesList(
     }
 }
 
+
 @Composable
 fun DeleteExpenseDialog(
     expense: Expense,
@@ -494,6 +551,205 @@ fun DeleteExpenseDialog(
         confirmButton = {
             TextButton(onClick = onConfirm) {
                 Text("Delete", color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AdvancedFilterDialog(
+    initialMin: Float?,
+    initialMax: Float?,
+    initialStartDate: String?,
+    initialEndDate: String?,
+    onDismiss: () -> Unit,
+    onApply: (
+        minAmount: Float?,
+        maxAmount: Float?,
+        startDate: String?,
+        endDate: String?
+    ) -> Unit
+) {
+    var minAmount by remember { mutableStateOf(initialMin?.toString() ?: "") }
+    var maxAmount by remember { mutableStateOf(initialMax?.toString() ?: "") }
+
+    var startDate by remember { mutableStateOf(initialStartDate) }
+    var endDate by remember { mutableStateOf(initialEndDate) }
+
+    var showStartDatePicker by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Advanced filters") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ){
+                    Text("Price range", style = MaterialTheme.typography.labelLarge)
+                    Spacer(Modifier.weight(1f))
+                    TextButton(
+                        onClick = {
+                            minAmount = ""
+                            maxAmount = ""
+                        }
+                    ) {
+                        Text("Clear")
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = minAmount,
+                        onValueChange = { minAmount = it },
+                        label = { Text("Min") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        value = maxAmount,
+                        onValueChange = { maxAmount = it },
+                        label = { Text("Max") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Divider()
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ){
+                    Text("Date range", style = MaterialTheme.typography.labelLarge)
+                    Spacer(Modifier.weight(1f))
+                    TextButton(
+                        onClick = {
+                            startDate = null
+                            endDate = null
+                        }
+                    ) {
+                        Text("Clear")
+                    }
+                }
+
+                // DATE RANGE
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    TextButton(onClick = { showStartDatePicker = true }) {
+                        Icon(Icons.Default.CalendarToday, contentDescription = null)
+                        Spacer(Modifier.width(6.dp))
+                        Text(startDate?.toString() ?: "From")
+                    }
+
+                    TextButton(onClick = { showEndDatePicker = true }) {
+                        Icon(Icons.Default.CalendarToday, contentDescription = null)
+                        Spacer(Modifier.width(6.dp))
+                        Text(endDate?.toString() ?: "To")
+                    }
+                }
+
+                if (showStartDatePicker) {
+                    val state = rememberDatePickerState(
+                        initialSelectedDateMillis = startDate
+                            ?.let {
+                                LocalDate.parse(it.substring(0, 10)) // handles ISO with or without time
+                                    .atStartOfDay(ZoneId.systemDefault())
+                                    .toInstant()
+                                    .toEpochMilli()
+                            }
+                    )
+
+                    DatePickerDialog(
+                        onDismissRequest = { showStartDatePicker = false },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    startDate = state.selectedDateMillis
+                                        ?.let {
+                                            Instant.ofEpochMilli(it)
+                                                .atZone(ZoneId.systemDefault())
+                                                .toLocalDate()
+                                                .toString() // ISO-8601 yyyy-MM-dd
+                                        }
+
+                                    showStartDatePicker = false
+                                }
+                            ) { Text("OK") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showStartDatePicker = false }) {
+                                Text("Cancel")
+                            }
+                        }
+                    ) {
+                        DatePicker(state = state)
+                    }
+                }
+
+                if (showEndDatePicker) {
+                    val state = rememberDatePickerState(
+                        initialSelectedDateMillis = endDate
+                            ?.let {
+                                LocalDate.parse(it.substring(0, 10)) // handles ISO with or without time
+                                    .atStartOfDay(ZoneId.systemDefault())
+                                    .toInstant()
+                                    .toEpochMilli()
+                            }
+                    )
+
+                    DatePickerDialog(
+                        onDismissRequest = { showEndDatePicker = false },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    endDate = state.selectedDateMillis
+                                        ?.let {
+                                            Instant.ofEpochMilli(it)
+                                                .atZone(ZoneId.systemDefault())
+                                                .toLocalDate()
+                                                .toString() // ISO-8601 yyyy-MM-dd
+                                        }
+
+                                    showEndDatePicker = false
+                                }
+                            ) { Text("OK") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showEndDatePicker = false }) {
+                                Text("Cancel")
+                            }
+                        }
+                    ) {
+                        DatePicker(state = state)
+                    }
+                }
+
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onApply(
+                        minAmount.toFloatOrNull(),
+                        maxAmount.toFloatOrNull(),
+                        startDate?.toString(),
+                        endDate?.toString()
+                    )
+                    onDismiss()
+                }
+            ) {
+                Text("Apply")
             }
         },
         dismissButton = {
