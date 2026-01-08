@@ -1,121 +1,121 @@
 // src/components/ReceiptsCamera.tsx
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import '../App.css';
-import type { ReceiptItem } from './Receipts';
 import type { Group } from '../services/group-service';
 
 interface ReceiptsCameraProps {
-  onUploaded: (it: ReceiptItem) => void;
+  // CHANGED: Pass the captured file back to parent
+  onPhotoTaken: (file: File) => void;
   groupId?: number | null;
-  groups: Group[];
+  groups?: Group[];
 }
 
-async function uploadMockFromBlob(blob: Blob, linkGroupId?: number | null): Promise<ReceiptItem> {
-    await new Promise(r => setTimeout(r, 900));
-    const now = new Date().toISOString().slice(0,10);
-    return {
-        id: Date.now(),
-        title: 'photo-' + Date.now(),
-        subtitle: 'Camera (mock)',
-        amount: 50,
-        dateTransaction: now,
-        dateAdded: now,
-        isGroup: !!linkGroupId,
-        groupId: linkGroupId || undefined,
-        groupName: linkGroupId ? `Group ${linkGroupId}` : undefined,
-        addedBy: 'You',
-        initial: 'Y',
-    };
-}
-
-const ReceiptsCamera: React.FC<ReceiptsCameraProps> = ({ onUploaded, groupId = null, groups }) => {
+const ReceiptsCamera: React.FC<ReceiptsCameraProps> = ({ onPhotoTaken }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
-  const [taking, setTaking] = useState(false);
-  const [selectedGroup, setSelectedGroup] = useState<number | null>(groupId ?? null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Auto-start camera on mount, cleanup on unmount
+  useEffect(() => {
+    startCamera();
+    return () => {
+      stopCamera();
+    };
+  }, []);
 
   const startCamera = async () => {
     if (stream) return;
     try {
-      const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+      // Prefer back camera ('environment')
+      const s = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' }, 
+        audio: false 
+      });
       setStream(s);
-      if (videoRef.current) { videoRef.current.srcObject = s; await videoRef.current.play(); }
+      if (videoRef.current) { 
+        videoRef.current.srcObject = s; 
+        await videoRef.current.play(); 
+      }
     } catch (err) {
       console.error('Camera error', err);
-      alert('Cannot access camera.');
+      setErrorMsg('Cannot access camera. Please ensure permissions are granted.');
     }
   };
 
   const stopCamera = () => {
-    if (stream) { stream.getTracks().forEach(t => t.stop()); setStream(null); }
-    if (videoRef.current) { try { videoRef.current.pause(); videoRef.current.srcObject = null; } catch{} }
+    if (stream) { 
+        stream.getTracks().forEach(t => t.stop()); 
+        setStream(null); 
+    }
+    if (videoRef.current) { 
+        videoRef.current.srcObject = null; 
+    }
   };
 
-  const takePhoto = async () => {
-    if (!videoRef.current) return;
-    setTaking(true);
-    try {
-      const vw = videoRef.current.videoWidth;
-      const vh = videoRef.current.videoHeight;
-      const canvas = canvasRef.current!;
-      canvas.width = vw; canvas.height = vh;
-      const ctx = canvas.getContext('2d')!;
-      ctx.drawImage(videoRef.current, 0, 0, vw, vh);
-      canvas.toBlob(async (blob) => {
-        if (!blob) { alert('Capture failed'); setTaking(false); return; }
-        try {
-          const result = await uploadMockFromBlob(blob, selectedGroup);
-          onUploaded(result);
-          stopCamera();
-        } catch (err) {
-          console.error(err);
-          alert('Upload failed (mock)');
-        } finally {
-          setTaking(false);
-        }
-      }, 'image/jpeg', 0.9);
-    } catch (err) {
-      console.error(err);
-      setTaking(false);
-    }
+  const capturePhoto = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    const vw = videoRef.current.videoWidth;
+    const vh = videoRef.current.videoHeight;
+    const canvas = canvasRef.current;
+    
+    canvas.width = vw; 
+    canvas.height = vh;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.drawImage(videoRef.current, 0, 0, vw, vh);
+
+    // Convert canvas to Blob, then to File
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        alert('Capture failed'); 
+        return; 
+      }
+      
+      // Create a File object from the Blob
+      const file = new File([blob], `camera_capture_${Date.now()}.jpg`, { type: "image/jpeg" });
+      
+      stopCamera(); // Stop stream
+      onPhotoTaken(file); // Send to parent for AI processing
+    }, 'image/jpeg', 0.95);
   };
 
   return (
     <div style={{ display:'grid', gap:12 }}>
-      <div style={{ color:'var(--muted-dark)' }}>Use your device camera to capture the receipt.</div>
+      {errorMsg && <div style={{color: 'red', textAlign:'center'}}>{errorMsg}</div>}
 
-      <div style={{ display:'flex', gap:8 }}>
-        <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-          <div style={{ fontSize:13, color:'var(--muted-dark)' }}>Link to group (optional):</div>
-          <select 
-            value={selectedGroup ?? ''} 
-            onChange={(e)=> setSelectedGroup(e.target.value ? Number(e.target.value) : null)} 
-            style={{ padding:8, borderRadius:8 }}
-          >
-            <option value="">(independent)</option>
-            {groups.map(g => (
-                <option key={g.id} value={g.id}>{g.name}</option>
-            ))}
-          </select>
-        </div>
-
-        <div style={{ marginLeft:'auto', display:'flex', gap:8 }}>
-          <button className="bp-add-btn" onClick={startCamera}>Open camera</button>
-          <button className="bp-add-btn" onClick={stopCamera}>Close camera</button>
-        </div>
+      <div style={{ position: 'relative', width:'100%', borderRadius:12, overflow:'hidden', background:'#000', minHeight: 200 }}>
+        <video 
+            ref={videoRef} 
+            style={{ width:'100%', display: stream ? 'block' : 'none' }} 
+            playsInline 
+            muted 
+        />
+        {!stream && !errorMsg && (
+            <div style={{color: 'white', textAlign: 'center', paddingTop: 80}}>Loading Camera...</div>
+        )}
       </div>
 
-      <div style={{ display:'flex', gap:12, flexDirection:'column', alignItems:'center' }}>
-        <video ref={videoRef} style={{ width:'100%', maxWidth:920, borderRadius:12, background:'#000' }} playsInline />
-        <canvas ref={canvasRef} style={{ display:'none' }} />
-        <div style={{ display:'flex', gap:8 }}>
-          <button className="bp-add-btn" onClick={takePhoto} disabled={!stream || taking}>{taking ? 'Taking...' : 'Take photo & upload'}</button>
-        </div>
+      <canvas ref={canvasRef} style={{ display:'none' }} />
+
+      <div style={{ display:'flex', justifyContent: 'center', gap: 12 }}>
+        {!stream ? (
+             <button className="bp-add-btn" onClick={startCamera}>Retry Camera</button>
+        ) : (
+            <button 
+                className="bp-add-btn" 
+                style={{ width: '100%', maxWidth: 200, padding: 12, fontSize: 16 }} 
+                onClick={capturePhoto}
+            >
+                Take Photo
+            </button>
+        )}
       </div>
     </div>
   );
 };
 
 export default ReceiptsCamera;
-
