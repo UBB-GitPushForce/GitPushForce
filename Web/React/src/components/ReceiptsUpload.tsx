@@ -1,51 +1,30 @@
 // src/components/ReceiptsUpload.tsx
 import React, { useRef, useState } from 'react';
 import '../App.css';
-import type { ReceiptItem } from './Receipts';
 import type { Group } from '../services/group-service';
 
-/*
-  Upload page: file picker + "drop file" area + max size enforcement.
-  Calls onUploaded with a mock created ReceiptItem.
-  TODO: replace uploadMock(...) with actual API call to backend OCR endpoint.
-*/
-
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
-const allowedTypes = ['image/png','image/jpeg','image/jpg','application/pdf'];
-
-async function uploadMock(file: File, linkGroupId?: number | null): Promise<ReceiptItem> {
-  // TODO: replace with real upload + OCR API
-  await new Promise(r => setTimeout(r, 800));
-  const now = new Date().toISOString().slice(0,10);
-  return {
-    id: Date.now(),
-    title: file.name.replace(/\.[^.]+$/, ''),
-    subtitle: 'Scanned (mock)',
-    amount: Math.round((Math.random()*200+1) * (Math.random()>0.7?1:-1)),
-    dateTransaction: now,
-    dateAdded: now,
-    isGroup: !!linkGroupId,
-    groupId: linkGroupId || undefined,
-    groupName: linkGroupId ? `Group ${linkGroupId}` : undefined, 
-    addedBy: 'You',
-    initial: 'Y',
-  };
-}
+const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf'];
 
 interface ReceiptsUploadProps {
-    onUploaded: (it: ReceiptItem) => void;
-    groupId?: number | null;
-    groups: Group[]; // New Prop
+  // CHANGED: We now pass the raw File back, not a processed Item
+  onFileSelected: (file: File) => void;
+  // We keep these for type compatibility, though the parent now manages the group logic
+  groupId?: number | null;
+  groups?: Group[];
 }
 
-const ReceiptsUpload: React.FC<ReceiptsUploadProps> = ({ onUploaded, groupId = null, groups }) => {
+const ReceiptsUpload: React.FC<ReceiptsUploadProps> = ({ onFileSelected }) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [selectedGroup, setSelectedGroup] = useState<number | null>(groupId ?? null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const handleFiles = async (fileList: FileList | null) => {
+  const handleFiles = (fileList: FileList | null) => {
+    setErrorMsg(null);
     if (!fileList || fileList.length === 0) return;
+    
     const file = fileList[0];
+
+    // Validation
     if (file.size > MAX_BYTES) {
       alert('File too large. Max size: 5 MB.');
       return;
@@ -55,23 +34,20 @@ const ReceiptsUpload: React.FC<ReceiptsUploadProps> = ({ onUploaded, groupId = n
       return;
     }
 
-    setBusy(true);
-    try {
-      const result = await uploadMock(file, selectedGroup);
-      onUploaded(result);
-    } catch (err) {
-      console.error(err);
-      alert('Upload failed (mock).');
-    } finally {
-      setBusy(false);
-    }
+    // Pass file to parent to trigger AI analysis
+    onFileSelected(file);
   };
 
   const onDrop = (e: React.DragEvent) => {
-    e.preventDefault(); e.stopPropagation();
+    e.preventDefault(); 
+    e.stopPropagation();
     handleFiles(e.dataTransfer.files);
   };
-  const onDragOver = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); };
+
+  const onDragOver = (e: React.DragEvent) => { 
+    e.preventDefault(); 
+    e.stopPropagation(); 
+  };
 
   return (
     <div style={{ display:'grid', gap:12 }}>
@@ -81,47 +57,38 @@ const ReceiptsUpload: React.FC<ReceiptsUploadProps> = ({ onUploaded, groupId = n
         onDrop={onDrop}
         onDragOver={onDragOver}
         style={{
-          border: '2px dashed rgba(0,0,0,0.06)',
-          padding: 18,
+          border: '2px dashed #ccc',
+          padding: 30,
           borderRadius: 10,
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'pointer',
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005))'
+          background: '#f9f9f9',
+          minHeight: 150
         }}
         onClick={() => inputRef.current?.click()}
       >
-        <div style={{ textAlign:'center', color:'var(--muted-dark)' }}>
-          <div className="bp-section-title">Drop file here</div>
-          <div style={{ fontSize:13 }}>or click to open file dialog</div>
-        </div>
+        <div className="bp-section-title" style={{marginBottom: 8}}>Drop file here</div>
+        <div style={{ fontSize:13, color: '#666' }}>or click to open file dialog</div>
       </div>
 
-      <input ref={inputRef} type="file" accept=".pdf,image/png,image/jpeg" style={{ display:'none' }} onChange={(e)=> handleFiles(e.target.files)} />
+      <input 
+        ref={inputRef} 
+        type="file" 
+        accept=".pdf,image/png,image/jpeg" 
+        style={{ display:'none' }} 
+        onChange={(e)=> handleFiles(e.target.files)} 
+      />
 
-      <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-        <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-          <div style={{ fontSize:13, color:'var(--muted-dark)' }}>Link to group (optional):</div>
-          <select 
-            value={selectedGroup ?? ''} 
-            onChange={(e)=> setSelectedGroup(e.target.value ? Number(e.target.value) : null)} 
-            style={{ padding:8, borderRadius:8 }}
-          >
-            <option value="">(independent)</option>
-            {groups.map(g => (
-                <option key={g.id} value={g.id}>{g.name}</option>
-            ))}
-          </select>
-        </div>
-
-        <div style={{ marginLeft:'auto' }}>
-          <button className="bp-add-btn" onClick={() => inputRef.current?.click()} disabled={busy}>{busy ? 'Uploading...' : 'Choose file'}</button>
-        </div>
+      <div style={{ marginLeft:'auto' }}>
+        <button className="bp-add-btn" onClick={() => inputRef.current?.click()}>
+            Choose file
+        </button>
       </div>
     </div>
   );
 };
 
 export default ReceiptsUpload;
-
