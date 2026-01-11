@@ -92,54 +92,16 @@ class ExpenseViewModel(context: Context) : ViewModel() {
                 }
 
                 _categories.value = listOf(Category(0, 0, "All", emptyList()))
-                val f = _filters.value
 
                 val data = when (_mode.value) {
-
-                    ExpenseMode.PERSONAL ->
-                        repository.getPersonalExpenses(
-                            search = f.search,
-                            category = if (f.category == "All" || f.category.isBlank()) null else f.category,
-                            sortBy = f.sortOption.sortBy,
-                            order = f.sortOption.order,
-                            offset = offset,
-                            limit = limit,
-                            minPrice = f.minAmount,
-                            maxPrice = f.maxAmount,
-                            dateFrom = f.startDate,
-                            dateTo = f.endDate
-                        )
-
-                    ExpenseMode.ALL ->
-                        repository.getAllExpenses(
-                            category = if (f.category == "All" || f.category.isBlank()) null else f.category,
-                            sortBy = f.sortOption.sortBy,
-                            order = f.sortOption.order,
-                            offset = offset,
-                            limit = limit,
-                            minPrice = f.minAmount,
-                            maxPrice = f.maxAmount,
-                            dateFrom = f.startDate,
-                            dateTo = f.endDate
-                        )
-
+                    ExpenseMode.PERSONAL -> loadPersonalExpenses()
                     ExpenseMode.GROUP -> {
-                        val all = mutableListOf<Expense>()
-                        _groupIds.value.forEach { groupId ->
-                            all += repository.getGroupExpenses(
-                                groupId = groupId,
-                                category = if (f.category == "All" || f.category.isBlank()) null else f.category,
-                                sortBy = f.sortOption.sortBy,
-                                order = f.sortOption.order,
-                                offset = offset,
-                                limit = limit,
-                                minPrice = f.minAmount,
-                                maxPrice = f.maxAmount,
-                                dateFrom = f.startDate,
-                                dateTo = f.endDate
-                            )
-                        }
-                        all
+                        endReached = true
+                        loadGroupExpenses()
+                    }
+                    ExpenseMode.ALL -> {
+                        endReached = true
+                        loadAllExpenses()
                     }
                 }
 
@@ -160,6 +122,46 @@ class ExpenseViewModel(context: Context) : ViewModel() {
         }
     }
 
+    private suspend fun loadPersonalExpenses(): List<Expense> {
+        val f = _filters.value
+        return repository.getPersonalExpenses(
+            search = f.search,
+            category = if (f.category == "All" || f.category.isBlank()) null else f.category,
+            sortBy = f.sortOption.sortBy,
+            order = f.sortOption.order,
+            offset = offset,
+            limit = limit,
+            minPrice = f.minAmount,
+            maxPrice = f.maxAmount,
+            dateFrom = f.startDate,
+            dateTo = f.endDate
+        )
+    }
+
+    private suspend fun loadGroupExpenses(): List<Expense> {
+        val all = mutableListOf<Expense>()
+        val f = _filters.value
+        _groupIds.value.forEach { groupId ->
+            all += repository.getGroupExpenses(
+                groupId = groupId,
+                category = if (f.category == "All" || f.category.isBlank()) null else f.category,
+                sortBy = f.sortOption.sortBy,
+                order = f.sortOption.order,
+                offset = offset,
+                limit = limit,
+                minPrice = f.minAmount,
+                maxPrice = f.maxAmount,
+                dateFrom = f.startDate,
+                dateTo = f.endDate
+            )
+        }
+
+        return all
+    }
+
+    private suspend fun loadAllExpenses(): List<Expense> {
+        return loadPersonalExpenses() + loadGroupExpenses()
+    }
 
     private fun updateCategories(expenses: List<Expense>) {
         viewModelScope.launch {

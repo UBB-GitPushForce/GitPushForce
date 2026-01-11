@@ -2,6 +2,7 @@ package com.example.budgeting.android.ui.viewmodels
 
 import android.app.Application
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.budgeting.android.data.auth.TokenHolder
@@ -71,9 +72,11 @@ class ReceiptViewModel(application: Application) : AndroidViewModel(application)
                 val part = MultipartBody.Part.createFormData("image", file.name, reqBody)
 
                 val response = receiptApi.processReceipt(part)
+                Log.d("ReceiptViewModel", "Response: $response")
+                Log.d("ReceiptViewModel", "Response: ${response.toString()}")
 
                 if (response.isSuccessful && response.body() != null) {
-                    _scannedItems.value = response.body()!!.items
+                    _scannedItems.value = response.body()!!.data!!.items
                     _uiState.value = ReceiptUiState.Reviewing
                 } else {
                     _uiState.value = ReceiptUiState.Error("AI Analysis failed: ${response.code()}")
