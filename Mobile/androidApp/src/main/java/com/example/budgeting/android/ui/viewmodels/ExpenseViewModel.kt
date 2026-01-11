@@ -59,6 +59,10 @@ class ExpenseViewModel(context: Context) : ViewModel() {
     private val _currentUserId = MutableStateFlow<Int?>(null)
     val currentUserId: StateFlow<Int?> = _currentUserId.asStateFlow()
 
+    private var offset = 0
+    private var limit = 20
+    private var endReached = false
+
     init {
         loadCurrentUserId()
         loadUserGroups()
@@ -73,68 +77,90 @@ class ExpenseViewModel(context: Context) : ViewModel() {
         }
     }
 
-    fun loadExpenses() {
+    fun loadExpenses(append: Boolean = false) {
+        if (_isLoading.value || endReached && append) return
+
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
 
             try {
+                if (!append) {
+                    offset = 0
+                    endReached = false
+                    _expenses.value = emptyList()
+                }
+
                 _categories.value = listOf(Category(0, 0, "All", emptyList()))
-                val f = _filters.value
+
                 val data = when (_mode.value) {
-
-                    ExpenseMode.PERSONAL -> {
-                        val response = repository.getPersonalExpenses(
-                            search = f.search,
-                            category = if (f.category == "All" || f.category.isBlank()) null else f.category,
-                            sortBy = f.sortOption.sortBy,
-                            order = f.sortOption.order,
-                            dateFrom = null,
-                            dateTo = null
-                        )
-                        val filtered = response.filter { it.title.contains(f.search, ignoreCase = true) }
-                        filtered
-                    }
-
-                    ExpenseMode.ALL -> {
-                        val response = repository.getAllExpenses(
-                            category = if (f.category == "All" || f.category.isBlank()) null else f.category,
-                            sortBy = f.sortOption.sortBy,
-                            order = f.sortOption.order,
-                            dateFrom = null,
-                            dateTo = null
-                        )
-                        val filtered = response.filter { it.title.contains(f.search, ignoreCase = true) }
-                        filtered
-                    }
-
+                    ExpenseMode.PERSONAL -> loadPersonalExpenses()
                     ExpenseMode.GROUP -> {
-                        // fetch expenses from all groups the user is part of
-                        val allExpenses = mutableListOf<Expense>()
-                        _groupIds.value.forEach { groupId ->
-                            val response = repository.getGroupExpenses(
-                                groupId = groupId,
-                                category = if (f.category == "All" || f.category.isBlank()) null else f.category,
-                                sortBy = f.sortOption.sortBy,
-                                order = f.sortOption.order,
-                                dateFrom = null,
-                                dateTo = null
-                            )
-                            val filtered = response.filter { it.title.contains(f.search, ignoreCase = true) }
-                            allExpenses.addAll(filtered)
-                        }
-                        allExpenses
+                        endReached = true
+                        loadGroupExpenses()
+                    }
+                    ExpenseMode.ALL -> {
+                        endReached = true
+                        loadAllExpenses()
                     }
                 }
 
-                _expenses.value = data
-                updateCategories(data)
+                if (data.size < limit) endReached = true
+                offset += data.size
+
+                _expenses.value =
+                    if (append) _expenses.value + data
+                    else data
+
+                updateCategories(_expenses.value)
+
             } catch (e: Exception) {
                 _error.value = e.localizedMessage
             } finally {
                 _isLoading.value = false
             }
         }
+    }
+
+    private suspend fun loadPersonalExpenses(): List<Expense> {
+        val f = _filters.value
+        return repository.getPersonalExpenses(
+            search = f.search,
+            category = if (f.category == "All" || f.category.isBlank()) null else f.category,
+            sortBy = f.sortOption.sortBy,
+            order = f.sortOption.order,
+            offset = offset,
+            limit = limit,
+            minPrice = f.minAmount,
+            maxPrice = f.maxAmount,
+            dateFrom = f.startDate,
+            dateTo = f.endDate
+        )
+    }
+
+    private suspend fun loadGroupExpenses(): List<Expense> {
+        val all = mutableListOf<Expense>()
+        val f = _filters.value
+        _groupIds.value.forEach { groupId ->
+            all += repository.getGroupExpenses(
+                groupId = groupId,
+                category = if (f.category == "All" || f.category.isBlank()) null else f.category,
+                sortBy = f.sortOption.sortBy,
+                order = f.sortOption.order,
+                offset = offset,
+                limit = limit,
+                minPrice = f.minAmount,
+                maxPrice = f.maxAmount,
+                dateFrom = f.startDate,
+                dateTo = f.endDate
+            )
+        }
+
+        return all
+    }
+
+    private suspend fun loadAllExpenses(): List<Expense> {
+        return loadPersonalExpenses() + loadGroupExpenses()
     }
 
     private fun updateCategories(expenses: List<Expense>) {
@@ -207,6 +233,16 @@ class ExpenseViewModel(context: Context) : ViewModel() {
 
     fun setSortOption(option: SortOption) {
         _filters.value = _filters.value.copy(sortOption = option)
+        loadExpenses()
+    }
+
+    fun setAmountRange(min: Float?, max: Float?) {
+        _filters.value = _filters.value.copy(minAmount = min, maxAmount = max)
+        loadExpenses()
+    }
+
+    fun setDateRange(start: String?, end: String?) {
+        _filters.value = _filters.value.copy(startDate = start, endDate = end)
         loadExpenses()
     }
 

@@ -1,11 +1,12 @@
 import java.util.Properties
 
+// Old local .env file for local development
 // Load .env file
-val envFile = rootProject.file(".env")
-val envProps = Properties()
-if (envFile.exists()) {
-    envFile.inputStream().use { envProps.load(it) }
-}
+//val envFile = rootProject.file(".env")
+//val envProps = Properties()
+//if (envFile.exists()) {
+//    envFile.inputStream().use { envProps.load(it) }
+//}
 
 plugins {
     alias(libs.plugins.androidApplication)
@@ -27,7 +28,8 @@ android {
             "String",
             "BASE_URL",
             // fallback url if .env file is not found : https://10.0.0.2:8000
-            "\"${envProps.getProperty("BASE_URL") ?: "https://10.0.0.2:8000"}\""
+            //"\"${envProps.getProperty("BASE_URL") ?: "https://10.0.0.2:8000"}\""
+            "\"http://proiectcolectivlb-437779233.eu-west-1.elb.amazonaws.com\""
         )
     }
     buildFeatures {

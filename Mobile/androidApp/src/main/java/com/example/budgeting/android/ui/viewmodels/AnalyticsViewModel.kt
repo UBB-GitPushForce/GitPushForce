@@ -112,37 +112,9 @@ class AnalyticsViewModel(context: Context) : ViewModel() {
 
             try {
                 val expenses = when (_mode.value) {
-                    ExpenseMode.PERSONAL -> repository.getPersonalExpenses(
-                        search = null,
-                        category = if (_selectedCategory.value == "All") null else _selectedCategory.value,
-                        sortBy = null,
-                        order = null,
-                        dateFrom = _dateFrom.value?.toString(),
-                        dateTo = _dateTo.value?.toString()
-                    )
-
-                    ExpenseMode.ALL -> repository.getAllExpenses(
-                        category = if (_selectedCategory.value == "All") null else _selectedCategory.value,
-                        sortBy = null,
-                        order = null,
-                        dateFrom = _dateFrom.value?.toString(),
-                        dateTo = _dateTo.value?.toString()
-                    )
-
-                    ExpenseMode.GROUP -> {
-                        val all = mutableListOf<Expense>()
-                        _groupIds.value.forEach { id ->
-                            all.addAll(repository.getGroupExpenses(
-                                groupId = id,
-                                category = if (_selectedCategory.value == "All") null else _selectedCategory.value,
-                                sortBy = null,
-                                order = null,
-                                dateFrom = _dateFrom.value?.toString(),
-                                dateTo = _dateTo.value?.toString()
-                            ))
-                        }
-                        all
-                    }
+                    ExpenseMode.PERSONAL -> loadPersonalExpenses()
+                    ExpenseMode.GROUP -> loadGroupExpenses()
+                    ExpenseMode.ALL -> loadAllExpenses()
                 }
 
                 // --- CATEGORY AMOUNT ---
@@ -167,4 +139,46 @@ class AnalyticsViewModel(context: Context) : ViewModel() {
             }
         }
     }
+
+    private suspend fun loadPersonalExpenses(): List<Expense> {
+        return repository.getPersonalExpenses(
+            search = null,
+            category = if (_selectedCategory.value == "All") null else _selectedCategory.value,
+            sortBy = null,
+            order = null,
+            offset = null,
+            limit = null,
+            minPrice = null,
+            maxPrice = null,
+            dateFrom = _dateFrom.value?.toString(),
+            dateTo = _dateTo.value?.toString()
+        )
+    }
+
+    private suspend fun loadGroupExpenses(): List<Expense> {
+        val all = mutableListOf<Expense>()
+
+        _groupIds.value.forEach { groupId ->
+            all += repository.getGroupExpenses(
+                groupId = groupId,
+                category = if (_selectedCategory.value == "All") null else _selectedCategory.value,
+                sortBy = null,
+                order = null,
+                offset = null,
+                limit = null,
+                minPrice = null,
+                maxPrice = null,
+                dateFrom = _dateFrom.value?.toString(),
+                dateTo = _dateTo.value?.toString()
+            )
+        }
+
+        return all
+    }
+
+    private suspend fun loadAllExpenses(): List<Expense> {
+        return loadPersonalExpenses() + loadGroupExpenses()
+    }
+
+
 }
