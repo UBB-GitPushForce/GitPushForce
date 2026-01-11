@@ -222,4 +222,13 @@ class GroupRepository(
             Response.error(response.code(), response.errorBody() ?: ResponseBody.create(null, ""))
         }
     }
+    
+    suspend fun getGroupStatistics(groupId: Int): Response<com.example.budgeting.android.data.model.GroupStatistics> {
+        val response = apiService.getGroupStatistics(groupId)
+        return if (response.isSuccessful && response.body()?.data != null) {
+            Response.success(response.body()!!.data!!)
+        } else {
+            Response.error(response.code(), response.errorBody() ?: ResponseBody.create(null, ""))
+        }
+    }
 }

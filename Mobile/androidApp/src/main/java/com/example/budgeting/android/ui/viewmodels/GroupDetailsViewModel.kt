@@ -10,10 +10,12 @@ import com.example.budgeting.android.data.model.GroupLog
 import com.example.budgeting.android.data.model.UserData
 import com.example.budgeting.android.data.model.Expense
 import com.example.budgeting.android.data.model.ExpensePayment
-import com.example.budgeting.android.data.network.RetrofitClient
 import com.example.budgeting.android.data.repository.ExpensePaymentRepository
 import com.example.budgeting.android.data.repository.ExpenseRepository
 import com.example.budgeting.android.data.repository.GroupRepository
+import com.example.budgeting.android.data.repository.CategoryRepository
+import com.example.budgeting.android.data.model.Category
+import com.example.budgeting.android.data.network.RetrofitClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,6 +39,7 @@ class GroupDetailsViewModel(context: Context) : ViewModel() {
         RetrofitClient.expensePaymentInstance,
         tokenDataStore
     )
+    private val categoryRepository = CategoryRepository(RetrofitClient.categoryInstance)
 
     private val _group = MutableStateFlow<Group?>(null)
     val group: StateFlow<Group?> = _group.asStateFlow()
@@ -67,6 +70,12 @@ class GroupDetailsViewModel(context: Context) : ViewModel() {
 
     private val _currentUserId = MutableStateFlow<Int?>(null)
     val currentUserId: StateFlow<Int?> = _currentUserId.asStateFlow()
+    
+    private val _statistics = MutableStateFlow<com.example.budgeting.android.data.model.GroupStatistics?>(null)
+    val statistics: StateFlow<com.example.budgeting.android.data.model.GroupStatistics?> = _statistics.asStateFlow()
+    
+    private val _categories = MutableStateFlow<List<Category>>(emptyList())
+    val categories: StateFlow<List<Category>> = _categories.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -137,6 +146,22 @@ class GroupDetailsViewModel(context: Context) : ViewModel() {
                     }
                 } catch (e: Exception) {
                     _logs.value = emptyList()
+                }
+                
+                // Load group statistics
+                try {
+                    val statsResponse = groupRepository.getGroupStatistics(groupId)
+                    if (statsResponse.isSuccessful && statsResponse.body() != null) {
+                        _statistics.value = statsResponse.body()!!
+                    }
+                } catch (e: Exception) {
+                }
+                
+                // Load categories for pie chart
+                try {
+                    _categories.value = categoryRepository.getCategories(null, null)
+                } catch (e: Exception) {
+                    _categories.value = emptyList()
                 }
 
             } catch (e: Exception) {

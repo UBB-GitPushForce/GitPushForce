@@ -4,6 +4,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
@@ -12,12 +14,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.budgeting.android.ui.components.group.*
 import com.example.budgeting.android.ui.utils.DateUtils
 import com.example.budgeting.android.ui.viewmodels.*
+import java.text.NumberFormat
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,8 +53,12 @@ fun GroupDetailsScreen(
     val qrImage by vm.qrImage.collectAsState()
     val qrIsLoading by vm.qrIsLoading.collectAsState()
     val qrError by vm.qrError.collectAsState()
+    val statistics by vm.statistics.collectAsState()
+    val categories by vm.categories.collectAsState()
+    val categoryNameMap = remember(categories) { categories.associate { it.id to (it.title ?: "") } }
 
     var showShareDialog by remember { mutableStateOf(false) }
+    var showOverviewDialog by remember { mutableStateOf(false) }
     var selectedExpense by remember { mutableStateOf<GroupExpense?>(null) }
     var showPaymentDialog by remember { mutableStateOf(false) }
 
@@ -67,12 +76,14 @@ fun GroupDetailsScreen(
         if (selectedExpense != null) {
             isFetchingPayments = true
             val payments = vm.getExpensePayments(selectedExpense!!.expense.id!!)
-            
+
             paidUserIds = payments.mapNotNull { it.user_id }.toSet()
             isFetchingPayments = false
+            showPaymentDialog = true
         } else {
             paidUserIds = emptySet()
             isFetchingPayments = false
+            showPaymentDialog = false
         }
     }
 
@@ -121,7 +132,8 @@ fun GroupDetailsScreen(
                 GroupMetaRow(
                     memberCount = members.size,
                     onShareClick = { showShareDialog = true },
-                    invitationCodeAvailable = !currentGroup.invitationCode.isNullOrBlank()
+                    invitationCodeAvailable = !currentGroup.invitationCode.isNullOrBlank(),
+                    onOverviewClick = { showOverviewDialog = true }
                 )
             }
 
@@ -230,7 +242,6 @@ fun GroupDetailsScreen(
                                                 // Only allow expense owner to manage payments
                                                 if (item.expense.expense.user_id == currentUserId) {
                                                     selectedExpense = item.expense
-                                                    showPaymentDialog = true
                                                 }
                                             },
                                             isClickable = item.expense.expense.user_id == currentUserId
@@ -269,6 +280,54 @@ fun GroupDetailsScreen(
                     vm.loadGroupInviteQr(id, forceRefresh = true)
                 }
             }
+        )
+    }
+
+    if (showOverviewDialog && statistics != null) {
+        AlertDialog(
+            onDismissRequest = {},
+            properties = DialogProperties(
+                dismissOnClickOutside = false,
+                dismissOnBackPress = false
+            ),
+            confirmButton = {
+                Button(onClick = { showOverviewDialog = false }) {
+                    Text("Close")
+                }
+            },
+            title = {
+                Text(
+                    text = "Overview",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            },
+            text = {
+                if (statistics != null) {
+                    GroupStatisticsPieChart(
+                        statistics = statistics!!,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else if (expenses.isNotEmpty() && categoryNameMap.isNotEmpty()) {
+                    // Fallback: category-based pie chart
+                    GroupPieChart(
+                        expenses = expenses.map { it.expense },
+                        categoryNameMap = categoryNameMap,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(360.dp)
+                    )
+                } else {
+                    Column {
+                        Text(
+                            text = "No expense data available",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 
@@ -361,4 +420,9 @@ fun GroupDetailsScreen(
             }
         }
     }
+}
+
+private fun formatAmount(value: Double): String {
+    val nf = NumberFormat.getCurrencyInstance(Locale.getDefault())
+    return nf.format(value)
 }
