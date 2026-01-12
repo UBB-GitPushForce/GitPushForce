@@ -11,6 +11,7 @@ import com.example.budgeting.android.data.model.UserData
 import com.example.budgeting.android.data.network.GroupApiService
 import com.example.budgeting.android.data.network.ExpenseApiService
 import retrofit2.Response
+import kotlinx.coroutines.delay
 import okhttp3.ResponseBody
 import android.util.Base64
 
@@ -206,12 +207,26 @@ class GroupRepository(
     }
 
     suspend fun joinGroupByInvitationCode(invitationCode: String): Response<Unit> {
-        val response = apiService.joinGroupByInvitationCode(invitationCode)
-        return if (response.isSuccessful) {
-            Response.success(Unit)
-        } else {
-            Response.error(response.code(), response.errorBody() ?: ResponseBody.create(null, ""))
+        var attempt = 0
+        val maxAttempts = 2
+        while (attempt < maxAttempts) {
+            val response = apiService.joinGroupByInvitationCode(invitationCode)
+            if (response.isSuccessful) {
+                return Response.success(Unit)
+            }
+
+            // If server error, retry once after a short delay
+            val code = response.code()
+            if (code in 500..599 && attempt + 1 < maxAttempts) {
+                attempt++
+                delay(300)
+                continue
+            }
+
+            return Response.error(response.code(), response.errorBody() ?: ResponseBody.create(null, ""))
         }
+
+        return Response.error(500, ResponseBody.create(null, "Server error"))
     }
 
     suspend fun getGroupLogs(groupId: Int): Response<List<GroupLog>> {
@@ -227,6 +242,15 @@ class GroupRepository(
         val response = apiService.getGroupStatistics(groupId)
         return if (response.isSuccessful && response.body()?.data != null) {
             Response.success(response.body()!!.data!!)
+        } else {
+            Response.error(response.code(), response.errorBody() ?: ResponseBody.create(null, ""))
+        }
+    }
+
+    suspend fun removeUserFromGroup(groupId: Int, userId: Int): Response<Unit> {
+        val response = apiService.removeUserFromGroup(groupId, userId)
+        return if (response.isSuccessful) {
+            Response.success(Unit)
         } else {
             Response.error(response.code(), response.errorBody() ?: ResponseBody.create(null, ""))
         }

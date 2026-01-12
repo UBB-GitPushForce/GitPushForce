@@ -50,7 +50,7 @@ interface GroupApiService {
     suspend fun removeUserFromGroup(
         @Path("group_id") groupId: Int,
         @Path("user_id") userId: Int
-    ): Response<ApiResponse<Unit>>
+    ): Response<ApiResponse<Any>>
 
     @GET("/groups/user/{user_id}")
     suspend fun getGroupsByUser(@Path("user_id") userId: Int): Response<ApiResponse<List<Group>>>

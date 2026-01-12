@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -48,6 +49,7 @@ fun GroupDetailsScreen(
     val isLoading by vm.isLoading.collectAsState()
     val error by vm.error.collectAsState()
     val members by vm.members.collectAsState()
+    val extraUsers by vm.extraUsers.collectAsState()
     val logs by vm.logs.collectAsState()
     val currentUserId by vm.currentUserId.collectAsState()
     val qrImage by vm.qrImage.collectAsState()
@@ -64,6 +66,8 @@ fun GroupDetailsScreen(
 
     var paidUserIds by remember { mutableStateOf<Set<Int>>(emptySet()) }
     var isFetchingPayments by remember { mutableStateOf(false) }
+
+    var showLeaveDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(showShareDialog, group?.id) {
         val id = group?.id
@@ -101,6 +105,15 @@ fun GroupDetailsScreen(
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back"
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showLeaveDialog = true }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                            contentDescription = "Leave Group",
+                            tint = MaterialTheme.colorScheme.error
                         )
                     }
                 }
@@ -173,14 +186,12 @@ fun GroupDetailsScreen(
                 }
                 else -> {
                     // Filter logs: exclude creator and current user's own JOIN messages
-                    val creatorId = members.minByOrNull { it.id }?.id
-                    val filteredLogs = remember(logs, currentUserId, creatorId) {
+                    val filteredLogs = remember(logs, currentUserId) {
                         logs.filter { log ->
-                            if (creatorId != null && log.user_id == creatorId) return@filter false
                             if (currentUserId != null && log.user_id == currentUserId && log.action.uppercase() == "JOIN") {
                                 return@filter false
                             }
-                            true
+                            true 
                         }
                     }
 
@@ -252,7 +263,10 @@ fun GroupDetailsScreen(
                                     item(key = "log_${item.log.id}") {
                                         GroupLogBubble(
                                             log = item.log,
-                                            members = members
+                                            members = remember(members, extraUsers) {
+                                                val extraList = extraUsers.values.toList()
+                                                (members + extraList).distinctBy { it.id }
+                                            }
                                         )
                                     }
                                 }
@@ -419,6 +433,31 @@ fun GroupDetailsScreen(
                 )
             }
         }
+    }
+    if (showLeaveDialog) {
+        AlertDialog(
+            onDismissRequest = { showLeaveDialog = false },
+            title = { Text("Leave Group") },
+            text = { Text("Are you sure you want to leave this group?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showLeaveDialog = false
+                        vm.leaveGroup(onSuccess = onBack)
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Leave")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLeaveDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 
