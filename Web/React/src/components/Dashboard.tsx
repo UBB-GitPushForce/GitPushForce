@@ -1,4 +1,3 @@
-// src/components/Dashboard.tsx
 import React, { useEffect, useState } from 'react';
 import apiClient from '../services/api-client';
 import { useAuth } from '../hooks/useAuth';
@@ -8,14 +7,12 @@ import { useCurrency } from '../contexts/CurrencyContext';
 import categoryService, { Category } from '../services/category-service';
 import Groups from './Groups';
 import Profile from './Profile';
-import Support from './Support';
 import GroupDetail from './GroupDetail';
 import Receipts from './Receipts';
 import ReceiptsView from './ReceiptsView'; // <-- adăugat
 import ReceiptsManual from './ReceiptsManual';
 import ChatBot from './ChatBot';
 import Data from './Data';
-import Notifications from './Notifications';
 import Categories from './Categories';
 
 interface Tx {
@@ -26,7 +23,8 @@ interface Tx {
   thumb: string;
 }
 
-const Dashboard: React.FC = () => {
+const Dashboard: React.FC = () =>
+{
   const { user, logout } = useAuth();
   const { formatAmount } = useCurrency(); 
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -36,10 +34,8 @@ const Dashboard: React.FC = () => {
     | 'receipts'
     | 'categories'
     | 'profile'
-    | 'support'
     | 'groupDetail'
     | 'data'
-    | 'notifications'
   >('home');
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [recentTx, setRecentTx] = useState<Tx[]>([]);
@@ -50,8 +46,10 @@ const Dashboard: React.FC = () => {
   const [deletingAll, setDeletingAll] = useState<boolean>(false);
 
   // Fetch last 5 transactions from API (mock safe)
-  const fetchRecentTransactions = async () => {
-    try {
+  const fetchRecentTransactions = async () =>
+  {
+    try
+    {
       const res = await apiClient.get('/expenses', {
         params: {
           offset: 0,
@@ -66,7 +64,8 @@ const Dashboard: React.FC = () => {
       const items = Array.isArray(responseData) ? responseData : (Array.isArray(responseData?.data) ? responseData.data : []);
       
       // Fetch categories to map category_id to title
-      try {
+      try
+      {
         const categories = await categoryService.getCategories();
         const categoryArray = Array.isArray(categories) ? categories : [];
         
@@ -81,7 +80,9 @@ const Dashboard: React.FC = () => {
         }));
         
         setRecentTx(mapped);
-      } catch (catErr) {
+      }
+      catch (catErr)
+      {
         console.error('Failed to fetch categories, showing without categories', catErr);
         // Fallback without categories
         const mapped: Tx[] = items.map((x: any) => ({
@@ -93,15 +94,19 @@ const Dashboard: React.FC = () => {
         }));
         setRecentTx(mapped);
       }
-    } catch (err) {
+    }
+    catch (err)
+    {
       console.error('Failed to fetch recent transactions', err);
       setRecentTx([]);
     }
   };
 
   // Fetch total spent amount
-  const fetchTotalSpent = async () => {
-    try {
+  const fetchTotalSpent = async () =>
+  {
+    try
+    {
       const res = await apiClient.get('/expenses', {
         params: {
           offset: 0,
@@ -114,47 +119,60 @@ const Dashboard: React.FC = () => {
       const items = Array.isArray(responseData) ? responseData : (Array.isArray(responseData?.data) ? responseData.data : []);
       const total = items.reduce((acc: number, it: any) => acc + (Number(it.amount) || 0), 0);
       setTotalSpent(total);
-    } catch (err) {
+    }
+    catch (err)
+    {
       console.error('Failed to fetch total spent', err);
       setTotalSpent(0);
     }
   };
 
-  useEffect(() => {
+  useEffect(() =>
+  {
     fetchRecentTransactions();
   }, []);
 
-  useEffect(() => {
-    if (screen === 'home') {
+  useEffect(() =>
+  {
+    if (screen === 'home')
+    {
       fetchRecentTransactions();
       fetchTotalSpent();
     }
   }, [screen]);
 
-  const handleLogout = async () => {
+  const handleLogout = async () =>
+  {
     setIsLoggingOut(true);
-    try {
+    try
+    {
       await logout();
-    } catch (err) {
+    }
+    catch (err)
+    {
       console.error('Logout failed', err);
       setIsLoggingOut(false);
     }
   };
 
-  const navigate = (to: typeof screen) => {
+  const navigate = (to: typeof screen) =>
+  {
     setScreen(to);
     if (to !== 'groupDetail') setSelectedGroupId(null);
   };
 
-  const handleDeleteAll = async () => {
+  const handleDeleteAll = async () =>
+  {
     if (!confirm('Delete ALL expenses? This cannot be undone. Proceed?')) return;
     setDeletingAll(true);
-    try {
+    try
+    {
       // fetch a large page of expenses and delete each
       const res = await apiClient.get('/expenses', { params: { offset: 0, limit: 1000 } });
       const items = Array.isArray(res.data) ? res.data : [];
       const ids: number[] = items.map((x: any) => x.id).filter(Boolean);
-      if (ids.length === 0) {
+      if (ids.length === 0)
+      {
         alert('No expenses to delete.');
         setDeletingAll(false);
         return;
@@ -163,9 +181,12 @@ const Dashboard: React.FC = () => {
       // delete in parallel but tolerate failures
       const results = await Promise.allSettled(ids.map(id => apiClient.delete(`/expenses/${id}`)));
       const failed = results.filter(r => r.status === 'rejected');
-      if (failed.length > 0) {
+      if (failed.length > 0)
+      {
         alert(`Deleted ${ids.length - failed.length} items, ${failed.length} failed.`);
-      } else {
+      }
+      else
+      {
         alert(`Successfully deleted ${ids.length} expenses.`);
       }
 
@@ -173,15 +194,20 @@ const Dashboard: React.FC = () => {
       fetchRecentTransactions();
       fetchTotalSpent();
       setReceiptsRefreshKey(k => k + 1);
-    } catch (err) {
+    }
+    catch (err)
+    {
       console.error('Failed to delete all expenses', err);
       alert('Failed to delete expenses. See console for details.');
-    } finally {
+    }
+    finally
+    {
       setDeletingAll(false);
     }
   };
 
-  const openGroup = (groupId: number) => {
+  const openGroup = (groupId: number) =>
+  {
     setSelectedGroupId(groupId);
     setScreen('groupDetail');
   };
@@ -240,21 +266,11 @@ const Dashboard: React.FC = () => {
             <div>Categories</div>
           </div>
 
-          {/* Notifications — no image currently. */}
-          <div className={`bp-nav-item ${screen === 'notifications' ? 'active' : ''}`} onClick={() => navigate('notifications')} role="button">
-            <div>Notifications</div>
-          </div>
-
           <div style={{ marginLeft: 'auto' }} />
 
           <div className={`bp-nav-item ${screen === 'profile' ? 'active' : ''}`} onClick={() => navigate('profile')} role="button">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM3 22v-1a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v1" strokeWidth="1.4"/></svg>
             <div>Profile</div>
-          </div>
-
-          {/* Support — no image currently */}
-          <div className={`bp-nav-item ${screen === 'support' ? 'active' : ''}`} onClick={() => navigate('support')} role="button">
-            <div>Support</div>
           </div>
         </nav>
 
@@ -329,6 +345,7 @@ const Dashboard: React.FC = () => {
 
 
 
+
               {/* NEW: Embedded receipts view on Home (moved from Receipts -> View) */}
                       <div className="bp-section-title" style={{ marginTop: 18 }}>All Expenses</div>
               <div style={{ marginTop: 8 }}>
@@ -349,15 +366,11 @@ const Dashboard: React.FC = () => {
 
           {screen === 'profile' && <Profile onRequestNavigate={(t) => setScreen(t)} />}
 
-          {screen === 'support' && <Support navigate={(t: any) => setScreen(t)} />}
-
           {screen === 'receipts' && <Receipts navigate={(t: string) => setScreen(t as any)} />}
 
           {screen === 'data' && <Data />}
 
           {screen === 'categories' && <Categories />}
-
-          {screen === 'notifications' && <Notifications />}
         </div>
 
         {/* BOTTOM NAV — kept for mobile (hidden on desktop by CSS) */}

@@ -13,7 +13,7 @@ const AppContent = () => {
     }
 
     // TO DO: REPLACE THIS AFTER BACKEND LOGING WORKS
-    // return <Dashboard />
+    return <Dashboard />
     return isAuthenticated ? <Dashboard /> : <LoginMenu />;
 }
 
