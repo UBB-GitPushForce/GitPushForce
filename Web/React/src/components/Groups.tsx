@@ -194,13 +194,6 @@ const Groups: React.FC<{
         <>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
                 <div className="bp-title">Groups</div>
-                <button 
-                    className="bp-add-btn" 
-                    onClick={() => setShowJoinForm(!showJoinForm)}
-                    style={{ fontSize: 14, padding: '8px 16px' }}
-                >
-                    {showJoinForm ? 'Cancel' : 'Join Group'}
-                </button>
             </div>
 
             {/* Join Group Form */}
@@ -278,12 +271,23 @@ const Groups: React.FC<{
                 )}
             </div>
 
-            <button 
-                className="bp-add-btn bp-create-group" 
-                onClick={() => setShowCreateForm(!showCreateForm)}
-            >
-                {showCreateForm ? 'Cancel' : '+ Create Group'}
-            </button>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+                <button 
+                    className="bp-add-btn" 
+                    onClick={() => setShowJoinForm(!showJoinForm)}
+                    style={{ fontSize: 14, padding: '8px 16px' }}
+                >
+                    {showJoinForm ? 'Cancel' : 'Join Group'}
+                </button>
+
+                <button 
+                    className="bp-add-btn" 
+                    onClick={() => setShowCreateForm(!showCreateForm)}
+                    style={{ fontSize: 14, padding: '8px 16px' }}
+                >
+                    {showCreateForm ? 'Cancel' : '+ Create Group'}
+                </button>
+            </div>
 
             {/* Create Group Form */}
             {showCreateForm && (
