@@ -14,7 +14,7 @@ const AppContent = () => {
 
     // TO DO: REPLACE THIS AFTER BACKEND LOGING WORKS
     return <Dashboard />
-    return isAuthenticated ? <Dashboard /> : <LoginMenu />;
+    // return isAuthenticated ? <Dashboard /> : <LoginMenu />;
 }
 
 const App = () => {

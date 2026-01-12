@@ -1,4 +1,3 @@
-// src/components/Groups.tsx
 import React, { useState, useEffect } from 'react';
 import apiClient from '../services/api-client';
 import { useAuth } from '../hooks/useAuth';
@@ -12,7 +11,7 @@ interface Group {
 }
 
 const Groups: React.FC<{
-    navigate: (to: 'home'|'groups'|'receipts'|'profile'|'support') => void;
+    navigate: (to: 'home'|'groups'|'receipts'|'profile'|'groupDetail'|'data'|'categories') => void;
     openGroup: (groupId: number) => void;
 }> = ({ navigate, openGroup }) => {
     const [groups, setGroups] = useState<Group[]>([]);
@@ -280,7 +279,7 @@ const Groups: React.FC<{
             </div>
 
             <button 
-                className="bp-create-group" 
+                className="bp-add-btn bp-create-group" 
                 onClick={() => setShowCreateForm(!showCreateForm)}
             >
                 {showCreateForm ? 'Cancel' : '+ Create Group'}
