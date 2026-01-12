@@ -2,8 +2,10 @@
 import React, { useEffect, useState } from 'react';
 import '../App.css';
 import categoryService, { Category } from '../services/category-service';
+import { useAuth } from '../hooks/useAuth';
 
 const Categories: React.FC = () => {
+  const { user } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +22,7 @@ const Categories: React.FC = () => {
   const fetchCategories = async () => {
     setLoading(true);
     try {
-      const data = await categoryService.getCategories();
+      const data = await categoryService.getCategories(user?.id);
       if (Array.isArray(data)) {
         setCategories(data);
       } else {

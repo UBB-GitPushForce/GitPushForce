@@ -12,9 +12,12 @@ export interface Category {
 type APIResponseOrList<T> = T | { success: boolean; data: T };
 
 class CategoryService {
-    async getCategories() {
-        // CHANGED: Added trailing slash '/categories/'
-        const response = await apiClient.get<APIResponseOrList<Category[]>>('/categories/');
+    async getCategories(userId?: number) {
+        // If userId is provided, fetch user-specific categories
+        // Otherwise fetch all categories (requires auth but returns all)
+        const endpoint = userId ? `/categories/${userId}` : '/categories/';
+        
+        const response = await apiClient.get<APIResponseOrList<Category[]>>(endpoint);
         
         console.log("Categories API Response:", response.data); // Debugging log
 

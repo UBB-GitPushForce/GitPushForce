@@ -32,7 +32,7 @@ const Receipts: React.FC<{ navigate?: (to: string) => void }> = ({ navigate }) =
       try {
         const [groupsData, catsData] = await Promise.all([
             groupService.getUserGroups(user.id),
-            categoryService.getCategories()
+            categoryService.getCategories(user.id)
         ]);
         setGroups(groupsData);
         setCategories(catsData);

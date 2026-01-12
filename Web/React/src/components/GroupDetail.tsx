@@ -103,8 +103,9 @@ const GroupDetail: React.FC<Props> = ({ groupId, onBack }) => {
             const logsRes = await apiClient.get(`/group_logs/${groupId}`);
             const logsData = logsRes.data?.data || logsRes.data || [];
             
-            // Fetch categories
-            const categories = await categoryService.getCategories();
+            // Fetch categories - fetch all categories since backend returns all anyway (known bug)
+            // This ensures we can map categories from all users in the group
+            const categories = await categoryService.getCategories(user?.id);
             const categoryMap = new Map(categories.map(c => [c.id, c.title]));
             
             // Get unique user IDs from both expenses and logs
@@ -190,7 +191,7 @@ const GroupDetail: React.FC<Props> = ({ groupId, onBack }) => {
 
     const fetchCategories = async () => {
         try {
-            const cats = await categoryService.getCategories();
+            const cats = await categoryService.getCategories(user?.id);
             
             // If no categories exist, create default ones
             if (cats.length === 0) {
@@ -203,7 +204,7 @@ const GroupDetail: React.FC<Props> = ({ groupId, onBack }) => {
                     }
                 }
                 // Refetch
-                const newCats = await categoryService.getCategories();
+                const newCats = await categoryService.getCategories(user?.id);
                 setCategories(newCats);
                 if (newCats.length > 0) {
                     setNewExpense(prev => ({ ...prev, categoryId: newCats[0].id }));

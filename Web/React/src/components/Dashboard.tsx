@@ -40,6 +40,7 @@ const Dashboard: React.FC = () =>
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [recentTx, setRecentTx] = useState<Tx[]>([]);
   const [totalSpent, setTotalSpent] = useState<number>(0);
+  const [remainingBudget, setRemainingBudget] = useState<number>(0);
   
   const [addingExpense, setAddingExpense] = useState(false);
   const [receiptsRefreshKey, setReceiptsRefreshKey] = useState<number>(0);
@@ -65,7 +66,7 @@ const Dashboard: React.FC = () =>
       // Fetch categories to map category_id to title
       try
       {
-        const categories = await categoryService.getCategories();
+        const categories = await categoryService.getCategories(user?.id);
         const categoryArray = Array.isArray(categories) ? categories : [];
         
         const categoryMap = new Map(categoryArray.map((c: any) => [c.id, c.title]));
@@ -101,42 +102,44 @@ const Dashboard: React.FC = () =>
     }
   };
 
-  // Fetch total spent amount
-  const fetchTotalSpent = async () =>
+  // Fetch budget data (spent and remaining)
+  const fetchBudgetData = async () =>
   {
+    if (!user?.id) return;
+    
     try
     {
-      const res = await apiClient.get('/expenses', {
-        params: {
-          offset: 0,
-          limit: 100,
-        },
-      });
-
-      // Backend returns APIResponse { success: true, data: [expenses] } or just [expenses]
-      const responseData = res.data;
-      const items = Array.isArray(responseData) ? responseData : (Array.isArray(responseData?.data) ? responseData.data : []);
-      const total = items.reduce((acc: number, it: any) => acc + (Number(it.amount) || 0), 0);
-      setTotalSpent(total);
+      // Fetch remaining budget (includes spent and remaining in response)
+      const remainingRes = await apiClient.get(`/users/${user.id}/remaining-budget`);
+      const budgetData = remainingRes.data?.data || remainingRes.data || {};
+      
+      // Backend returns { budget, spent_this_month, remaining_budget }
+      const spent = budgetData.spent_this_month ?? 0;
+      const remaining = budgetData.remaining_budget ?? 0;
+      
+      setTotalSpent(Math.abs(spent));
+      setRemainingBudget(remaining);
     }
     catch (err)
     {
-      console.error('Failed to fetch total spent', err);
+      console.error('Failed to fetch budget data', err);
       setTotalSpent(0);
+      setRemainingBudget(0);
     }
   };
 
   useEffect(() =>
   {
     fetchRecentTransactions();
-  }, []);
+    fetchBudgetData();
+  }, [user]);
 
   useEffect(() =>
   {
     if (screen === 'home')
     {
       fetchRecentTransactions();
-      fetchTotalSpent();
+      fetchBudgetData();
     }
   }, [screen]);
 
@@ -235,10 +238,16 @@ const Dashboard: React.FC = () =>
 
               <div className="bp-section-title">Budget Summary</div>
 
-              <div className="bp-row" style={{ marginTop: 10 }}>
+              <div className="bp-row" style={{ marginTop: 10, gap: 12 }}>
                 <div className="bp-box" style={{ flex: 1 }}>
-                  <div className="label">Total Spent</div>
+                  <div className="label">Spent</div>
                   <div className="value" style={{ color: '#ff6b6b' }}>{formatAmount(-Math.abs(totalSpent))}</div>
+                </div>
+                <div className="bp-box" style={{ flex: 1 }}>
+                  <div className="label">Remaining</div>
+                  <div className="value" style={{ color: remainingBudget >= 0 ? '#51cf66' : '#ff6b6b' }}>
+                    {formatAmount(remainingBudget)}
+                  </div>
                 </div>
               </div>
 
@@ -276,7 +285,7 @@ const Dashboard: React.FC = () =>
               onCreated={(it) => {
                 // Refresh recent transactions and totals after creating
                 fetchRecentTransactions();
-                fetchTotalSpent();
+                fetchBudgetData();
                 // notify embedded receipts list to reload
                 setReceiptsRefreshKey(k => k + 1);
                 setAddingExpense(false);
@@ -294,7 +303,7 @@ const Dashboard: React.FC = () =>
                       <div className="bp-section-title" style={{ marginTop: 18 }}>All Expenses</div>
               <div style={{ marginTop: 8 }}>
                 <div className="receipts-grid-container">
-                          <ReceiptsView refreshKey={receiptsRefreshKey} onNeedRefresh={() => { fetchRecentTransactions(); fetchTotalSpent(); }} />
+                          <ReceiptsView refreshKey={receiptsRefreshKey} onNeedRefresh={() => { fetchRecentTransactions(); fetchBudgetData(); }} />
                 </div>
               </div>
 

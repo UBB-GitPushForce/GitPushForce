@@ -17,7 +17,7 @@ const ReceiptsManual: React.FC<{ onCreated: (it: ReceiptItem) => void; groupId?:
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const cats = await categoryService.getCategories();
+        const cats = await categoryService.getCategories(user?.id);
         
         // If no categories exist, create default ones
         if (cats.length === 0) {
@@ -28,7 +28,7 @@ const ReceiptsManual: React.FC<{ onCreated: (it: ReceiptItem) => void; groupId?:
             try {
               const createdData = await categoryService.createCategory(title);
               // Fetch the created category details
-              const allCats = await categoryService.getCategories();
+              const allCats = await categoryService.getCategories(user?.id);
               const newCat = allCats.find(c => c.id === createdData.id);
               if (newCat) createdCats.push(newCat);
             } catch (err) {

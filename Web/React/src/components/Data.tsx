@@ -60,7 +60,7 @@ const Data: React.FC = () => {
   useEffect(() => {
     const fetchCats = async () => {
       try {
-        const data = await categoryService.getCategories();
+        const data = await categoryService.getCategories(user?.id);
         setCategories(data);
       } catch (err) {
         console.error('Failed to load categories', err);

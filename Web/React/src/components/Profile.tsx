@@ -22,6 +22,7 @@ const Profile: React.FC<ProfileProps> = ({ onRequestNavigate }) => {
     phone_number: user?.phone_number ?? '',
     password: '••••••••',
   });
+  const [budget, setBudget] = useState<number>(0);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -30,6 +31,21 @@ const Profile: React.FC<ProfileProps> = ({ onRequestNavigate }) => {
   const [tempValue, setTempValue] = useState('');
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+
+  // Fetch budget on component mount
+  React.useEffect(() => {
+    const fetchBudget = async () => {
+      if (!user?.id) return;
+      try {
+        const res = await apiClient.get(`/users/${user.id}/budget`);
+        const budgetData = res.data?.data || res.data || {};
+        setBudget(budgetData.budget ?? 0);
+      } catch (err) {
+        console.error('Failed to fetch budget', err);
+      }
+    };
+    fetchBudget();
+  }, [user?.id]);
 
   const getBackendErrorMessage = (err: any): string => {
     if (err.response && err.response.data) {
@@ -81,6 +97,22 @@ const Profile: React.FC<ProfileProps> = ({ onRequestNavigate }) => {
       if (editingField === 'currency') {
         setCurrency(tempValue === 'EUR' ? 'EUR' : 'RON');
         setSavedMessage('Saved successfully');
+        setTimeout(() => setSavedMessage(null), 2500);
+        setEditingField(null);
+        return;
+      }
+
+      // Budget handled separately
+      if (editingField === 'budget') {
+        if (!user?.id) throw new Error('Not authenticated');
+        const budgetValue = parseFloat(tempValue);
+        if (isNaN(budgetValue) || budgetValue < 0) {
+          setErrorMessage('Please enter a valid positive number');
+          return;
+        }
+        await apiClient.put(`/users/${user.id}/budget?new_budget=${budgetValue}`);
+        setBudget(budgetValue);
+        setSavedMessage('Budget updated successfully');
         setTimeout(() => setSavedMessage(null), 2500);
         setEditingField(null);
         return;
@@ -281,6 +313,35 @@ const Profile: React.FC<ProfileProps> = ({ onRequestNavigate }) => {
               </div>
             ) : (
               <button onClick={() => startEdit('phone_number')} className="bp-add-btn" style={{ padding: '8px 12px', fontSize: 13 }}>Modify</button>
+            )}
+          </div>
+        </div>
+
+        {/* Budget */}
+        <div className="bp-box" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ color: 'var(--muted-dark)', fontSize: 13 }}>Monthly Budget</div>
+            <div style={{ fontWeight: 800, marginTop: 6 }}>{budget} {currency === 'EUR' ? '€' : 'Lei'}</div>
+          </div>
+          <div>
+            {editingField === 'budget' ? (
+              <div style={{ display: 'flex', gap: 8, flexDirection: 'column', alignItems: 'flex-end' }}>
+                <div style={{ display: 'flex', gap: 8 }}>
+                    <input 
+                      type="number" 
+                      value={tempValue} 
+                      onChange={e => setTempValue(e.target.value)} 
+                      placeholder="Enter budget"
+                      min="0"
+                      step="0.01"
+                    />
+                    <button onClick={saveEdit} className="bp-add-btn">Save</button>
+                    <button onClick={cancelEdit} className="bp-add-btn">Cancel</button>
+                </div>
+                {errorMessage && <div style={{ color: '#d32f2f', fontSize: 12 }}>{errorMessage}</div>}
+              </div>
+            ) : (
+              <button onClick={() => startEdit('budget')} className="bp-add-btn" style={{ padding: '8px 12px', fontSize: 13 }}>Modify</button>
             )}
           </div>
         </div>
