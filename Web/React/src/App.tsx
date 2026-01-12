@@ -12,9 +12,8 @@ const AppContent = () => {
         return <div>Loading...</div>;
     }
 
-    // TO DO: REPLACE THIS AFTER BACKEND LOGING WORKS
-    return <Dashboard />
-    // return isAuthenticated ? <Dashboard /> : <LoginMenu />;
+    // return <Dashboard />
+    return isAuthenticated ? <Dashboard /> : <LoginMenu />;
 }
 
 const App = () => {
