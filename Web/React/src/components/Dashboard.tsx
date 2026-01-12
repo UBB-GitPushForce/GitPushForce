@@ -43,7 +43,6 @@ const Dashboard: React.FC = () =>
   
   const [addingExpense, setAddingExpense] = useState(false);
   const [receiptsRefreshKey, setReceiptsRefreshKey] = useState<number>(0);
-  const [deletingAll, setDeletingAll] = useState<boolean>(false);
 
   // Fetch last 5 transactions from API (mock safe)
   const fetchRecentTransactions = async () =>
@@ -161,51 +160,6 @@ const Dashboard: React.FC = () =>
     if (to !== 'groupDetail') setSelectedGroupId(null);
   };
 
-  const handleDeleteAll = async () =>
-  {
-    if (!confirm('Delete ALL expenses? This cannot be undone. Proceed?')) return;
-    setDeletingAll(true);
-    try
-    {
-      // fetch a large page of expenses and delete each
-      const res = await apiClient.get('/expenses', { params: { offset: 0, limit: 1000 } });
-      const items = Array.isArray(res.data) ? res.data : [];
-      const ids: number[] = items.map((x: any) => x.id).filter(Boolean);
-      if (ids.length === 0)
-      {
-        alert('No expenses to delete.');
-        setDeletingAll(false);
-        return;
-      }
-
-      // delete in parallel but tolerate failures
-      const results = await Promise.allSettled(ids.map(id => apiClient.delete(`/expenses/${id}`)));
-      const failed = results.filter(r => r.status === 'rejected');
-      if (failed.length > 0)
-      {
-        alert(`Deleted ${ids.length - failed.length} items, ${failed.length} failed.`);
-      }
-      else
-      {
-        alert(`Successfully deleted ${ids.length} expenses.`);
-      }
-
-      // refresh dashboard totals and embedded list
-      fetchRecentTransactions();
-      fetchTotalSpent();
-      setReceiptsRefreshKey(k => k + 1);
-    }
-    catch (err)
-    {
-      console.error('Failed to delete all expenses', err);
-      alert('Failed to delete expenses. See console for details.');
-    }
-    finally
-    {
-      setDeletingAll(false);
-    }
-  };
-
   const openGroup = (groupId: number) =>
   {
     setSelectedGroupId(groupId);
@@ -315,16 +269,6 @@ const Dashboard: React.FC = () =>
   <button className="bp-add-btn" onClick={() => setAddingExpense(true)}>
     Add Expense
   </button>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            className="bp-add-btn"
-            onClick={handleDeleteAll}
-            disabled={deletingAll}
-            style={{ background: 'linear-gradient(135deg,#ef4444,#dc2626)' }}
-          >
-            {deletingAll ? 'Deleting...' : 'Delete All'}
-          </button>
-        </div>
 
         {addingExpense && (
           <div style={{ marginTop: 8 }}>
