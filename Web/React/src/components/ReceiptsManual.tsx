@@ -1,10 +1,11 @@
 // src/components/ReceiptsManual.tsx
 import React, { useState, useEffect } from 'react';
 import '../App.css';
-import type { ReceiptItem } from './Receipts';
 import { useAuth } from '../hooks/useAuth';
 import apiClient from '../services/api-client';
 import categoryService, { Category } from '../services/category-service';
+import groupService, { Group } from '../services/group-service';
+import { ReceiptItem } from '../services/receipt-service';
 
 const ReceiptsManual: React.FC<{ onCreated: (it: ReceiptItem) => void; groupId?: number | null }> = ({ onCreated, groupId = null }) => {
   const [title, setTitle] = useState('');
@@ -13,9 +14,10 @@ const ReceiptsManual: React.FC<{ onCreated: (it: ReceiptItem) => void; groupId?:
   const [amount, setAmount] = useState<string>('');
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [groups, setGroups] = useState<Group[]>([]);
 
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchData = async () => {
       try {
         const cats = await categoryService.getCategories(user?.id);
         
@@ -28,7 +30,7 @@ const ReceiptsManual: React.FC<{ onCreated: (it: ReceiptItem) => void; groupId?:
             try {
               const createdData = await categoryService.createCategory(title);
               // Fetch the created category details
-              const allCats = await categoryService.getCategories(user?.id);
+              const allCats : Category[] = await categoryService.getCategories(user?.id);
               const newCat = allCats.find(c => c.id === createdData.id);
               if (newCat) createdCats.push(newCat);
             } catch (err) {
@@ -46,12 +48,18 @@ const ReceiptsManual: React.FC<{ onCreated: (it: ReceiptItem) => void; groupId?:
             setSelectedCategoryId(cats[0].id);
           }
         }
+
+        // Fetch groups
+        if (user?.id) {
+          const groupsData = await groupService.getUserGroups(user.id);
+          setGroups(groupsData);
+        }
       } catch (err) {
-        console.error('Failed to fetch categories', err);
+        console.error('Failed to fetch data', err);
       }
     };
-    fetchCategories();
-  }, []);
+    fetchData();
+  }, [user?.id]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,7 +87,7 @@ const ReceiptsManual: React.FC<{ onCreated: (it: ReceiptItem) => void; groupId?:
         body.group_id = groupId;
       }
 
-      const res = await apiClient.post('/expenses', body);
+      const res = await apiClient.post('/expenses/', body);
 
       // Backend returns APIResponse { success: true, data: { id: ... } }
       const responseData = res.data;
@@ -150,7 +158,7 @@ const ReceiptsManual: React.FC<{ onCreated: (it: ReceiptItem) => void; groupId?:
       <input type="number" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="50" required step="any" />
 
       {groupId && (
-        <div style={{ color:'var(--muted-dark)', fontSize:13 }}>Linked to group: {mockGroups.find(g=>g.id===groupId)?.name}</div>
+        <div style={{ color:'var(--muted-dark)', fontSize:13 }}>Linked to group: {groups.find(g=>g.id===groupId)?.name}</div>
       )}
 
       <div style={{ display:'flex', gap:8 }}>

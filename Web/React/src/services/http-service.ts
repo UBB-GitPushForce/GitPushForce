@@ -14,7 +14,7 @@ class HttpService {
 
     getAll<T>() {
         const controller = new AbortController();
-        const request = apiClient.get<T[]>(this.endpoint, {
+        const request = apiClient.get<T[]>(this.endpoint + '/', {
             signal: controller.signal,
         });
         return { request, cancel: () => controller.abort() };
@@ -25,7 +25,7 @@ class HttpService {
     }
 
     create<T>(entity: T) {
-        return apiClient.post(this.endpoint, entity);
+        return apiClient.post(this.endpoint + '/', entity);
     }
 
     update<T extends Entity>(entity: T) {

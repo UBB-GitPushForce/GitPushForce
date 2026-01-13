@@ -11,7 +11,6 @@ import GroupDetail from './GroupDetail';
 import Receipts from './Receipts';
 import ReceiptsView from './ReceiptsView'; // <-- adăugat
 import ReceiptsManual from './ReceiptsManual';
-import ChatBot from './ChatBot';
 import Data from './Data';
 import Categories from './Categories';
 
@@ -36,6 +35,7 @@ const Dashboard: React.FC = () =>
     | 'profile'
     | 'groupDetail'
     | 'data'
+    | 'support'
   >('home');
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [recentTx, setRecentTx] = useState<Tx[]>([]);
@@ -50,7 +50,7 @@ const Dashboard: React.FC = () =>
   {
     try
     {
-      const res = await apiClient.get('/expenses', {
+      const res = await apiClient.get('/expenses/', {
         params: {
           offset: 0,
           limit: 5,
