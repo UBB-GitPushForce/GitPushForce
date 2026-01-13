@@ -13,7 +13,7 @@ interface CategoryApiService {
         @Query("order") order: String? = null
     ): Response<ApiResponse<List<Category>>>
 
-    @POST("/categories")
+    @POST("/categories/")
     suspend fun addCategory(@Body category: CategoryBody): Response<Unit>
 
     @PUT("/categories/{id}")
