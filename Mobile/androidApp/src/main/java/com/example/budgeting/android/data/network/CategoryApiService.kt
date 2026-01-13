@@ -7,7 +7,7 @@ import retrofit2.Response
 import retrofit2.http.*
 
 interface CategoryApiService {
-    @GET("/categories")
+    @GET("/categories/")
     suspend fun getCategories(
         @Query("sort_by") sortBy: String? = null,
         @Query("order") order: String? = null
