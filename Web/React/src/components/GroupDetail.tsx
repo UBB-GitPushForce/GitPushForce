@@ -344,10 +344,6 @@ const GroupDetail: React.FC<Props> = ({ groupId, onBack }) => {
                         <span style={{ color: 'red' }}>
                             {cur.formatAmount(statistics.my_total_paid)} PAID
                         </span>
-                        <span>|</span>
-                        <span style={{ color: 'var(--purple-1)' }}>
-                            {cur.formatAmount(statistics.rest_of_group_expenses)} EXTRA
-                        </span>
                     </div>
                 )}
             </div>
@@ -424,7 +420,7 @@ const GroupDetail: React.FC<Props> = ({ groupId, onBack }) => {
                                     border: '1px solid rgba(0,0,0,0.05)',
                                 }}>
                                     <div style={{ fontSize: 12, color: 'var(--muted-dark)', marginBottom: 4 }}>
-                                        4. Rest of group expenses (excluding yours)
+                                        4. How much are the rest of group expenses
                                     </div>
                                     <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--purple-1)' }}>
                                         {cur.formatAmount(statistics.rest_of_group_expenses)}
