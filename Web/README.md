@@ -41,37 +41,43 @@ The application uses **React** for the UI, **TypeScript** for type safety, **Vit
 React/
 ├── src/
 │   ├── components/          # React components
-│   │   ├── LoginForm.tsx
-│   │   ├── RegisterForm.tsx
-│   │   ├── Dashboard.tsx    # Main dashboard
-│   │   ├── Groups.tsx
-│   │   ├── Categories.tsx
-│   │   ├── Receipts.tsx
-│   │   ├── Profile.tsx
-│   │   ├── ThemeToggle.tsx
-│   │   └── ... (other components)
+│   │   ├── LoginForm.tsx       — Formular de autentificare utilizator
+│   │   ├── RegisterForm.tsx    — Formular de înregistrare cont nou
+│   │   ├── Dashboard.tsx       — Pagina principală cu sumar buget și navigație
+│   │   ├── Groups.tsx          — Listă grupuri utilizator, creare și alăturare grup
+│   │   ├── GroupDetail.tsx     — Detalii grup: membri, cheltuieli, cod invitație
+│   │   ├── Categories.tsx      — Gestionare categorii și keywords pentru auto-tagging
+│   │   ├── Receipts.tsx        — Hub pentru încărcare/scanare/adăugare bonuri
+│   │   ├── ReceiptsView.tsx    — Listă cheltuieli cu filtre, editare și ștergere
+│   │   ├── ReceiptsManual.tsx  — Formular adăugare manuală cheltuială
+│   │   ├── ReceiptsUpload.tsx  — Upload imagine bon pentru procesare OCR
+│   │   ├── ReceiptsCamera.tsx  — Captură bon cu camera dispozitivului
+│   │   ├── Profile.tsx         — Setări profil: nume, email, buget, monedă
+│   │   ├── Data.tsx            — Vizualizări grafice și statistici cheltuieli
+│   │   ├── ThemeToggle.tsx     — Buton comutare temă light/dark
+│   │   └── ChatBot.tsx         — Asistent AI pentru întrebări și sugestii
 │   ├── contexts/            # React Context providers
-│   │   ├── AuthContext.tsx
-│   │   ├── CurrencyContext.tsx
-│   │   └── ThemeContext.tsx
+│   │   ├── AuthContext.tsx     — Stare autentificare: user, login, logout, token
+│   │   ├── CurrencyContext.tsx — Preferință monedă (RON/EUR) și formatare sume
+│   │   └── ThemeContext.tsx    — Preferință temă și toggle dark mode
 │   ├── hooks/               # Custom React hooks
-│   │   └── useAuth.ts
+│   │   └── useAuth.ts          — Hook pentru acces rapid la AuthContext
 │   ├── services/            # API service layer
-│   │   ├── api-client.ts
-│   │   ├── auth-service.ts
-│   │   ├── category-service.ts
-│   │   ├── group-service.ts
-│   │   ├── receipt-service.ts
-│   │   ├── exchange-rate.ts
-│   │   └── http-service.ts
-│   ├── App.tsx              # Root component
-│   ├── App.css              # Global styles
-│   ├── main.tsx             # Application entry point
-│   └── vite-env.d.ts        # Vite environment types
-├── package.json
-├── vite.config.ts
-├── tsconfig.json
-└── index.html
+│   │   ├── api-client.ts       — Instanță Axios configurată cu baseURL și cookies
+│   │   ├── auth-service.ts     — Apeluri API: login, register, logout, getMe
+│   │   ├── category-service.ts — CRUD categorii: create, update, delete, list
+│   │   ├── group-service.ts    — Operații grupuri: create, join, members
+│   │   ├── receipt-service.ts  — Upload și procesare bonuri
+│   │   ├── exchange-rate.ts    — Curs valutar RON/EUR cu cache local
+│   │   └── http-service.ts     — Serviciu HTTP generic cu interceptori
+│   ├── App.tsx              # Root component — rutare principală și layout
+│   ├── App.css              # Global styles — teme, variabile CSS, componente
+│   ├── main.tsx             # Entry point — render React și providers
+│   └── vite-env.d.ts        # Vite types — declarații TypeScript pentru Vite
+├── package.json             # Dependențe și scripturi npm
+├── vite.config.ts           # Configurare Vite: plugins, server, build
+├── tsconfig.json            # Configurare TypeScript
+└── index.html               # HTML template cu root div
 ```
 
 ### Key Directories
