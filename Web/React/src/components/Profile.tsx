@@ -110,7 +110,7 @@ const Profile: React.FC<ProfileProps> = ({ onRequestNavigate }) => {
           setErrorMessage('Please enter a valid positive number');
           return;
         }
-        await apiClient.put(`/users/${user.id}/budget?new_budget=${budgetValue}`);
+        await apiClient.put(`/users/${user.id}/budget/?new_budget=${budgetValue}`);
         setBudget(budgetValue);
         setSavedMessage('Budget updated successfully');
         setTimeout(() => setSavedMessage(null), 2500);
@@ -123,7 +123,7 @@ const Profile: React.FC<ProfileProps> = ({ onRequestNavigate }) => {
           setErrorMessage('Please enter both current and new password');
           return;
         }
-        await apiClient.put('/users/password/change', { old_password: oldPassword, new_password: newPassword });
+        await apiClient.put('/users/password/change/', { old_password: oldPassword, new_password: newPassword });
         setSavedMessage('Password changed successfully');
         setTimeout(() => setSavedMessage(null), 2500);
         setEditingField(null);
@@ -134,7 +134,7 @@ const Profile: React.FC<ProfileProps> = ({ onRequestNavigate }) => {
 
       if (!user) throw new Error('Not authenticated');
       const payload: any = { [editingField]: tempValue };
-      await apiClient.put(`/users/${user.id}`, payload);
+      await apiClient.put(`/users/${user.id}/`, payload);
 
       // Optimistically update local and global user so UI reflects changes immediately
       setProfile(prev => ({ ...prev, [editingField as string]: tempValue }));

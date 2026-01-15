@@ -105,7 +105,7 @@ const GroupDetail: React.FC<Props> = ({ groupId, onBack }) => {
             
             // Fetch categories - fetch all categories since backend returns all anyway (known bug)
             // This ensures we can map categories from all users in the group
-            const categories = await categoryService.getCategories(user?.id);
+            const categories: Category[] = await categoryService.getCategories(user?.id);
             const categoryMap = new Map(categories.map(c => [c.id, c.title]));
             
             // Get unique user IDs from both expenses and logs
@@ -630,7 +630,7 @@ const GroupDetail: React.FC<Props> = ({ groupId, onBack }) => {
                                 group_id: groupId,
                             };
 
-                            await apiClient.post('/expenses', body);
+                            await apiClient.post('/expenses/', body);
                             
                             // Refresh the expense list and statistics
                             await fetchGroupExpenses();

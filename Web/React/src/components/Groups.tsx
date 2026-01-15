@@ -36,7 +36,7 @@ const Groups: React.FC<{
         
         setLoading(true);
         try {
-            const res = await apiClient.get('/groups', {
+            const res = await apiClient.get('/groups/', {
                 params: { offset: 0, limit: 1000 }
             });
             
@@ -133,7 +133,7 @@ const Groups: React.FC<{
                 body.description = newGroup.description.trim();
             }
 
-            const createRes = await apiClient.post('/groups', body);
+            const createRes = await apiClient.post('/groups/', body);
             
             // Backend returns APIResponse { success: true, data: { id: groupId } }
             const responseData = createRes.data;

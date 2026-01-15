@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import '../App.css';
-import type { ReceiptItem } from './Receipts';
+import type { ReceiptItem } from '../services/receipt-service';
 import { useAuth } from '../hooks/useAuth';
 import { useCurrency } from '../contexts/CurrencyContext';
 import apiClient from '../services/api-client';
@@ -64,7 +64,7 @@ async function fetchPage(pageIndex: number, pageSize: number, filters: any) {
     // For group expenses, we could use group_ids param, but we don't know all group IDs
     // So we fetch all and filter client-side based on whether expense has group_id
     
-    const res = await apiClient.get('/expenses', { params });
+    const res = await apiClient.get('/expenses/', { params });
 
     // Backend returns APIResponse { success: true, data: [expenses] }
     const responseData = res.data;
@@ -110,7 +110,7 @@ async function fetchPage(pageIndex: number, pageSize: number, filters: any) {
     
     // Title filtering (backend doesn't support it)
     if (filters.qTitle) {
-      filtered = filtered.filter(item => item.title.toLowerCase().includes(filters.qTitle.toLowerCase()));
+      filtered = filtered.filter(item => item.title?.toLowerCase().includes(filters.qTitle.toLowerCase()));
     }
     
     // Expense type filtering
@@ -145,7 +145,7 @@ async function deleteExpense(id: number) {
 //update API call
 async function updateExpense(id: number, body: any) {
   try {
-    const res = await apiClient.put(`/expenses/${id}`, body);
+    const res = await apiClient.put(`/expenses/${id}/`, body);
     return res.data;
   } catch (err) {
     console.error('Failed to update expense', err);
@@ -196,7 +196,7 @@ const ReceiptsView: React.FC<{ onNeedRefresh?: () => void; refreshKey?: number }
 
   // Extract unique categories from items - accumulate, don't replace
   useEffect(() => {
-    const newCategories = items.map(item => item.subtitle).filter(Boolean);
+    const newCategories = items.map(item => item.subtitle).filter((c): c is string => Boolean(c));
     setCategories(prev => {
       const combined = new Set([...prev, ...newCategories]);
       return Array.from(combined);
@@ -522,7 +522,7 @@ const saveEdit = async () => {
 
                 <div style={{ textAlign:'right' }}>
                   <div style={{ fontWeight:800, color: '#ff6b6b', fontSize:16 }}>{useCurrency().formatAmount(-Math.abs(it.amount))}</div>
-                  <div style={{ fontSize:12, color:'var(--muted-dark)' }}>{it.dateTransaction}</div>
+                  <div style={{ fontSize:12, color:'var(--muted-dark)' }}>{it.dateTransaction || it.dateAdded}</div>
                 </div>
               </div>
 

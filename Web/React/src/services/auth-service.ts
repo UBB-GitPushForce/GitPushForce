@@ -26,6 +26,10 @@ interface AuthResponse {
         updated_at: string;
         hashed_password: string;
     };
+    data:any;
+    two_fa_required?: boolean;
+    two_fa_method?: 'email' | 'number' | 'app';
+    temp_token?: string;
 }
 
 interface UserResponse {
@@ -34,15 +38,16 @@ interface UserResponse {
     last_name: string;
     email: string;
     phone_number: string;
+    data:any;
 }
 
 class AuthService {
     login(credentials: LoginData) {
-        return apiClient.post<AuthResponse>('/users/auth/login', credentials);
+        return apiClient.post<AuthResponse>('/users/auth/login/', credentials);
     }
 
     register(data: RegisterData) {
-        return apiClient.post<AuthResponse>('/users/auth/register', data);
+        return apiClient.post<AuthResponse>('/users/auth/register/', data);
     }
 
     getMe() {
@@ -50,7 +55,7 @@ class AuthService {
     }
 
     logout() {
-        return apiClient.post('/users/auth/logout');
+        return apiClient.post('/users/auth/logout/');
     }
 }
 

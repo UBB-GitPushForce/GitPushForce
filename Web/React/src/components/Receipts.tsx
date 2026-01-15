@@ -51,7 +51,7 @@ const Receipts: React.FC<{ navigate?: (to: string) => void }> = ({ navigate }) =
     const updatedItems = analysisData.items.filter((_, idx) => idx !== indexToDelete);
     
     // Recalculate Total
-    const newTotal = updatedItems.reduce((sum, item) => sum + item.price, 0);
+    const newTotal = updatedItems.reduce((sum, item) => sum + (item.price || 0), 0);
 
     setAnalysisData({
         items: updatedItems,
@@ -96,7 +96,7 @@ const Receipts: React.FC<{ navigate?: (to: string) => void }> = ({ navigate }) =
               setStatusMessage(`Saving item ${i + 1} of ${analysisData.items.length}...`);
 
               // Normalize category name from AI (e.g., "Food " -> "food")
-              const aiCategoryName = item.category.trim();
+              const aiCategoryName = (item.category || 'Other').trim();
               const aiCategoryKey = aiCategoryName.toLowerCase();
 
               let targetCategory = categoryMap.get(aiCategoryKey);
@@ -254,13 +254,13 @@ const Receipts: React.FC<{ navigate?: (to: string) => void }> = ({ navigate }) =
                                   <span style={{background:'#e6f7ff', color:'#1890ff', padding:'2px 6px', borderRadius:4, marginRight:5}}>
                                     {item.category}
                                   </span> 
-                                  {item.quantity > 1 && `x${item.quantity}`}
+                                  {item.quantity && item.quantity > 1 && `x${item.quantity}`}
                               </div>
                           </div>
 
                           {/* Price */}
                           <div style={{ fontWeight: 600 }}>
-                              {item.price.toFixed(2)}
+                              {(item.price ?? 0).toFixed(2)}
                           </div>
 
                           {/* DELETE BUTTON */}
