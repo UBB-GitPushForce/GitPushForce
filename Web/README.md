@@ -41,43 +41,43 @@ The application uses **React** for the UI, **TypeScript** for type safety, **Vit
 React/
 ├── src/
 │   ├── components/          # React components
-│   │   ├── LoginForm.tsx       — Formular de autentificare utilizator
-│   │   ├── RegisterForm.tsx    — Formular de înregistrare cont nou
-│   │   ├── Dashboard.tsx       — Pagina principală cu sumar buget și navigație
-│   │   ├── Groups.tsx          — Listă grupuri utilizator, creare și alăturare grup
-│   │   ├── GroupDetail.tsx     — Detalii grup: membri, cheltuieli, cod invitație
-│   │   ├── Categories.tsx      — Gestionare categorii și keywords pentru auto-tagging
-│   │   ├── Receipts.tsx        — Hub pentru încărcare/scanare/adăugare bonuri
-│   │   ├── ReceiptsView.tsx    — Listă cheltuieli cu filtre, editare și ștergere
-│   │   ├── ReceiptsManual.tsx  — Formular adăugare manuală cheltuială
-│   │   ├── ReceiptsUpload.tsx  — Upload imagine bon pentru procesare OCR
-│   │   ├── ReceiptsCamera.tsx  — Captură bon cu camera dispozitivului
-│   │   ├── Profile.tsx         — Setări profil: nume, email, buget, monedă
-│   │   ├── Data.tsx            — Vizualizări grafice și statistici cheltuieli
-│   │   ├── ThemeToggle.tsx     — Buton comutare temă light/dark
-│   │   └── ChatBot.tsx         — Asistent AI pentru întrebări și sugestii
+│   │   ├── LoginForm.tsx       — User authentication form
+│   │   ├── RegisterForm.tsx    — New account registration form
+│   │   ├── Dashboard.tsx       — Main page with budget summary and navigation
+│   │   ├── Groups.tsx          — User groups list, create and join group
+│   │   ├── GroupDetail.tsx     — Group details: members, expenses, invite code
+│   │   ├── Categories.tsx      — Manage categories and keywords for auto-tagging
+│   │   ├── Receipts.tsx        — Hub for upload/scan/add receipts
+│   │   ├── ReceiptsView.tsx    — Expenses list with filters, edit and delete
+│   │   ├── ReceiptsManual.tsx  — Form to manually add expense
+│   │   ├── ReceiptsUpload.tsx  — Upload receipt image for OCR processing
+│   │   ├── ReceiptsCamera.tsx  — Capture receipt with device camera
+│   │   ├── Profile.tsx         — Profile settings: name, email, budget, currency
+│   │   ├── Data.tsx            — Charts and expense statistics visualization
+│   │   ├── ThemeToggle.tsx     — Light/dark theme toggle button
+│   │   └── ChatBot.tsx         — AI assistant for questions and suggestions
 │   ├── contexts/            # React Context providers
-│   │   ├── AuthContext.tsx     — Stare autentificare: user, login, logout, token
-│   │   ├── CurrencyContext.tsx — Preferință monedă (RON/EUR) și formatare sume
-│   │   └── ThemeContext.tsx    — Preferință temă și toggle dark mode
+│   │   ├── AuthContext.tsx     — Authentication state: user, login, logout, token
+│   │   ├── CurrencyContext.tsx — Currency preference (RON/EUR) and amount formatting
+│   │   └── ThemeContext.tsx    — Theme preference and dark mode toggle
 │   ├── hooks/               # Custom React hooks
-│   │   └── useAuth.ts          — Hook pentru acces rapid la AuthContext
+│   │   └── useAuth.ts          — Hook for quick access to AuthContext
 │   ├── services/            # API service layer
-│   │   ├── api-client.ts       — Instanță Axios configurată cu baseURL și cookies
-│   │   ├── auth-service.ts     — Apeluri API: login, register, logout, getMe
-│   │   ├── category-service.ts — CRUD categorii: create, update, delete, list
-│   │   ├── group-service.ts    — Operații grupuri: create, join, members
-│   │   ├── receipt-service.ts  — Upload și procesare bonuri
-│   │   ├── exchange-rate.ts    — Curs valutar RON/EUR cu cache local
-│   │   └── http-service.ts     — Serviciu HTTP generic cu interceptori
-│   ├── App.tsx              # Root component — rutare principală și layout
-│   ├── App.css              # Global styles — teme, variabile CSS, componente
-│   ├── main.tsx             # Entry point — render React și providers
-│   └── vite-env.d.ts        # Vite types — declarații TypeScript pentru Vite
-├── package.json             # Dependențe și scripturi npm
-├── vite.config.ts           # Configurare Vite: plugins, server, build
-├── tsconfig.json            # Configurare TypeScript
-└── index.html               # HTML template cu root div
+│   │   ├── api-client.ts       — Axios instance configured with baseURL and cookies
+│   │   ├── auth-service.ts     — API calls: login, register, logout, getMe
+│   │   ├── category-service.ts — Categories CRUD: create, update, delete, list
+│   │   ├── group-service.ts    — Group operations: create, join, members
+│   │   ├── receipt-service.ts  — Upload and process receipts
+│   │   ├── exchange-rate.ts    — RON/EUR exchange rate with local cache
+│   │   └── http-service.ts     — Generic HTTP service with interceptors
+│   ├── App.tsx              # Root component — main routing and layout
+│   ├── App.css              # Global styles — themes, CSS variables, components
+│   ├── main.tsx             # Entry point — render React and providers
+│   └── vite-env.d.ts        # Vite types — TypeScript declarations for Vite
+├── package.json             # Dependencies and npm scripts
+├── vite.config.ts           # Vite configuration: plugins, server, build
+├── tsconfig.json            # TypeScript configuration
+└── index.html               # HTML template with root div
 ```
 
 ### Key Directories
