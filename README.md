@@ -24,7 +24,7 @@
 
 ## Executive Summary
 
-GitPushForce is a **full-stack group expense management application** that enables users to create shared expense groups, track spending, split costs intelligently, and manage group finances seamlessly. The platform is built with modern technologies and deployed on AWS with enterprise-grade security, scalability, and reliability.
+GitPushForce Team developed a **full-stack group expense management application** that enables users to create shared expense groups, track spending, split costs intelligently, and manage group finances seamlessly. The platform is built with modern technologies and deployed on AWS with enterprise-grade security, scalability, and reliability.
 
 ### Key Features
 
