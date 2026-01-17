@@ -4,9 +4,11 @@
 
 ## 🍿 Demos
 
-[AWS Deployment](https://www.youtube.com/watch?v=gEzzmqddzkM)
-[Web application](https://www.youtube.com/watch?v=DO9jlpzVwhs)
-[Mobile application](https://youtu.be/oyi1c3QhoVc)
+☁️ [AWS Deployment](https://www.youtube.com/watch?v=gEzzmqddzkM)
+
+🌐 [Web application](https://www.youtube.com/watch?v=DO9jlpzVwhs)
+
+📱 [Mobile application](https://youtu.be/oyi1c3QhoVc)
 
 ---
 
