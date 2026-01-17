@@ -42,36 +42,7 @@ GitPushForce Team developed a **full-stack group expense management application*
 
 The GitPushForce architecture follows a **microservices-oriented, cloud-native design** with clear separation of concerns:
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Client Layer                              │
-├──────────────────┬──────────────────┬──────────────────┬────┤
-│   Web Browser    │   Android App    │   iOS App        │ AI │
-│   (React.js)     │   (Kotlin)       │   (SwiftUI)      │    │
-└────────┬─────────┴────────┬─────────┴────────┬────────┴────┘
-         │                  │                  │
-         └──────────────────┼──────────────────┘
-                            │
-                   ┌────────▼─────────┐
-                   │   API Gateway    │
-                   │ + ALB + Lambda   │
-                   └────────┬─────────┘
-                            │
-         ┌──────────────────┼──────────────────┐
-         │                  │                  │
-    ┌────▼─────┐   ┌────────▼────────┐  ┌─────▼──────┐
-    │ FastAPI  │   │ AWS Lambda      │  │ CloudFront │
-    │ Backend  │   │ (AI Processor)  │  │ (CDN)      │
-    │(EC2 ASG)│   └─────────────────┘  └─────┬──────┘
-    └────┬─────┘                              │
-         │                              ┌─────▼────┐
-         │                              │  S3      │
-         │                              │ (Static) │
-    ┌────▼──────────────────┐           └──────────┘
-    │   PostgreSQL RDS      │
-    │  (Managed Database)   │
-    └───────────────────────┘
-```
+<img width="1193" height="911" alt="Image" src="https://github.com/user-attachments/assets/94721196-ab06-4f0e-9246-b9633c427abf" />
 
 ### Architectural Tiers
 
