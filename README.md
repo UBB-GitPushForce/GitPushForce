@@ -2,6 +2,12 @@
 
 > A sophisticated **group expense tracking and management platform** developed collaboratively by 10 talented developers over one semester. GitPushForce demonstrates enterprise-grade architecture, cloud-native deployment, and modern full-stack development practices spanning backend APIs, mobile applications, web interfaces, AI integration, and production-ready DevOps pipelines.
 
+## 🍿 Demos
+
+[AWS Deployment](https://www.youtube.com/watch?v=gEzzmqddzkM)
+[Web application](https://www.youtube.com/watch?v=DO9jlpzVwhs)
+[Mobile application](https://youtu.be/oyi1c3QhoVc)
+
 ---
 
 ## 📋 Table of Contents
