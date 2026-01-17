@@ -1,4 +1,3 @@
-// src/components/Groups.tsx
 import React, { useState, useEffect } from 'react';
 import apiClient from '../services/api-client';
 import { useAuth } from '../hooks/useAuth';
@@ -12,7 +11,7 @@ interface Group {
 }
 
 const Groups: React.FC<{
-    navigate: (to: 'home'|'groups'|'receipts'|'profile'|'support') => void;
+    navigate: (to: 'home'|'groups'|'receipts'|'profile'|'groupDetail'|'data'|'categories') => void;
     openGroup: (groupId: number) => void;
 }> = ({ navigate, openGroup }) => {
     const [groups, setGroups] = useState<Group[]>([]);
@@ -37,7 +36,7 @@ const Groups: React.FC<{
         
         setLoading(true);
         try {
-            const res = await apiClient.get('/groups', {
+            const res = await apiClient.get('/groups/', {
                 params: { offset: 0, limit: 1000 }
             });
             
@@ -134,7 +133,7 @@ const Groups: React.FC<{
                 body.description = newGroup.description.trim();
             }
 
-            const createRes = await apiClient.post('/groups', body);
+            const createRes = await apiClient.post('/groups/', body);
             
             // Backend returns APIResponse { success: true, data: { id: groupId } }
             const responseData = createRes.data;
@@ -195,13 +194,6 @@ const Groups: React.FC<{
         <>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
                 <div className="bp-title">Groups</div>
-                <button 
-                    className="bp-add-btn" 
-                    onClick={() => setShowJoinForm(!showJoinForm)}
-                    style={{ fontSize: 14, padding: '8px 16px' }}
-                >
-                    {showJoinForm ? 'Cancel' : 'Join Group'}
-                </button>
             </div>
 
             {/* Join Group Form */}
@@ -279,12 +271,23 @@ const Groups: React.FC<{
                 )}
             </div>
 
-            <button 
-                className="bp-create-group" 
-                onClick={() => setShowCreateForm(!showCreateForm)}
-            >
-                {showCreateForm ? 'Cancel' : '+ Create Group'}
-            </button>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+                <button 
+                    className="bp-add-btn" 
+                    onClick={() => setShowJoinForm(!showJoinForm)}
+                    style={{ fontSize: 14, padding: '8px 16px' }}
+                >
+                    {showJoinForm ? 'Cancel' : 'Join Group'}
+                </button>
+
+                <button 
+                    className="bp-add-btn" 
+                    onClick={() => setShowCreateForm(!showCreateForm)}
+                    style={{ fontSize: 14, padding: '8px 16px' }}
+                >
+                    {showCreateForm ? 'Cancel' : '+ Create Group'}
+                </button>
+            </div>
 
             {/* Create Group Form */}
             {showCreateForm && (

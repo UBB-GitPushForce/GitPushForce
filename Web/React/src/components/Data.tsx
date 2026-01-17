@@ -60,7 +60,7 @@ const Data: React.FC = () => {
   useEffect(() => {
     const fetchCats = async () => {
       try {
-        const data = await categoryService.getCategories();
+        const data = await categoryService.getCategories(user?.id);
         setCategories(data);
       } catch (err) {
         console.error('Failed to load categories', err);
@@ -92,7 +92,7 @@ const Data: React.FC = () => {
         // or you can pass `category` (name) to backend if your API supports it.
         // For now, we fetch all for the date range and filter locally.
 
-        const res = await apiClient.get('/expenses', { params });
+        const res = await apiClient.get('/expenses/', { params });
         const items: Expense[] = Array.isArray(res.data) ? res.data : (res.data.data || []);
         
         if (cancelled) return;

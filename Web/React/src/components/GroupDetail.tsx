@@ -103,8 +103,9 @@ const GroupDetail: React.FC<Props> = ({ groupId, onBack }) => {
             const logsRes = await apiClient.get(`/group_logs/${groupId}`);
             const logsData = logsRes.data?.data || logsRes.data || [];
             
-            // Fetch categories
-            const categories = await categoryService.getCategories();
+            // Fetch categories - fetch all categories since backend returns all anyway (known bug)
+            // This ensures we can map categories from all users in the group
+            const categories: Category[] = await categoryService.getCategories(user?.id);
             const categoryMap = new Map(categories.map(c => [c.id, c.title]));
             
             // Get unique user IDs from both expenses and logs
@@ -190,7 +191,7 @@ const GroupDetail: React.FC<Props> = ({ groupId, onBack }) => {
 
     const fetchCategories = async () => {
         try {
-            const cats = await categoryService.getCategories();
+            const cats = await categoryService.getCategories(user?.id);
             
             // If no categories exist, create default ones
             if (cats.length === 0) {
@@ -203,7 +204,7 @@ const GroupDetail: React.FC<Props> = ({ groupId, onBack }) => {
                     }
                 }
                 // Refetch
-                const newCats = await categoryService.getCategories();
+                const newCats = await categoryService.getCategories(user?.id);
                 setCategories(newCats);
                 if (newCats.length > 0) {
                     setNewExpense(prev => ({ ...prev, categoryId: newCats[0].id }));
@@ -343,10 +344,6 @@ const GroupDetail: React.FC<Props> = ({ groupId, onBack }) => {
                         <span style={{ color: 'red' }}>
                             {cur.formatAmount(statistics.my_total_paid)} PAID
                         </span>
-                        <span>|</span>
-                        <span style={{ color: 'var(--purple-1)' }}>
-                            {cur.formatAmount(statistics.rest_of_group_expenses)} EXTRA
-                        </span>
                     </div>
                 )}
             </div>
@@ -423,7 +420,7 @@ const GroupDetail: React.FC<Props> = ({ groupId, onBack }) => {
                                     border: '1px solid rgba(0,0,0,0.05)',
                                 }}>
                                     <div style={{ fontSize: 12, color: 'var(--muted-dark)', marginBottom: 4 }}>
-                                        4. Rest of group expenses (excluding yours)
+                                        4. How much are the rest of group expenses
                                     </div>
                                     <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--purple-1)' }}>
                                         {cur.formatAmount(statistics.rest_of_group_expenses)}
@@ -633,7 +630,7 @@ const GroupDetail: React.FC<Props> = ({ groupId, onBack }) => {
                                 group_id: groupId,
                             };
 
-                            await apiClient.post('/expenses', body);
+                            await apiClient.post('/expenses/', body);
                             
                             // Refresh the expense list and statistics
                             await fetchGroupExpenses();

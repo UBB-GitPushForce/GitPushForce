@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import '../App.css';
-import type { ReceiptItem } from './Receipts';
+import type { ReceiptItem } from '../services/receipt-service';
 import { useAuth } from '../hooks/useAuth';
 import { useCurrency } from '../contexts/CurrencyContext';
 import apiClient from '../services/api-client';
@@ -25,14 +25,11 @@ function randomDate(start: Date, end: Date) {
   return t.toISOString().slice(0, 10);
 }
 
-// Cache for categories
-let categoriesCache: Category[] | null = null;
-
-async function getCategories(): Promise<Category[]> {
-  if (categoriesCache) return categoriesCache;
+// Fetch categories without caching to ensure fresh data
+async function getCategories(userId?: number): Promise<Category[]> {
   try {
-    categoriesCache = await categoryService.getCategories();
-    return categoriesCache;
+    // Fetch all categories to map category_id to title for all expenses (including group expenses)
+    return await categoryService.getCategories();
   } catch (err) {
     console.error('Failed to fetch categories', err);
     return [];
@@ -52,7 +49,7 @@ async function fetchPage(pageIndex: number, pageSize: number, filters: any) {
 
     // Backend supported filters:
     // category: string (category title, resolved to IDs on backend)
-    if (filters.qSubtitle) params.category = filters.qSubtitle;
+    if (filters.selectedCategory) params.category = filters.selectedCategory;
 
     // amount range: min_price, max_price
     if (filters.minAmount != null) params.min_price = filters.minAmount;
@@ -62,18 +59,18 @@ async function fetchPage(pageIndex: number, pageSize: number, filters: any) {
     if (filters.dateAddedFrom) params.date_from = filters.dateAddedFrom;
     if (filters.dateAddedTo) params.date_to = filters.dateAddedTo;
 
-    // group_ids: array of group IDs
-    if (filters.groupIds && filters.groupIds.length > 0) {
-      params.group_ids = filters.groupIds;
-    }
+    // Expense type filter: group, individual, or all
+    // Backend doesn't have a direct filter, so we'll filter on frontend after fetching
+    // For group expenses, we could use group_ids param, but we don't know all group IDs
+    // So we fetch all and filter client-side based on whether expense has group_id
     
-    const res = await apiClient.get('/expenses', { params });
+    const res = await apiClient.get('/expenses/', { params });
 
     // Backend returns APIResponse { success: true, data: [expenses] }
     const responseData = res.data;
     const items: any[] = Array.isArray(responseData) ? responseData : (responseData?.data || []);
     
-    const categories = await getCategories();
+    const categories = await getCategories(filters.userId);
     const categoryMap = new Map(categories.map(c => [c.id, c.title]));
 
     // Fetch group names for expenses that have group_id
@@ -104,13 +101,25 @@ async function fetchPage(pageIndex: number, pageSize: number, filters: any) {
       groupId: x.group_id || undefined,
       groupName: x.group_id ? groupNameMap.get(x.group_id) : undefined,
       addedBy: x.user_id ? `User ${x.user_id}` : 'Unknown',
-      initial: x.user_id ? String(x.user_id)[0] : 'U',
+      initial: x.title ? x.title[0].toUpperCase() : 'E',
+      userId: x.user_id,
     }));
 
-    // Frontend title filtering (backend doesn't support it)
-    const filtered = filters.qTitle 
-      ? pageItems.filter(item => item.title.toLowerCase().includes(filters.qTitle.toLowerCase()))
-      : pageItems;
+    // Frontend filtering
+    let filtered = pageItems;
+    
+    // Title filtering (backend doesn't support it)
+    if (filters.qTitle) {
+      filtered = filtered.filter(item => item.title?.toLowerCase().includes(filters.qTitle.toLowerCase()));
+    }
+    
+    // Expense type filtering
+    if (filters.expenseType === 'group') {
+      filtered = filtered.filter(item => item.isGroup);
+    } else if (filters.expenseType === 'individual') {
+      filtered = filtered.filter(item => !item.isGroup);
+    }
+    // 'all' means no filter
 
     const hasMore = items.length === pageSize;
 
@@ -136,7 +145,7 @@ async function deleteExpense(id: number) {
 //update API call
 async function updateExpense(id: number, body: any) {
   try {
-    const res = await apiClient.put(`/expenses/${id}`, body);
+    const res = await apiClient.put(`/expenses/${id}/`, body);
     return res.data;
   } catch (err) {
     console.error('Failed to update expense', err);
@@ -151,14 +160,15 @@ const ReceiptsView: React.FC<{ onNeedRefresh?: () => void; refreshKey?: number }
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
   const[editingId, setEditingId] = useState<number | null>(null);
-  const[editForm, setEditForm] = useState({ title: '', subtitle: '', amount: '' });
+  const[editForm, setEditForm] = useState({ title: '', subtitle: '', amount: '', categoryId: null as number | null });
+  const[allCategories, setAllCategories] = useState<Category[]>([]);
+  const[paymentStatus, setPaymentStatus] = useState<Map<number, boolean>>(new Map());
 
-  const [filters, setFilters] = useState<any>({});
+  const [filters, setFilters] = useState<any>({ userId: user?.id });
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   const [local, setLocal] = useState({
     qTitle: '',
-    qSubtitle: '',
     minAmount: '',
     maxAmount: '',
     dateAddedFrom: '',
@@ -166,13 +176,27 @@ const ReceiptsView: React.FC<{ onNeedRefresh?: () => void; refreshKey?: number }
     selectedCategory: '',
     sortBy: 'created_at',
     sortOrder: 'desc',
+    expenseType: 'all' as 'all' | 'group' | 'individual', // New filter for expense type
   });
 
   const [categories, setCategories] = useState<string[]>([]);
 
+  // Fetch all categories on component mount
+  useEffect(() => {
+    const fetchAllCategories = async () => {
+      try {
+        const cats = await categoryService.getCategories(user?.id);
+        setAllCategories(cats);
+      } catch (err) {
+        console.error('Failed to fetch categories', err);
+      }
+    };
+    fetchAllCategories();
+  }, []);
+
   // Extract unique categories from items - accumulate, don't replace
   useEffect(() => {
-    const newCategories = items.map(item => item.subtitle).filter(Boolean);
+    const newCategories = items.map(item => item.subtitle).filter((c): c is string => Boolean(c));
     setCategories(prev => {
       const combined = new Set([...prev, ...newCategories]);
       return Array.from(combined);
@@ -193,18 +217,57 @@ const ReceiptsView: React.FC<{ onNeedRefresh?: () => void; refreshKey?: number }
 
   useEffect(() => { loadFirst(); }, [loadFirst, refreshKey]);
 
+  // Fetch payment status for group expenses
+  useEffect(() => {
+    const fetchPaymentStatus = async () => {
+      if (!user?.id) return;
+      
+      const groupExpenses = items.filter(item => item.isGroup);
+      const statusMap = new Map<number, boolean>();
+      
+      await Promise.all(
+        groupExpenses.map(async (expense) => {
+          try {
+            const res = await apiClient.get(`/expenses_payments/${expense.id}/payments`);
+            const payments = res.data?.data || res.data || [];
+            // Check if current user has paid
+            const hasPaid = payments.some((p: any) => p.user_id === user.id);
+            // If user is the owner, they are implicitly paid
+            const isPaid = expense.userId === user.id || hasPaid;
+            statusMap.set(expense.id, isPaid);
+          } catch (err) {
+            console.error(`Failed to fetch payment status for expense ${expense.id}`, err);
+            // If user owns the expense, mark as paid by default
+            statusMap.set(expense.id, expense.userId === user.id);
+          }
+        })
+      );
+      
+      setPaymentStatus(statusMap);
+    };
+    
+    if (items.length > 0) {
+      fetchPaymentStatus();
+    }
+  }, [items, user?.id]);
+
   const startEdit = (item: ReceiptItem) => {
   setEditingId(item.id);
+  
+  // Find the category ID from the subtitle (category title)
+  const category = allCategories.find(c => c.title === item.subtitle);
+  
   setEditForm({
     title: item.title,
     subtitle: item.subtitle,
     amount: String(item.amount),
+    categoryId: category?.id || null,
   });
 };
 
 const cancelEdit = () => {
   setEditingId(null);
-  setEditForm({ title: '', subtitle: '', amount: '' });
+  setEditForm({ title: '', subtitle: '', amount: '', categoryId: null });
 };
 
 const saveEdit = async () => {
@@ -263,13 +326,15 @@ const saveEdit = async () => {
 
   const onApply = () => {
     const f: any = {
-      qSubtitle: local.selectedCategory || local.qSubtitle?.trim() || undefined,
+      selectedCategory: local.selectedCategory || undefined,
       minAmount: local.minAmount ? Number(local.minAmount) : null,
       maxAmount: local.maxAmount ? Number(local.maxAmount) : null,
       dateAddedFrom: local.dateAddedFrom || null,
       dateAddedTo: local.dateAddedTo || null,
       sortBy: local.sortBy,
       sortOrder: local.sortOrder,
+      userId: user?.id, // Add userId for category fetching
+      expenseType: local.expenseType, // Add expense type filter
     };
     
     // Store title filter for frontend filtering (backend doesn't support title search)
@@ -282,7 +347,6 @@ const saveEdit = async () => {
   const onClear = () => {
     setLocal({
       qTitle: '',
-      qSubtitle: '',
       minAmount: '',
       maxAmount: '',
       dateAddedFrom: '',
@@ -290,8 +354,9 @@ const saveEdit = async () => {
       selectedCategory: '',
       sortBy: 'created_at',
       sortOrder: 'desc',
+      expenseType: 'all',
     });
-    setFilters({}); setItems([]); setPageIndex(0); setHasMore(true);
+    setFilters({ userId: user?.id }); setItems([]); setPageIndex(0); setHasMore(true);
   };
 
   const handleDelete = async (id: number) => {
@@ -313,9 +378,10 @@ const saveEdit = async () => {
   return (
     <div>
       <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-        <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+        <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
           <input placeholder="Search title" value={local.qTitle} onChange={e=>setLocal(s=>({...s, qTitle: e.target.value}))} style={{ flex:'1 1 200px', padding:10, borderRadius:8, border:'1px solid #e4e4ee' }} />
-          <input placeholder="Search subtitle" value={local.qSubtitle} onChange={e=>setLocal(s=>({...s, qSubtitle: e.target.value}))} style={{ flex:'1 1 160px', padding:10, borderRadius:8, border:'1px solid #e4e4ee' }} />
+          <input type="date" value={local.dateAddedFrom} onChange={e=>setLocal(s=>({...s, dateAddedFrom: e.target.value}))} style={{ flex:'1 1 160px', padding:10, borderRadius:8, border:'1px solid #e4e4ee' }} />
+          <input type="date" value={local.dateAddedTo} onChange={e=>setLocal(s=>({...s, dateAddedTo: e.target.value}))} style={{ flex:'1 1 160px', padding:10, borderRadius:8, border:'1px solid #e4e4ee' }} />
           <input placeholder="Min amount" type="number" value={local.minAmount} onChange={e=>setLocal(s=>({...s, minAmount: e.target.value}))} style={{ width:120, padding:10, borderRadius:8, border:'1px solid #e4e4ee' }} />
           <input placeholder="Max amount" type="number" value={local.maxAmount} onChange={e=>setLocal(s=>({...s, maxAmount: e.target.value}))} style={{ width:120, padding:10, borderRadius:8, border:'1px solid #e4e4ee' }} />
           <select value={local.selectedCategory} onChange={e=>setLocal(s=>({...s, selectedCategory: e.target.value}))} style={{ padding:8, borderRadius:8, minWidth:150 }}>
@@ -328,23 +394,49 @@ const saveEdit = async () => {
             <option value="created_at">Sort by Date</option>
             <option value="amount">Sort by Amount</option>
             <option value="title">Sort by Title</option>
-            <option value="category">Sort by Category</option>
           </select>
           <select value={local.sortOrder} onChange={e=>setLocal(s=>({...s, sortOrder: e.target.value}))} style={{ padding:8, borderRadius:8, minWidth:110 }}>
             <option value="desc">Descending</option>
             <option value="asc">Ascending</option>
           </select>
+          <button 
+            className="bp-add-btn" 
+            onClick={() => setLocal(s=>({...s, expenseType: 'all'}))}
+            style={{ 
+              background: local.expenseType === 'all' ? 'var(--purple-1)' : '#fff',
+              color: local.expenseType === 'all' ? '#fff' : 'var(--purple-1)',
+              border: '2px solid var(--purple-1)',
+            }}
+          >
+            All
+          </button>
+          <button 
+            className="bp-add-btn" 
+            onClick={() => setLocal(s=>({...s, expenseType: 'group'}))}
+            style={{ 
+              background: local.expenseType === 'group' ? 'var(--purple-1)' : '#fff',
+              color: local.expenseType === 'group' ? '#fff' : 'var(--purple-1)',
+              border: '2px solid var(--purple-1)',
+            }}
+          >
+            Group
+          </button>
+          <button 
+            className="bp-add-btn" 
+            onClick={() => setLocal(s=>({...s, expenseType: 'individual'}))}
+            style={{ 
+              background: local.expenseType === 'individual' ? 'var(--purple-1)' : '#fff',
+              color: local.expenseType === 'individual' ? '#fff' : 'var(--purple-1)',
+              border: '2px solid var(--purple-1)',
+            }}
+          >
+            Individual
+          </button>
+        </div>
+        
+        <div style={{ display:'flex', gap:8 }}>
           <button className="bp-add-btn" onClick={onApply}>Apply</button>
           <button className="bp-add-btn" onClick={onClear}>Clear</button>
-        </div>
-
-          <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-          <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-            <div style={{ fontSize:13, color:'var(--muted-dark)' }}>Date added:</div>
-            <input type="date" value={local.dateAddedFrom} onChange={e=>setLocal(s=>({...s, dateAddedFrom: e.target.value}))} />
-            <div style={{ fontSize:13, color:'var(--muted-dark)' }}>—</div>
-            <input type="date" value={local.dateAddedTo} onChange={e=>setLocal(s=>({...s, dateAddedTo: e.target.value}))} />
-          </div>
         </div>
       </div>
 
@@ -368,12 +460,26 @@ const saveEdit = async () => {
                   onChange={e => setEditForm(prev => ({ ...prev, title: e.target.value }))}
                   style={{ padding:8, borderRadius:6, border:'1px solid #e4e4ee' }}
                 />
-                <input 
-                  placeholder="Category" 
-                  value={editForm.subtitle} 
-                  onChange={e => setEditForm(prev => ({ ...prev, subtitle: e.target.value }))}
-                  style={{ padding:8, borderRadius:6, border:'1px solid #e4e4ee' }}
-                />
+                <select 
+                  value={editForm.categoryId || ''} 
+                  onChange={e => {
+                    const categoryId = parseInt(e.target.value);
+                    const category = allCategories.find(c => c.id === categoryId);
+                    setEditForm(prev => ({ 
+                      ...prev, 
+                      categoryId: categoryId,
+                      subtitle: category?.title || '' 
+                    }));
+                  }}
+                  style={{ padding:8, borderRadius:6, border:'1px solid #e4e4ee', background:'#fff' }}
+                  disabled
+                  title="Category cannot be changed after creation"
+                >
+                  <option value="">Select Category</option>
+                  {allCategories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.title}</option>
+                  ))}
+                </select>
                 <input 
                   placeholder="Amount" 
                   type="number"
@@ -390,8 +496,21 @@ const saveEdit = async () => {
             //VIEW MODE
             <>
               <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-                <div className="bp-thumb" style={{ width:56, height:56, display:'flex', alignItems:'center', justifyContent:'center', background:'#fff', fontWeight:800, boxShadow:'0 4px 14px rgba(0,0,0,0.04)' }}>
-                  {it.initial}
+                <div className="bp-thumb" style={{ width:56, height:56, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'#fff', fontWeight:800, boxShadow:'0 4px 14px rgba(0,0,0,0.04)', position:'relative' }}>
+                  <div style={{ fontSize: 24 }}>{it.initial}</div>
+                  {it.isGroup && (
+                    <div style={{ 
+                      fontSize: 9, 
+                      fontWeight: 700, 
+                      padding: '2px 6px', 
+                      borderRadius: 3, 
+                      marginTop: 2,
+                      background: paymentStatus.get(it.id) ? '#52c41a' : '#ff4d4f', 
+                      color: '#fff' 
+                    }}>
+                      {paymentStatus.get(it.id) ? 'PAID' : 'UNPAID'}
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ flex:1 }}>
@@ -403,7 +522,7 @@ const saveEdit = async () => {
 
                 <div style={{ textAlign:'right' }}>
                   <div style={{ fontWeight:800, color: '#ff6b6b', fontSize:16 }}>{useCurrency().formatAmount(-Math.abs(it.amount))}</div>
-                  <div style={{ fontSize:12, color:'var(--muted-dark)' }}>{it.dateTransaction}</div>
+                  <div style={{ fontSize:12, color:'var(--muted-dark)' }}>{it.dateTransaction || it.dateAdded}</div>
                 </div>
               </div>
 

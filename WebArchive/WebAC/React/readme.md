@@ -1,1 +1,0 @@
-A simple React + TypeScript app

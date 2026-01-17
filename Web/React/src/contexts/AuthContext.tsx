@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const checkAuthStatus = async () => {
         try {
             const response = await authService.getMe(); // GET /users/auth/me
-            // Backend returns APIResponse { success: true, data: UserResponse }
+            // Backend returns UserResponse - check if wrapped
             const userData = response.data?.data || response.data;
             setUser(userData);
         } catch {
@@ -61,7 +61,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // call login endpoint
         const response = await authService.login({ email, password });
         
-        // Backend returns APIResponse { success: true, data: { access_token, user } }
+        console.log('Login response:', response.data);
+        
+        // Backend returns AuthResponse - check if wrapped in data object
         const responseData = response.data?.data || response.data;
         
         // If backend indicates 2FA is required, it should return e.g.:
@@ -74,6 +76,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             return;
         }
 
+        // Store access token in sessionStorage
+        if (responseData?.access_token) {
+            sessionStorage.setItem('access_token', responseData.access_token);
+        }
+
         // Extract user from response
         if (responseData?.user) {
             setUser(responseData.user);
@@ -81,7 +88,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // fallback: attempt to fetch /me
             try {
                 const me = await authService.getMe();
-                const userData = me.data?.data || me.data;
+                const userData = me.data;
                 setUser(userData);
             } catch (err) {
                 console.error('Login: failed to fetch /me after login', err);
@@ -124,9 +131,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     const register = useCallback(async (accountData: any, verificationMethod?: 'email'|'number') => {
-        // Register endpoint returns { success: true, data: { access_token, id, user } }
+        // Register endpoint returns AuthResponse { access_token, user }
         const response = await authService.register(accountData);
         const responseData = response.data?.data || response.data;
+        
+        // Store access token in sessionStorage
+        if (responseData?.access_token) {
+            sessionStorage.setItem('access_token', responseData.access_token);
+        }
         
         // Extract user from register response
         if (responseData?.user) {
@@ -146,9 +158,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const logout = useCallback(async () => {
         try {
             await authService.logout();
+            sessionStorage.removeItem('access_token');
             setUser(null);
         } catch (error) {
             console.error('Logout error:', error);
+            sessionStorage.removeItem('access_token');
             setUser(null);
         }
     }, []);

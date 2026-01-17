@@ -2,8 +2,10 @@
 import React, { useEffect, useState } from 'react';
 import '../App.css';
 import categoryService, { Category } from '../services/category-service';
+import { useAuth } from '../hooks/useAuth';
 
 const Categories: React.FC = () => {
+  const { user } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -11,6 +13,7 @@ const Categories: React.FC = () => {
   // --- Create State ---
   const [newCategory, setNewCategory] = useState('');
   const [newKeywords, setNewKeywords] = useState('');
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
   // --- Edit State ---
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -20,7 +23,7 @@ const Categories: React.FC = () => {
   const fetchCategories = async () => {
     setLoading(true);
     try {
-      const data = await categoryService.getCategories();
+      const data = await categoryService.getCategories(user?.id);
       if (Array.isArray(data)) {
         setCategories(data);
       } else {
@@ -64,6 +67,7 @@ const Categories: React.FC = () => {
       
       setNewCategory('');
       setNewKeywords('');
+      setShowCreateForm(false);
       setError(null);
     } catch (err: any) {
       console.error(err);
@@ -118,108 +122,126 @@ const Categories: React.FC = () => {
     }
   };
 
-  // --- Styles Helper ---
-  // Shared props to ensure buttons match the 'Add' button size exactly
-  const btnStyleBase = { fontSize: 13, padding: '6px 14px', border: 'none' };
-
   return (
-    <div style={{ marginTop: 12 }}>
-      <div className="bp-title">Manage Categories</div>
-      <div style={{ color: 'var(--muted-dark)', marginBottom: 16 }}>
+    <>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+        <div className="bp-title">Categories</div>
+      </div>
+
+      {/* Global Error */}
+      {error && (
+        <div style={{ 
+          marginTop: 12, 
+          padding: '8px 12px', 
+          backgroundColor: '#ffebee', 
+          color: '#c62828', 
+          borderRadius: 8,
+          fontSize: 14
+        }}>
+          {error}
+        </div>
+      )}
+
+      <div className="bp-section-title" style={{ marginTop: 12, fontSize: 15 }}>My Categories</div>
+      <div style={{ color: 'var(--muted-dark)', marginBottom: 12, fontSize: 13 }}>
         Add categories and keywords to auto-tag your transactions.
       </div>
 
-      {/* CREATE Form */}
-      <form onSubmit={handleAdd} className="bp-box" style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20, padding: 16 }}>
-        <div style={{ fontWeight: 600, fontSize: 14 }}>Add New</div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <input 
-            placeholder="Name (e.g. Gym)" 
-            value={newCategory} 
-            onChange={e => setNewCategory(e.target.value)}
-            style={{ flex: 1, padding: 10, borderRadius: 8, border: '1px solid #e4e4ee' }}
-          />
-          <input 
-            placeholder="Keywords (e.g. fitness, trainer)" 
-            value={newKeywords} 
-            onChange={e => setNewKeywords(e.target.value)}
-            style={{ flex: 2, padding: 10, borderRadius: 8, border: '1px solid #e4e4ee' }}
-          />
-          <button type="submit" className="bp-add-btn" disabled={!newCategory.trim()}>
-            Add
-          </button>
-        </div>
-      </form>
-
-      {/* Global Error */}
-      {error && <div style={{ color: '#ef4444', marginBottom: 10 }}>{error}</div>}
-
       {/* List */}
-      <div style={{ display: 'grid', gap: 10 }}>
-        {loading && <div style={{ color: 'var(--muted-dark)' }}>Loading...</div>}
-        
-        {!loading && categories.length > 0 ? (
+      <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: 20, color: 'var(--muted-dark)' }}>
+            Loading categories...
+          </div>
+        ) : categories.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 20, color: 'var(--muted-dark)' }}>
+            No categories yet. Create your first category!
+          </div>
+        ) : (
           categories.map((cat) => (
-            <div key={cat.id || Math.random()} className="bp-box" style={{ padding: '12px 16px', minHeight: 60 }}>
-              
+            <div 
+              key={cat.id || Math.random()} 
+              className="bp-group-card"
+              style={{ cursor: 'default' }}
+            >
               {editingId === cat.id ? (
                 /* --- EDIT MODE --- */
-                <div style={{ display: 'flex', gap: 8, width: '100%', alignItems: 'center' }}>
-                  <input 
-                    value={editTitle}
-                    onChange={e => setEditTitle(e.target.value)}
-                    placeholder="Name"
-                    autoFocus
-                    style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1px solid #6366f1' }}
-                  />
-                  <input 
-                    value={editKeywords}
-                    onChange={e => setEditKeywords(e.target.value)}
-                    placeholder="Keywords (comma separated)"
-                    style={{ flex: 2, padding: '8px 10px', borderRadius: 8, border: '1px solid #6366f1' }}
-                  />
-                  
-                  {/* Save Button (Green-ish) */}
-                  <button 
-                    onClick={() => saveEdit(cat.id)}
-                    className="bp-add-btn"
-                    style={{ 
-                      ...btnStyleBase, 
-                      background: 'linear-gradient(135deg, #10b981, #059669)' // Green gradient
-                    }}
-                  >
-                    Save
-                  </button>
-
-                  {/* Cancel Button (Gray) */}
-                  <button 
-                    onClick={cancelEdit}
-                    className="bp-add-btn"
-                    style={{ 
-                      ...btnStyleBase,
-                      background: 'linear-gradient(135deg, #94a3b8, #64748b)' // Slate gradient
-                    }}
-                  >
-                    Cancel
-                  </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 600 }}>
+                      Name
+                    </label>
+                    <input 
+                      value={editTitle}
+                      onChange={e => setEditTitle(e.target.value)}
+                      placeholder="Category name"
+                      autoFocus
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: 8,
+                        border: '1px solid rgba(0,0,0,0.1)',
+                        fontSize: 14,
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 600 }}>
+                      Keywords (comma separated)
+                    </label>
+                    <input 
+                      value={editKeywords}
+                      onChange={e => setEditKeywords(e.target.value)}
+                      placeholder="e.g., fitness, gym, trainer"
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: 8,
+                        border: '1px solid rgba(0,0,0,0.1)',
+                        fontSize: 14,
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                    <button 
+                      onClick={cancelEdit}
+                      style={{ 
+                        fontSize: 14,
+                        padding: '8px 16px',
+                        border: '1px solid rgba(0,0,0,0.1)',
+                        borderRadius: 8,
+                        background: 'var(--card-bg)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      onClick={() => saveEdit(cat.id)}
+                      className="bp-add-btn"
+                      style={{ fontSize: 14, padding: '8px 16px' }}
+                    >
+                      Save
+                    </button>
+                  </div>
                 </div>
               ) : (
                 /* --- VIEW MODE --- */
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <div style={{ fontWeight: 600, fontSize: 16 }}>{cat.title || 'Unnamed'}</div>
+                <>
+                  <div className="bp-group-thumb">{cat.title?.[0]?.toUpperCase() || 'C'}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                    <div style={{ fontWeight: 800 }}>{cat.title || 'Unnamed'}</div>
                     
                     {/* Keywords Tags */}
                     {cat.keywords && cat.keywords.length > 0 && (
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
                         {cat.keywords.map((k, idx) => (
                           <span key={idx} style={{ 
                             fontSize: 11, 
-                            backgroundColor: '#f1f5f9', 
-                            color: '#475569', 
+                            backgroundColor: 'rgba(99, 102, 241, 0.1)', 
+                            color: 'var(--primary)', 
                             padding: '2px 8px', 
-                            borderRadius: 12, // Pill shape
-                            border: '1px solid #e2e8f0',
+                            borderRadius: 12,
                             fontWeight: 500
                           }}>
                             {k}
@@ -230,43 +252,105 @@ const Categories: React.FC = () => {
                   </div>
 
                   <div style={{ display: 'flex', gap: 8 }}>
-                    {/* Edit Button (Blue) */}
                     <button 
                       onClick={() => startEdit(cat)}
                       className="bp-add-btn"
-                      style={{ 
-                        ...btnStyleBase,
-                        background: 'linear-gradient(135deg, #3b82f6, #2563eb)' // Blue gradient
-                      }}
+                      style={{ padding: '6px 12px' }}
                     >
                       Edit
                     </button>
-
-                    {/* Delete Button (Red) */}
                     <button 
                       onClick={() => handleDelete(cat.id)}
                       className="bp-add-btn"
-                      style={{ 
-                        ...btnStyleBase,
-                        background: 'linear-gradient(135deg, #ef4444, #dc2626)' // Red gradient
-                      }}
+                      style={{ padding: '6px 12px' }}
                     >
                       Delete
                     </button>
                   </div>
-                </div>
+                </>
               )}
             </div>
           ))
-        ) : (
-          !loading && (
-            <div style={{ textAlign: 'center', padding: 20, color: 'var(--muted-dark)' }}>
-              No categories found. Add one above!
-            </div>
-          )
         )}
       </div>
-    </div>
+
+      {/* Add Button */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+        <button 
+          className="bp-add-btn" 
+          onClick={() => setShowCreateForm(!showCreateForm)}
+          style={{ fontSize: 14, padding: '8px 16px' }}
+        >
+          {showCreateForm ? 'Cancel' : '+ Add Category'}
+        </button>
+      </div>
+
+      {/* CREATE Form */}
+      {showCreateForm && (
+        <div style={{ 
+          marginTop: 15, 
+          padding: 20, 
+          background: 'var(--card-bg)', 
+          borderRadius: 12, 
+          border: '1px solid rgba(0,0,0,0.08)' 
+        }}>
+          <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 15 }}>Add New Category</div>
+          
+          <form onSubmit={handleAdd} style={{ display: 'grid', gap: 12 }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 600 }}>
+                Category Name
+              </label>
+              <input 
+                type="text"
+                placeholder="e.g., Gym" 
+                value={newCategory} 
+                onChange={e => setNewCategory(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: 8,
+                  border: '1px solid rgba(0,0,0,0.1)',
+                  fontSize: 14,
+                }}
+                required
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 600 }}>
+                Keywords (Optional)
+              </label>
+              <input 
+                type="text"
+                placeholder="e.g., fitness, trainer, membership" 
+                value={newKeywords} 
+                onChange={e => setNewKeywords(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: 8,
+                  border: '1px solid rgba(0,0,0,0.1)',
+                  fontSize: 14,
+                }}
+              />
+              <div style={{ fontSize: 12, color: 'var(--muted-dark)', marginTop: 4 }}>
+                Separate keywords with commas
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="bp-add-btn"
+              style={{ marginTop: 8 }}
+              disabled={!newCategory.trim()}
+            >
+              Add Category
+            </button>
+          </form>
+        </div>
+      )}
+    </>
   );
 };
 
