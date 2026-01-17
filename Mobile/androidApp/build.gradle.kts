@@ -29,7 +29,7 @@ android {
             "BASE_URL",
             // fallback url if .env file is not found : https://10.0.0.2:8000
             //"\"${envProps.getProperty("BASE_URL") ?: "https://10.0.0.2:8000"}\""
-            "\"http://proiectcolectivlb-437779233.eu-west-1.elb.amazonaws.com\""
+            "\"https://backend.gitpushforce-ubb.com\""
         )
     }
     buildFeatures {

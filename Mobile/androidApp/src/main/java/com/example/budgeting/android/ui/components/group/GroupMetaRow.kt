@@ -5,6 +5,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -15,7 +16,8 @@ import androidx.compose.ui.unit.dp
 fun GroupMetaRow(
     memberCount: Int,
     onShareClick: () -> Unit,
-    invitationCodeAvailable: Boolean
+    invitationCodeAvailable: Boolean,
+    onOverviewClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -45,17 +47,30 @@ fun GroupMetaRow(
                 )
             }
         }
-        FilledTonalButton(
-            onClick = onShareClick,
-            enabled = invitationCodeAvailable,
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Share,
-                contentDescription = "Share group"
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text("Share")
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            OutlinedButton(
+                onClick = onOverviewClick,
+                modifier = Modifier.height(40.dp),
+                shape = RoundedCornerShape(10.dp),
+                contentPadding = ButtonDefaults.ContentPadding
+            ) {
+                Text("Overview", style = MaterialTheme.typography.labelLarge)
+            }
+
+            FilledTonalButton(
+                onClick = onShareClick,
+                enabled = invitationCodeAvailable,
+                modifier = Modifier.height(40.dp),
+                shape = RoundedCornerShape(10.dp),
+                contentPadding = ButtonDefaults.ContentPadding
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Share,
+                    contentDescription = "Share group",
+                    tint = MaterialTheme.colorScheme.onPrimary
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+            }
         }
     }
 }

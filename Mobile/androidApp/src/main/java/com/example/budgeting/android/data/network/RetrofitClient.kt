@@ -12,10 +12,9 @@ import java.util.concurrent.TimeUnit
 object RetrofitClient {
     private val BASE_URL: String = BuildConfig.BASE_URL
 
-//    init {
-//        Log.d("RetrofitClient", "Base URL: $BASE_URL")
-//    }
-
+    init {
+        Log.d("RetrofitClient", "Backend url $BASE_URL")
+    }
     private val moshi = Moshi.Builder()
         .add(KotlinJsonAdapterFactory())
         .build()

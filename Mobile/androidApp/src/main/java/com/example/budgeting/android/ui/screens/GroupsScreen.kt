@@ -159,7 +159,10 @@ fun GroupsScreen(onOpenGroup: (Int) -> Unit) {
 
     if (showCreateDialog) {
         CreateGroupDialog(
-            onDismiss = { showCreateDialog = false },
+            onDismiss = {
+                showCreateDialog = false
+                vm.clearError()
+            },
             isLoading = isLoading,
             error = error,
             onCreate = { name, description ->
@@ -178,7 +181,10 @@ fun GroupsScreen(onOpenGroup: (Int) -> Unit) {
 
     if (showJoinDialog) {
         JoinGroupDialog(
-            onDismiss = { showJoinDialog = false },
+            onDismiss = {
+                showJoinDialog = false
+                vm.clearError()
+            },
             isLoading = isLoading,
             error = error,
             onJoinByCode = { code ->

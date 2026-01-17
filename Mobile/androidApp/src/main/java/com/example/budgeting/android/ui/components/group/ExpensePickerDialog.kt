@@ -18,6 +18,7 @@ import com.example.budgeting.android.data.model.Expense
 @Composable
 fun ExpensePickerDialog(
     expenses: List<Expense>,
+    categoryMap: Map<Int, String> = emptyMap(),
     onDismiss: () -> Unit,
     onConfirm: (List<Expense>) -> Unit
 ) {
@@ -96,7 +97,7 @@ fun ExpensePickerDialog(
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = expense.categoryId.toString(), // TODO display category title not id
+                                        text = expense.categoryId?.let { categoryMap[it] } ?: "Uncategorized",
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         style = MaterialTheme.typography.bodySmall
                                     )
@@ -144,4 +145,3 @@ fun ExpensePickerDialog(
         }
     }
 }
-

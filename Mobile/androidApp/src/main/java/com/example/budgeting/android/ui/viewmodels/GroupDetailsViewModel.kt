@@ -10,10 +10,13 @@ import com.example.budgeting.android.data.model.GroupLog
 import com.example.budgeting.android.data.model.UserData
 import com.example.budgeting.android.data.model.Expense
 import com.example.budgeting.android.data.model.ExpensePayment
-import com.example.budgeting.android.data.network.RetrofitClient
 import com.example.budgeting.android.data.repository.ExpensePaymentRepository
 import com.example.budgeting.android.data.repository.ExpenseRepository
 import com.example.budgeting.android.data.repository.GroupRepository
+import com.example.budgeting.android.data.repository.CategoryRepository
+import com.example.budgeting.android.data.model.Category
+import com.example.budgeting.android.data.network.RetrofitClient
+import com.example.budgeting.android.data.repository.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,6 +40,11 @@ class GroupDetailsViewModel(context: Context) : ViewModel() {
         RetrofitClient.expensePaymentInstance,
         tokenDataStore
     )
+    private val userRepository = UserRepository(
+        RetrofitClient.userInstance,
+        tokenDataStore
+    )
+    private val categoryRepository = CategoryRepository(RetrofitClient.categoryInstance)
 
     private val _group = MutableStateFlow<Group?>(null)
     val group: StateFlow<Group?> = _group.asStateFlow()
@@ -65,8 +73,17 @@ class GroupDetailsViewModel(context: Context) : ViewModel() {
     private val _logs = MutableStateFlow<List<GroupLog>>(emptyList())
     val logs: StateFlow<List<GroupLog>> = _logs.asStateFlow()
 
+    private val _extraUsers = MutableStateFlow<Map<Int, UserData>>(emptyMap())
+    val extraUsers: StateFlow<Map<Int, UserData>> = _extraUsers.asStateFlow()
+
     private val _currentUserId = MutableStateFlow<Int?>(null)
     val currentUserId: StateFlow<Int?> = _currentUserId.asStateFlow()
+    
+    private val _statistics = MutableStateFlow<com.example.budgeting.android.data.model.GroupStatistics?>(null)
+    val statistics: StateFlow<com.example.budgeting.android.data.model.GroupStatistics?> = _statistics.asStateFlow()
+    
+    private val _categories = MutableStateFlow<List<Category>>(emptyList())
+    val categories: StateFlow<List<Category>> = _categories.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -113,30 +130,79 @@ class GroupDetailsViewModel(context: Context) : ViewModel() {
                     sortBy = "created_at",
                     order = "asc"
                 )
-                
-                if (expensesResponse.isSuccessful) {
-                    val expenses = expensesResponse.body() ?: emptyList()
-                    val groupExpenses = mapExpensesToGroupExpenses(expenses, membersList)
-                    _expenses.value = groupExpenses
+
+                val expensesList = if (expensesResponse.isSuccessful) {
+                    expensesResponse.body() ?: emptyList()
                 } else {
                     _error.value = "Error: ${expensesResponse.code()} - ${expensesResponse.message()}"
-                    _expenses.value = emptyList()
+                    emptyList()
                 }
 
                 // Load group logs (join/leave events)
-                try {
+                val logsList = try {
                     val logsResponse = groupRepository.getGroupLogs(groupId)
                     if (logsResponse.isSuccessful && logsResponse.body() != null) {
-                        _logs.value = logsResponse.body()!!
+                        logsResponse.body()!!
                     } else {
                         val errorMsg = "Failed to load group logs: ${logsResponse.code()}"
                         if (_error.value == null) {
                             _error.value = errorMsg
                         }
-                        _logs.value = emptyList()
+                        emptyList<GroupLog>()
                     }
                 } catch (e: Exception) {
-                    _logs.value = emptyList()
+                    emptyList()
+                }
+
+                val memberIds = membersList.map { it.id }.toSet()
+                val referencedUserIds = mutableSetOf<Int>()
+                expensesList.mapNotNullTo(referencedUserIds) { it.user_id }
+                logsList.mapTo(referencedUserIds) { it.user_id }
+                val missingUserIds = referencedUserIds.filter { !memberIds.contains(it) }
+
+                val fetchedUsers = mutableMapOf<Int, UserData>()
+                if (missingUserIds.isNotEmpty()) {
+                    for (uid in missingUserIds) {
+                        try {
+                            val userResp = userRepository.getUserById(uid)
+                            val userData = UserData(
+                                id = userResp.id,
+                                firstName = userResp.first_name,
+                                lastName = userResp.last_name,
+                                email = userResp.email,
+                                phoneNumber = userResp.phone_number,
+                                budget = userResp.budget
+                            )
+                            fetchedUsers[uid] = userData
+                        } catch (e: Exception) {
+                        }
+                    }
+                }
+
+                if (fetchedUsers.isNotEmpty()) {
+                    _extraUsers.value = _extraUsers.value + fetchedUsers
+                }
+
+                val mergedMembers = (membersList + _extraUsers.value.values).distinctBy { it.id }
+
+                val groupExpenses = mapExpensesToGroupExpenses(expensesList, mergedMembers)
+                _expenses.value = groupExpenses
+                _logs.value = logsList
+
+                // Load group statistics
+                try {
+                    val statsResponse = groupRepository.getGroupStatistics(groupId)
+                    if (statsResponse.isSuccessful && statsResponse.body() != null) {
+                        _statistics.value = statsResponse.body()!!
+                    }
+                } catch (e: Exception) {
+                }
+                
+                // Load categories for pie chart
+                try {
+                    _categories.value = categoryRepository.getCategories(null, null)
+                } catch (e: Exception) {
+                    _categories.value = emptyList()
                 }
 
             } catch (e: Exception) {
@@ -368,5 +434,32 @@ class GroupDetailsViewModel(context: Context) : ViewModel() {
         } catch (e: Exception) {
             false
         }
+    }
+
+    fun leaveGroup(onSuccess: () -> Unit) {
+    val groupId = _group.value?.id
+    val userId = _currentUserId.value
+
+    if (groupId == null || userId == null) {
+        _error.value = "Cannot leave group: Data missing"
+        return
+    }
+
+    viewModelScope.launch {
+        _isLoading.value = true
+        try {
+            ensureTokenLoaded()
+            val response = groupRepository.removeUserFromGroup(groupId, userId)
+            if (response.isSuccessful) {
+                onSuccess()
+            } else {
+                _error.value = "Failed to leave group: ${response.code()}"
+            }
+        } catch (e: Exception) {
+            _error.value = "Error: ${e.message}"
+        } finally {
+            _isLoading.value = false
+        }
+    }
     }
 }
