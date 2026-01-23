@@ -10,6 +10,7 @@ import com.example.budgeting.android.data.model.GroupIdResponse
 import com.example.budgeting.android.data.model.AddUserToGroupResponse
 import com.example.budgeting.android.data.model.JoinGroupResponse
 import com.example.budgeting.android.data.model.GroupLog
+import com.example.budgeting.android.data.model.GroupStatistics
 import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
@@ -49,7 +50,7 @@ interface GroupApiService {
     suspend fun removeUserFromGroup(
         @Path("group_id") groupId: Int,
         @Path("user_id") userId: Int
-    ): Response<ApiResponse<Unit>>
+    ): Response<ApiResponse<Any>>
 
     @GET("/groups/user/{user_id}")
     suspend fun getGroupsByUser(@Path("user_id") userId: Int): Response<ApiResponse<List<Group>>>
@@ -79,4 +80,7 @@ interface GroupApiService {
 
     @GET("/group_logs/{group_id}")
     suspend fun getGroupLogs(@Path("group_id") groupId: Int): Response<ApiResponse<List<GroupLog>>>
+    
+    @GET("/groups/{group_id}/statistics/user-summary")
+    suspend fun getGroupStatistics(@Path("group_id") groupId: Int): Response<ApiResponse<com.example.budgeting.android.data.model.GroupStatistics>>
 }

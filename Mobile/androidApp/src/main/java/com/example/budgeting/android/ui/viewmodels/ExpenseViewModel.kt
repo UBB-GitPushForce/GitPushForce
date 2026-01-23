@@ -108,9 +108,12 @@ class ExpenseViewModel(context: Context) : ViewModel() {
                 if (data.size < limit) endReached = true
                 offset += data.size
 
+                // Deduplicate expenses by id to avoid showing the same expense multiple times
+                val deduped = data.filter { it.id != null }.distinctBy { it.id } + data.filter { it.id == null }
+
                 _expenses.value =
-                    if (append) _expenses.value + data
-                    else data
+                    if (append) (_expenses.value + deduped).distinctBy { it.id }
+                    else deduped
 
                 updateCategories(_expenses.value)
 
@@ -156,11 +159,12 @@ class ExpenseViewModel(context: Context) : ViewModel() {
             )
         }
 
-        return all
+        // Remove duplicates that may come from multiple group queries
+        return all.distinctBy { it.id }
     }
 
     private suspend fun loadAllExpenses(): List<Expense> {
-        return loadPersonalExpenses() + loadGroupExpenses()
+        return (loadPersonalExpenses() + loadGroupExpenses()).distinctBy { it.id }
     }
 
     private fun updateCategories(expenses: List<Expense>) {

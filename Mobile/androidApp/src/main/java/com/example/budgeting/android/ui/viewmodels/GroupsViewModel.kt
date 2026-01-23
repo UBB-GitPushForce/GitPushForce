@@ -371,5 +371,9 @@ class GroupsViewModel(context: Context) : ViewModel() {
             }
         }
     }
+
+    fun clearError() {
+        _error.value = null
+    }
 }
 

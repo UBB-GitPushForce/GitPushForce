@@ -72,8 +72,6 @@ class ReceiptViewModel(application: Application) : AndroidViewModel(application)
                 val part = MultipartBody.Part.createFormData("image", file.name, reqBody)
 
                 val response = receiptApi.processReceipt(part)
-                Log.d("ReceiptViewModel", "Response: $response")
-                Log.d("ReceiptViewModel", "Response: ${response.toString()}")
 
                 if (response.isSuccessful && response.body() != null) {
                     _scannedItems.value = response.body()!!.data!!.items
