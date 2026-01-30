@@ -44,5 +44,18 @@ class ExpenseResponse(ExpenseBase):
     created_at: datetime
     description: Optional[str] = None
 
+    split_amount: float
+
+    class Config:
+        from_attributes = True
+
+class Expense(ExpenseBase):
+    id: int
+    user_id: Optional[int] = None
+    group_id: Optional[int] = None
+    created_at: datetime
+    
+    split_amount: float 
+
     class Config:
         from_attributes = True

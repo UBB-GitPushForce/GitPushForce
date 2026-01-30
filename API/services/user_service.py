@@ -220,24 +220,26 @@ class UserService:
             success=True
         )
 
-    def change_password(self, user_id: int, old_password: str, new_password: str) -> APIResponse:
+    def change_password(self, user_id: int, old_password: str, new_password: str) -> dict:
         """
-        Verifies the old password and updates to the new password.
+        Allows an authenticated user to change their password by providing the old one.
         """
-        self.logger.info(f"Changing password for user_id={user_id}")
-        
-        user = self._validate_user(user_id=user_id)
+        self.logger.info(f"Password change requested for user_id={user_id}")
+        user = self.repository.get_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found.")
+
+        # Verify old password
         if not PasswordUtil.verify_password(old_password, user.hashed_password):
-            self.logger.warning(f"Password change failed for user_id={user_id}: Invalid old password")
-            raise HTTPException(status_code=STATUS_BAD_REQUEST, detail="Invalid old password.")
+            self.logger.warning(f"Invalid old password provided for user_id={user_id}")
+            raise HTTPException(status_code=400, detail="Invalid old password.")
 
-        new_hashed_password = PasswordUtil.hash_password(new_password)
-
-        self.repository.update(user_id, {HASHED_PASSWORD_FIELD: new_hashed_password})
+        # Update with new password
+        new_hashed = PasswordUtil.hash_password(new_password)
+        self.repository.update(user_id, {"hashed_password": new_hashed})
         
-        return APIResponse(
-            success=True,
-        )
+        self.logger.info(f"Password successfully changed for user_id={user_id}")
+        return {"message": "Password changed successfully."}
 
     def request_password_reset(self, email: str) -> APIResponse:
         """
